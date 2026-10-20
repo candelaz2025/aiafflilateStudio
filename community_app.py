@@ -24,6 +24,7 @@ from studio_v6.product_discovery import discover, trending_topics
 from studio_v6 import video_service as veo
 from studio_v6 import grok_service as grok
 from studio_v6 import openrouter_service as openrouter
+from studio_v6 import mock_video_service as mock_video
 from studio_v6.shopee_user_import import pasted_preview, report_preview
 from reset_password import temporary_password
 
@@ -44,7 +45,7 @@ OPENROUTER_MODELS = tuple(openrouter.MODELS)
 VIDEO_PROVIDERS = {'gemini': veo, 'xai': grok, 'openrouter': openrouter, 'platform': openrouter}
 VIDEO_LABELS = {'gemini': 'Google Gemini / Veo', 'xai': 'xAI / Grok Imagine', 'openrouter': 'OpenRouter', 'platform': 'ฟรีจากระบบ'}
 PLATFORM_ERROR = 'โหมดฟรีของระบบใช้งานไม่ได้ชั่วคราว กรุณาลองใหม่ภายหลัง'
-VIDEO_ERRORS = (veo.VideoProviderError, grok.VideoProviderError, openrouter.VideoProviderError)
+VIDEO_ERRORS = (veo.VideoProviderError, grok.VideoProviderError, openrouter.VideoProviderError, mock_video.VideoProviderError)
 VEO_MODEL = 'veo-3.1-generate-preview'
 MAX_VIDEO_JOBS_PER_DAY = 3
 # Provider calls time out well within this; a 'submitting' row older than this was orphaned
@@ -631,7 +632,10 @@ def create_app(data_dir=None, secret_key=None):
     platform_period=os.getenv('PLATFORM_QUOTA_PERIOD','month').strip()
     if platform_period not in ('day','month','total'): platform_period='month'
     platform_budget=max(0.0,float(os.getenv('PLATFORM_DAILY_BUDGET_USD','5')))
-    platform_enabled=bool(platform_key and platform_models and platform_limit)
+    # Mock mode (VIDEO_MOCK=1): every job goes to the mock provider; no AI calls, no credits spent.
+    # Free mode works without an owner key so the whole flow, quotas and budget can be tried end to end.
+    video_mock=os.getenv('VIDEO_MOCK','').strip()=='1'
+    platform_enabled=bool((platform_key or video_mock) and platform_models and platform_limit)
 
     def platform_period_start():
         today=datetime.now(timezone.utc).date()
@@ -650,18 +654,19 @@ def create_app(data_dir=None, secret_key=None):
     def video_quota(req: Request):
         u=require_user(req)
         if not platform_enabled:
-            return {'platform':{'enabled':False},'enabled_models':enabled_models}
+            return {'platform':{'enabled':False},'enabled_models':enabled_models,'mock':video_mock,'mock_seconds':mock_video._delay()}
         with connect() as c:
             used=platform_used(c,u['id']);spent=platform_spent_today(c)
         cheapest=min(openrouter.estimated_cost(m,False) for m in platform_models)
-        return {'enabled_models':enabled_models,'platform':{'enabled':True,'limit':platform_limit,'period':platform_period,'used':used,
+        return {'enabled_models':enabled_models,'mock':video_mock,'mock_seconds':mock_video._delay(),'platform':{'enabled':True,'limit':platform_limit,'period':platform_period,'used':used,
                 'remaining':max(0,platform_limit-used),'budget_available':spent+cheapest<=platform_budget,
                 'models':[{'id':m,'est_cost_usd':openrouter.estimated_cost(m,False)} for m in platform_models]}}
 
     def load_api_key(user_id, provider):
         if provider=='platform':
-            if not platform_key: raise HTTPException(503,PLATFORM_ERROR)
-            return platform_key
+            if platform_key: return platform_key
+            if video_mock: return 'mock'
+            raise HTTPException(503,PLATFORM_ERROR)
         row=read('SELECT encrypted FROM credentials WHERE user_id=? AND provider=?',(user_id,provider),True)
         if not row: raise HTTPException(400, 'กรุณาเชื่อม '+VIDEO_LABELS.get(provider,provider)+' API ในเมนู API ของฉันก่อน')
         try: return cipher.decrypt(row['encrypted'].encode()).decode()
@@ -750,7 +755,9 @@ def create_app(data_dir=None, secret_key=None):
         try:
             # Run potentially slow HTTP requests outside the async event loop.
             from starlette.concurrency import run_in_threadpool
-            if provider=='xai':
+            if video_mock:
+                operation=await run_in_threadpool(mock_video.start_video,api_key,final_prompt,reference,mime)
+            elif provider=='xai':
                 operation=await run_in_threadpool(grok.start_video,api_key,final_prompt,reference,mime,model=model,duration=duration)
             elif provider=='openrouter':
                 operation=await run_in_threadpool(openrouter.start_video,api_key,final_prompt,reference,mime,model=model)
@@ -799,7 +806,8 @@ def create_app(data_dir=None, secret_key=None):
         if provider not in VIDEO_PROVIDERS:
             raise HTTPException(400,'ไม่รู้จักผู้ให้บริการที่บันทึกไว้')
         api_key=load_api_key(u['id'],provider)
-        service=VIDEO_PROVIDERS[provider]
+        # Route by job id, so mock jobs still finish after VIDEO_MOCK is switched off.
+        service=mock_video if mock_video.is_mock_job(job['operation_name']) else VIDEO_PROVIDERS[provider]
         try:
             state, uri=service.poll_video(api_key,job['operation_name'])
             if state=='running': return {'id':job_id,'status':'running'}
@@ -896,7 +904,7 @@ def create_app(data_dir=None, secret_key=None):
                 'free_mode':{'enabled':platform_enabled,'models':platform_models,'limit':platform_limit,'period':platform_period,
                              'daily_budget_usd':platform_budget,'spent_today_usd':round(spent_today,2),
                              'clips_this_month':free_month[0],'spent_this_month_usd':round(free_month[1],2)},
-                'enabled_models':enabled_models}
+                'enabled_models':enabled_models,'mock':video_mock}
 
     @app.get('/api/admin/members')
     def admin_members(req:Request):

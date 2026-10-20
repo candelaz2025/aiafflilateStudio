@@ -279,6 +279,8 @@
   async function loadVideoQuota(){
     const quota=await api('/api/my/video-quota');
     platformQuota=quota.platform;enabledModels=quota.enabled_models;
+    const banner=$('mock-banner');banner.hidden=!quota.mock;
+    if(quota.mock)banner.textContent='🧪 โหมดจำลอง · ยังไม่เรียก AI จริงและไม่เสียเงิน · กดตรวจสถานะหลังประมาณ '+quota.mock_seconds+' วินาทีจะได้คลิปตัวอย่าง · ใส่คำว่า MOCK_FAIL ใน Prompt เพื่อลองกรณีสร้างไม่สำเร็จ';
     const select=$('video-provider');let opt=select.querySelector('option[value="platform"]');
     // Hide providers whose models are all switched off for now.
     for(const o of select.options)if(o.value!=='platform')o.hidden=o.disabled=!(enabledModels[o.value]||[]).length;

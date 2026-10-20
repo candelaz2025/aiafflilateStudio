@@ -9,7 +9,9 @@ COPY studio_v6/product_discovery.py ./studio_v6/product_discovery.py
 COPY studio_v6/grok_service.py ./studio_v6/grok_service.py
 COPY studio_v6/openrouter_service.py ./studio_v6/openrouter_service.py
 COPY studio_v6/shopee_user_import.py ./studio_v6/shopee_user_import.py
+COPY studio_v6/mock_video_service.py ./studio_v6/mock_video_service.py
 COPY static/ ./static/
+COPY assets/ ./assets/
 RUN mkdir -p /app/data && chown -R app:app /app
 USER app
 EXPOSE 8010

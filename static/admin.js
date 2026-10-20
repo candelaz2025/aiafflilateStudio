@@ -31,7 +31,7 @@
       stat('ค่าใช้จ่ายฟรี',usd(f.spent_today_usd)+' วันนี้','เพดาน '+usd(f.daily_budget_usd)+'/วัน · เดือนนี้ '+usd(f.spent_this_month_usd)),
     ].join('');
     const models=Object.entries(o.enabled_models).filter(([,m])=>m.length).map(([p,m])=>p+': '+m.join(', ')).join(' · ')||'ไม่มี';
-    $('settings').innerHTML=`โหมดฟรี: <strong>${f.enabled?'เปิด':'ปิด'}</strong>${f.enabled?' · รุ่น '+esc(f.models.join(', ')):' (ยังไม่ได้ใส่ PLATFORM_OPENROUTER_API_KEY)'}<br>รุ่นที่สมาชิกเลือกได้: ${esc(models)}<br>จำนวนที่นั่ง Beta: ${esc(o.seat_limit)}`;
+    $('settings').innerHTML=(o.mock?'🧪 <strong>โหมดจำลองเปิดอยู่ (VIDEO_MOCK=1)</strong> · ไม่เรียก AI จริง ค่าใช้จ่ายด้านบนเป็นตัวเลขจำลอง<br>':'')+`โหมดฟรี: <strong>${f.enabled?'เปิด':'ปิด'}</strong>${f.enabled?' · รุ่น '+esc(f.models.join(', ')):' (ยังไม่ได้ใส่ PLATFORM_OPENROUTER_API_KEY)'}<br>รุ่นที่สมาชิกเลือกได้: ${esc(models)}<br>จำนวนที่นั่ง Beta: ${esc(o.seat_limit)}`;
   }
   function renderMembers(){
     const q=$('search').value.trim().toLowerCase();
