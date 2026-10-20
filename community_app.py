@@ -23,16 +23,27 @@ from urllib.parse import urlsplit
 from studio_v6.product_discovery import discover, trending_topics
 from studio_v6 import video_service as veo
 from studio_v6 import grok_service as grok
+from studio_v6 import openrouter_service as openrouter
 from studio_v6.shopee_user_import import pasted_preview, report_preview
 
 ROOT = Path(__file__).resolve().parent
+try:
+    from dotenv import load_dotenv
+    load_dotenv(ROOT / '.env')
+except ImportError:  # requirements_public.txt does not ship python-dotenv; compose passes env directly
+    pass
 PH = PasswordHasher(time_cost=2, memory_cost=32768, parallelism=2)
 SESSION_DAYS = 7
 MAX_BETA_USERS = max(1, int(os.getenv('MAX_BETA_USERS', '100')))
 REQUIRE_INVITE = os.getenv('BETA_INVITE_CODE', '').strip()
 PUBLIC_MODE = os.getenv('PUBLIC_DEPLOYMENT') == '1'
-PROVIDERS = ('gemini', 'xai', 'brave', 'openai')
+PROVIDERS = ('gemini', 'xai', 'openrouter', 'brave', 'openai')
 GROK_MODELS = grok.MODELS
+OPENROUTER_MODELS = tuple(openrouter.MODELS)
+VIDEO_PROVIDERS = {'gemini': veo, 'xai': grok, 'openrouter': openrouter, 'platform': openrouter}
+VIDEO_LABELS = {'gemini': 'Google Gemini / Veo', 'xai': 'xAI / Grok Imagine', 'openrouter': 'OpenRouter', 'platform': 'ฟรีจากระบบ'}
+PLATFORM_ERROR = 'โหมดฟรีของระบบใช้งานไม่ได้ชั่วคราว กรุณาลองใหม่ภายหลัง'
+VIDEO_ERRORS = (veo.VideoProviderError, grok.VideoProviderError, openrouter.VideoProviderError)
 VEO_MODEL = 'veo-3.1-generate-preview'
 MAX_VIDEO_JOBS_PER_DAY = 3
 # Provider calls time out well within this; a 'submitting' row older than this was orphaned
@@ -255,6 +266,7 @@ def create_app(data_dir=None, secret_key=None):
           status TEXT NOT NULL CHECK(status IN ('submitting','running','ready','failed')),
           file_name TEXT NOT NULL DEFAULT '',
           error_message TEXT NOT NULL DEFAULT '',
+          est_cost_usd REAL NOT NULL DEFAULT 0,
           created_at TEXT NOT NULL,
           checked_at TEXT NOT NULL,
           updated_at TEXT NOT NULL
@@ -273,6 +285,8 @@ def create_app(data_dir=None, secret_key=None):
             db.execute("ALTER TABLE video_jobs ADD COLUMN model TEXT NOT NULL DEFAULT 'veo-3.1-generate-preview'")
         if 'duration' not in video_columns:
             db.execute('ALTER TABLE video_jobs ADD COLUMN duration INTEGER NOT NULL DEFAULT 8')
+        if 'est_cost_usd' not in video_columns:
+            db.execute('ALTER TABLE video_jobs ADD COLUMN est_cost_usd REAL NOT NULL DEFAULT 0')
         # Backfill old V7.4–V7.6 drafts into the usage timeline without deleting data.
         # Deterministic counts/order; rerunning application startup is idempotent.
         db.execute('''INSERT OR IGNORE INTO product_use_events
@@ -531,9 +545,14 @@ def create_app(data_dir=None, secret_key=None):
     def my_connections(req: Request):
         u=require_user(req)
         saved={r['provider'] for r in read('SELECT provider FROM credentials WHERE user_id=?',(u['id'],))}
+        def off(provider):
+            on=enabled_models[provider]
+            if len(on)==len(catalog[provider]): return ''
+            return ' · ตอนนี้เปิดเฉพาะ '+', '.join(on) if on else ' · ปิดใช้งานชั่วคราว'
         return {'providers':[
-            {'id':'gemini','label':'Google Gemini / Veo','configured':'gemini' in saved,'supports':'สร้างวิดีโอแนวตั้ง 8 วินาทีผ่าน Gemini API','enabled':True,'verified':False},
-            {'id':'xai','label':'xAI / Grok Imagine','configured':'xai' in saved,'supports':'สร้างวิดีโอแนวตั้ง 10 วินาที (Lite / 1.5) ผ่าน xAI API','enabled':True,'verified':False},
+            {'id':'gemini','label':'Google Gemini / Veo','configured':'gemini' in saved,'supports':'สร้างวิดีโอแนวตั้ง 8 วินาทีผ่าน Gemini API'+off('gemini'),'enabled':True,'verified':False},
+            {'id':'xai','label':'xAI / Grok Imagine','configured':'xai' in saved,'supports':'สร้างวิดีโอแนวตั้ง 10 วินาที (Lite / 1.5) ผ่าน xAI API'+off('xai'),'enabled':True,'verified':False},
+            {'id':'openrouter','label':'OpenRouter','configured':'openrouter' in saved,'supports':'คีย์เดียวสร้างวิดีโอ 8 วินาทีได้หลายรุ่น (Veo, Grok, Kling, Wan) ผ่าน OpenRouter'+off('openrouter'),'enabled':True,'verified':False},
             {'id':'brave','label':'Brave Search','configured':'brave' in saved,'supports':'ค้นหาหน้าสินค้าภายนอก','enabled':True,'verified':False},
             {'id':'openai','label':'OpenAI','configured':'openai' in saved,'supports':'เก็บคีย์ไว้ใช้กับฟีเจอร์ในอนาคต (ยังไม่เรียกใช้)','enabled':False,'verified':False},
             {'id':'tiktok','label':'TikTok Shop / Creator','configured':False,'supports':'ต้องเชื่อม OAuth และได้รับสิทธิ์เผยแพร่จาก TikTok','enabled':False,'verified':False},
@@ -552,9 +571,60 @@ def create_app(data_dir=None, secret_key=None):
     def stale_submit_cutoff():
         return (datetime.now(timezone.utc)-timedelta(minutes=STALE_SUBMIT_MINUTES)).isoformat(timespec='seconds')
 
+    # Which provider:model pairs members may start now. Default: OpenRouter Veo 3.1 Lite only;
+    # ENABLED_VIDEO_MODELS=all re-opens every model. Jobs already started keep refreshing either way.
+    catalog={'gemini':(VEO_MODEL,),'xai':GROK_MODELS,'openrouter':OPENROUTER_MODELS}
+    enabled_spec=os.getenv('ENABLED_VIDEO_MODELS','openrouter:google/veo-3.1-lite').strip()
+    if enabled_spec=='all':
+        enabled_models={k:list(v) for k,v in catalog.items()}
+    else:
+        enabled_models={k:[] for k in catalog}
+        for item in enabled_spec.split(','):
+            prov,_,mod=item.strip().partition(':')
+            if mod in catalog.get(prov,()) and mod not in enabled_models[prov]:
+                enabled_models[prov].append(mod)
+
+    # Free mode: the owner's OpenRouter key stays on the server; members never see it.
+    platform_key=os.getenv('PLATFORM_OPENROUTER_API_KEY','').strip()
+    platform_models=[m.strip() for m in os.getenv('PLATFORM_MODELS','google/veo-3.1-lite').split(',')
+                     if m.strip() in enabled_models['openrouter']]
+    platform_limit=max(0,int(os.getenv('PLATFORM_CLIPS_PER_USER','3')))
+    platform_period=os.getenv('PLATFORM_QUOTA_PERIOD','month').strip()
+    if platform_period not in ('day','month','total'): platform_period='month'
+    platform_budget=max(0.0,float(os.getenv('PLATFORM_DAILY_BUDGET_USD','5')))
+    platform_enabled=bool(platform_key and platform_models and platform_limit)
+
+    def platform_period_start():
+        today=datetime.now(timezone.utc).date()
+        return {'day':today.isoformat(),'month':today.replace(day=1).isoformat(),'total':''}[platform_period]
+
+    def platform_used(c,user_id):
+        # Failed jobs are not billed by OpenRouter, so they do not use up the member's quota.
+        return c.execute("SELECT COUNT(*) FROM video_jobs WHERE user_id=? AND provider='platform' AND status!='failed' AND created_at>=?",
+                         (user_id,platform_period_start())).fetchone()[0]
+
+    def platform_spent_today(c):
+        return c.execute("SELECT COALESCE(SUM(est_cost_usd),0) FROM video_jobs WHERE provider='platform' AND status!='failed' AND created_at>=?",
+                         (datetime.now(timezone.utc).date().isoformat(),)).fetchone()[0]
+
+    @app.get('/api/my/video-quota')
+    def video_quota(req: Request):
+        u=require_user(req)
+        if not platform_enabled:
+            return {'platform':{'enabled':False},'enabled_models':enabled_models}
+        with connect() as c:
+            used=platform_used(c,u['id']);spent=platform_spent_today(c)
+        cheapest=min(openrouter.estimated_cost(m,False) for m in platform_models)
+        return {'enabled_models':enabled_models,'platform':{'enabled':True,'limit':platform_limit,'period':platform_period,'used':used,
+                'remaining':max(0,platform_limit-used),'budget_available':spent+cheapest<=platform_budget,
+                'models':[{'id':m,'est_cost_usd':openrouter.estimated_cost(m,False)} for m in platform_models]}}
+
     def load_api_key(user_id, provider):
+        if provider=='platform':
+            if not platform_key: raise HTTPException(503,PLATFORM_ERROR)
+            return platform_key
         row=read('SELECT encrypted FROM credentials WHERE user_id=? AND provider=?',(user_id,provider),True)
-        if not row: raise HTTPException(400, 'กรุณาเชื่อม '+('xAI / Grok Imagine' if provider=='xai' else 'Google Gemini / Veo')+' API ในเมนู API ของฉันก่อน')
+        if not row: raise HTTPException(400, 'กรุณาเชื่อม '+VIDEO_LABELS.get(provider,provider)+' API ในเมนู API ของฉันก่อน')
         try: return cipher.decrypt(row['encrypted'].encode()).decode()
         except InvalidToken: raise HTTPException(400,'ถอดรหัสคีย์ไม่ได้ กรุณาบันทึกคีย์ใหม่')
 
@@ -566,16 +636,26 @@ def create_app(data_dir=None, secret_key=None):
                          image: UploadFile | None = File(default=None),
                          x_csrf_token: str | None = Header(default=None)):
         u=mutation(req,x_csrf_token)
-        if not confirm_paid:
+        if not confirm_paid and provider!='platform':
             raise HTTPException(400,'ต้องยืนยันว่าการสร้างวิดีโออาจมีค่าใช้จ่ายตามเครดิต API ก่อน')
         owned=read('SELECT id,prompt FROM drafts WHERE id=? AND user_id=?',(draft_id,u['id']),True)
         if not owned: raise HTTPException(404,'ไม่พบบทของบัญชีนี้')
+        if provider!='platform' and model not in enabled_models.get(provider,()):
+            raise HTTPException(400,'รุ่นนี้ปิดใช้งานชั่วคราว กรุณาเลือก OpenRouter · Veo 3.1 Lite')
         if provider=='gemini' and model==VEO_MODEL:
             duration=8
             service=veo
         elif provider=='xai' and model in GROK_MODELS:
             duration=10
             service=grok
+        elif provider=='openrouter' and model in OPENROUTER_MODELS:
+            duration=openrouter.DURATION
+            service=openrouter
+        elif provider=='platform' and platform_enabled and model in platform_models:
+            duration=openrouter.DURATION
+            service=openrouter
+        elif provider=='platform' and not platform_enabled:
+            raise HTTPException(400,'ระบบยังไม่เปิดโหมดฟรี กรุณาใช้ API key ของคุณเอง')
         else:
             raise HTTPException(400,'ผู้ให้บริการกับโมเดลที่เลือกไม่ตรงกัน')
         api_key=load_api_key(u['id'],provider)
@@ -616,28 +696,43 @@ def create_app(data_dir=None, secret_key=None):
             usage=c.execute("SELECT COUNT(*) FROM video_jobs WHERE user_id=? AND created_at>=?",(u['id'],datetime.now(timezone.utc).date().isoformat())).fetchone()[0]
             if usage>=MAX_VIDEO_JOBS_PER_DAY:
                 raise HTTPException(429,'จำกัดสร้างวิดีโอไม่เกิน 3 ครั้งต่อวันต่อบัญชีใน Beta')
+            est_cost=0.0
+            if provider=='platform':
+                if platform_used(c,u['id'])>=platform_limit:
+                    period={'day':'วันนี้','month':'เดือนนี้','total':''}[platform_period]
+                    raise HTTPException(429,f'ใช้โควตาฟรี{period}ครบ {platform_limit} คลิปแล้ว · ใช้ API key ของคุณเองต่อได้ในเมนู API ของฉัน')
+                est_cost=openrouter.estimated_cost(model,False)
+                if platform_spent_today(c)+est_cost>platform_budget:
+                    raise HTTPException(429,'งบโหมดฟรีของวันนี้หมดแล้ว กรุณาลองใหม่พรุ่งนี้ หรือใช้ API key ของคุณเอง')
             timestamp=now()
-            cur=c.execute("INSERT INTO video_jobs(user_id,draft_id,provider,model,duration,prompt,status,created_at,checked_at,updated_at) VALUES(?,?,?,?,?,?,'submitting',?,?,?)",
-                          (u['id'],draft_id,provider,model,duration,final_prompt,timestamp,timestamp,timestamp))
+            cur=c.execute("INSERT INTO video_jobs(user_id,draft_id,provider,model,duration,prompt,status,est_cost_usd,created_at,checked_at,updated_at) VALUES(?,?,?,?,?,?,'submitting',?,?,?,?)",
+                          (u['id'],draft_id,provider,model,duration,final_prompt,est_cost,timestamp,timestamp,timestamp))
             job_id=cur.lastrowid
         try:
             # Run potentially slow HTTP requests outside the async event loop.
             from starlette.concurrency import run_in_threadpool
             if provider=='xai':
                 operation=await run_in_threadpool(grok.start_video,api_key,final_prompt,reference,mime,model=model,duration=duration)
+            elif provider=='openrouter':
+                operation=await run_in_threadpool(openrouter.start_video,api_key,final_prompt,reference,mime,model=model)
+            elif provider=='platform':
+                # No model audio in free mode: about 40% cheaper, and a Thai voice-over can be added later.
+                operation=await run_in_threadpool(openrouter.start_video,api_key,final_prompt,reference,mime,model=model,audio=False,user=f'aas-{u["id"]}')
             else:
                 operation=await run_in_threadpool(veo.start_video,api_key,final_prompt,reference,mime)
-        except (veo.VideoProviderError, grok.VideoProviderError) as e:
+        except VIDEO_ERRORS as e:
+            # Members must not see the owner's key/credit problems in free mode.
+            error=PLATFORM_ERROR if provider=='platform' and ('คีย์' in str(e) or 'เครดิต' in str(e)) else str(e)[:280]
             with connect() as c:
-                c.execute("UPDATE video_jobs SET status='failed',error_message=?,updated_at=? WHERE id=? AND user_id=?",(str(e)[:280],now(),job_id,u['id']))
-            raise HTTPException(502,str(e))
+                c.execute("UPDATE video_jobs SET status='failed',error_message=?,updated_at=? WHERE id=? AND user_id=?",(error,now(),job_id,u['id']))
+            raise HTTPException(502,error)
         except Exception:
             with connect() as c:
                 c.execute("UPDATE video_jobs SET status='failed',error_message='ไม่สามารถส่งงานไปยังผู้ให้บริการ AI ได้',updated_at=? WHERE id=? AND user_id=?",(now(),job_id,u['id']))
             raise HTTPException(502,'ไม่สามารถส่งงานไปยังผู้ให้บริการ AI ได้')
         with connect() as c:
             c.execute("UPDATE video_jobs SET status='running',operation_name=?,updated_at=? WHERE id=? AND user_id=?",(operation,now(),job_id,u['id']))
-        return {'id':job_id,'status':'running','provider':provider,'model':model,'duration':duration,'notice':'ส่งงานให้ '+('xAI Grok' if provider=='xai' else 'Google Veo')+' แล้ว กรุณาตรวจสถานะตามรอบ (มีค่าใช้จ่ายตาม API ของสมาชิก)'}
+        return {'id':job_id,'status':'running','provider':provider,'model':model,'duration':duration,'notice':'ส่งงานให้ '+VIDEO_LABELS[provider]+' แล้ว กรุณาตรวจสถานะตามรอบ (มีค่าใช้จ่ายตาม API ของสมาชิก)'}
 
     @app.post('/api/my/video-jobs/{job_id}/refresh')
     def refresh_video_job(job_id:int,req:Request,x_csrf_token:str|None=Header(default=None)):
@@ -662,19 +757,19 @@ def create_app(data_dir=None, secret_key=None):
             if changed.rowcount != 1:
                 return {'id':job_id,'status':'running','notice':'กำลังตรวจสถานะอยู่'}
         provider=job['provider']
-        if provider not in ('gemini','xai'):
+        if provider not in VIDEO_PROVIDERS:
             raise HTTPException(400,'ไม่รู้จักผู้ให้บริการที่บันทึกไว้')
         api_key=load_api_key(u['id'],provider)
-        service=grok if provider=='xai' else veo
+        service=VIDEO_PROVIDERS[provider]
         try:
             state, uri=service.poll_video(api_key,job['operation_name'])
             if state=='running': return {'id':job_id,'status':'running'}
             target=data/'videos'/str(u['id'])/f'{job_id}.mp4'
             service.download_video(api_key,uri,target)
             with connect() as c:
-                c.execute("UPDATE video_jobs SET status='ready',file_name=?,updated_at=? WHERE id=? AND user_id=?",(str(target.relative_to(data)),now(),job_id,u['id']))
+                c.execute("UPDATE video_jobs SET status='ready',file_name=?,updated_at=? WHERE id=? AND user_id=?",(target.relative_to(data).as_posix(),now(),job_id,u['id']))
             return {'id':job_id,'status':'ready','video_url':f'/api/my/video-jobs/{job_id}/file'}
-        except (veo.VideoProviderError, grok.VideoProviderError) as e:
+        except VIDEO_ERRORS as e:
             # Transient API errors should be retryable; a provider rejection is terminal.
             error=str(e)[:280]
             if 'เชื่อมต่อ' in error or 'ขัดข้อง' in error or 'ดาวน์โหลด' in error or 'ตรวจสถานะ' in error:

@@ -14,8 +14,38 @@
     if(!r.ok)throw Error(typeof body.detail==='string'?body.detail:'คำขอล้มเหลว '+r.status);
     return body;
   }
+  // Browser validation bubbles follow the browser's language; replace them with Thai for every form.
+  function fieldName(el){
+    const label=el.closest('label');const first=label&&label.firstChild;
+    // Drop trailing hints such as "12 ตัวขึ้นไป..." or "(ไม่จำเป็น)" from the label text.
+    const text=first&&first.nodeType===Node.TEXT_NODE?first.nodeValue.trim().split(/\s+(?=[0-9(])/)[0]:'';
+    return text||'ช่องนี้';
+  }
+  function thaiValidity(el){
+    const v=el.validity;
+    if(v.valueMissing)return el.type==='checkbox'?'กรุณาติ๊กยืนยันก่อนดำเนินการต่อ':el.tagName==='SELECT'?'กรุณาเลือก '+fieldName(el):'กรุณากรอก '+fieldName(el);
+    if(v.typeMismatch&&el.type==='email')return 'อีเมลไม่ถูกต้อง ต้องมีรูปแบบ name@example.com';
+    if(v.typeMismatch&&el.type==='url')return 'ลิงก์ไม่ถูกต้อง ต้องขึ้นต้นด้วย https://';
+    if(v.tooShort)return fieldName(el)+' ต้องมีอย่างน้อย '+el.minLength+' ตัวอักษร (ตอนนี้ '+el.value.length+')';
+    if(v.tooLong)return fieldName(el)+' ยาวได้ไม่เกิน '+el.maxLength+' ตัวอักษร';
+    if(v.rangeUnderflow)return fieldName(el)+' ต้องไม่น้อยกว่า '+el.min;
+    if(v.rangeOverflow)return fieldName(el)+' ต้องไม่เกิน '+el.max;
+    if(v.stepMismatch||v.badInput)return fieldName(el)+' ต้องเป็นตัวเลขที่ถูกต้อง';
+    if(v.patternMismatch)return fieldName(el)+' มีรูปแบบไม่ถูกต้อง';
+    return 'ข้อมูลในช่องนี้ไม่ถูกต้อง';
+  }
+  document.addEventListener('invalid',e=>{
+    const el=e.target;if(!el.setCustomValidity)return;
+    el.setCustomValidity('');
+    if(!el.validity.valid)el.setCustomValidity(thaiValidity(el));
+    el.setAttribute('aria-invalid','true');
+  },true);
+  const clearValidity=e=>{const el=e.target;if(el.setCustomValidity){el.setCustomValidity('');el.removeAttribute('aria-invalid');}};
+  document.addEventListener('input',clearValidity,true);
+  document.addEventListener('change',clearValidity,true);
   function show(){
-    $('auth').hidden=!!me;$('app').hidden=!me;const studioLink=$('studio-top-link');if(studioLink)studioLink.hidden=!(me&&me.role==='admin');
+    $('auth').hidden=!!me;$('app').hidden=!me;
+    const cta=$('hero-cta');cta.textContent=me?'▶ ไปที่พื้นที่ทำงานของฉัน':'✦ สมัครฟรีเพื่อเริ่มใช้งาน';cta.href=me?'#app':'#register';$('signup-hint').hidden=!!me;const studioLink=$('studio-top-link');if(studioLink)studioLink.hidden=!(me&&me.role==='admin');
     $('who').innerHTML=me?`<span>${esc(me.username)}${me.role==='admin'?' (Admin)':''}</span><button id="logout" type="button">ออกจากระบบ</button>`:'';
     if(me)$('logout').addEventListener('click',async()=>{try{await api('/api/logout','POST');me=null;show();msg('ออกจากระบบแล้ว');}catch(e){msg(e.message);}});
   }
@@ -208,7 +238,7 @@
     const containers=$('connectionlist');
     containers.innerHTML=data.providers.map(p=>{
       const info=p.configured?'บันทึกคีย์แล้ว · ยังไม่ได้ทดสอบสิทธิ์':'ยังไม่มีคีย์';
-      const actions=['gemini','xai','brave','openai'].includes(p.id);
+      const actions=['gemini','xai','openrouter','brave','openai'].includes(p.id);
       return `<div class="connection-card"><div class="connection-head"><strong>${esc(p.label)}</strong><span class="status">${p.enabled?(p.configured?esc(info):'ยังไม่เชื่อม'):'ยังไม่รองรับการเชื่อมจริง'}</span></div><p class="meta">${esc(p.supports)}</p>${actions?`<form data-keyprovider="${p.id}"><label>API key ของ ${esc(p.label)}<input name="key" type="password" minlength="8" maxlength="1500" autocomplete="new-password" placeholder="วาง API key ของคุณ" required></label><div class="actions"><button type="submit" class="mini">บันทึกคีย์เข้ารหัส</button>${p.configured?`<button type="button" class="mini secondary" data-delkey="${p.id}">ลบคีย์</button>`:''}</div></form>`:'<p class="hint">ไม่ต้องใส่รหัสผ่านหรือ OTP · ระบบนี้ยังไม่มีช่องทางเชื่อมที่อนุมัติแล้ว</p>'}</div>`;
     }).join('');
   }
@@ -222,27 +252,60 @@
     if(!confirm('ลบคีย์ของบริการนี้ออกจากบัญชี?'))return;
     try{await api('/api/my/keys/'+b.dataset.delkey,'DELETE');await loadKeys();msg('ลบ API key แล้ว');}catch(ex){msg(ex.message);}
   });
+  const videoProviderNames={xai:'Grok Imagine',gemini:'Google Veo',openrouter:'OpenRouter',platform:'ฟรีจากระบบ'};
   async function loadVideos(){
     const jobs=await api('/api/my/video-jobs');
     const labels={submitting:'กำลังส่งคำขอ',running:'กำลังสร้าง',ready:'วิดีโอพร้อมแล้ว',failed:'ไม่สำเร็จ'};
     $('videolist').innerHTML=jobs.length?jobs.map(v=>{
       const path='/api/my/video-jobs/'+v.id+'/file';
-      return `<article class="video-job"><div class="connection-head"><strong>${esc(v.title)}</strong><span class="status">${esc(labels[v.status]||v.status)}</span></div><p class="meta">งาน #${v.id} · ${esc(v.created_at)} · ${esc(v.provider==='xai'?'Grok Imagine':'Google Veo')} ${Number(v.duration)||8} วินาที · ${esc(v.model||'')}</p>${v.error_message?`<p class="error-line">${esc(v.error_message)}</p>`:''}${v.status==='running'?`<button type="button" class="mini secondary" data-refreshvideo="${v.id}">⟳ ตรวจสถานะ</button>`:''}${v.status==='ready'?`<video controls playsinline preload="metadata" src="${path}" width="230" style="max-width:100%;border-radius:12px;display:block"></video><div class="actions"><a class="mini-link" href="${path}" target="_blank" rel="noopener noreferrer">ดูคลิป</a><button type="button" class="mini" data-videoqueue="${v.id}" data-draftid="${v.draft_id}">ส่งเข้าคิวโพสต์</button></div>`:''}</article>`;
+      return `<article class="video-job"><div class="connection-head"><strong>${esc(v.title)}</strong><span class="status">${esc(labels[v.status]||v.status)}</span></div><p class="meta">งาน #${v.id} · ${esc(v.created_at)} · ${esc(videoProviderNames[v.provider]||v.provider)} ${Number(v.duration)||8} วินาที · ${esc(v.model||'')}</p>${v.error_message?`<p class="error-line">${esc(v.error_message)}</p>`:''}${v.status==='running'?`<button type="button" class="mini secondary" data-refreshvideo="${v.id}">⟳ ตรวจสถานะ</button>`:''}${v.status==='ready'?`<video controls playsinline preload="metadata" src="${path}" width="230" style="max-width:100%;border-radius:12px;display:block"></video><div class="actions"><a class="mini-link" href="${path}" target="_blank" rel="noopener noreferrer">ดูคลิป</a><button type="button" class="mini" data-videoqueue="${v.id}" data-draftid="${v.draft_id}">ส่งเข้าคิวโพสต์</button></div>`:''}</article>`;
     }).join(''):'<div class="notice">ยังไม่มีงานสร้างวิดีโอ · สร้างบทรีวิวแล้วเลือกสั่งสร้างจากหน้านี้</div>';
     $('queue-video').innerHTML='<option value="">ไม่มีไฟล์ AI (ใช้ลิงก์แทนได้)</option>'+jobs.filter(v=>v.status==='ready').map(v=>`<option value="${v.id}">${esc('#'+v.id+' — '+v.title)}</option>`).join('');
   }
   async function prepareVideoStudio(){
     const drafts=await api('/api/my/drafts');
     $('video-draft').innerHTML=drafts.length?drafts.map(d=>`<option value="${d.id}">${esc('#'+d.id+' — '+d.title)}</option>`).join(''):'<option value="">กรุณาสร้างบทรีวิวก่อน</option>';
+    await loadVideoQuota();
     await loadVideos();
   }
-  const videoModels={xai:[['grok-imagine-video-1.5-lite','Grok Imagine 1.5 Lite · 10 วินาที'],['grok-imagine-video-1.5','Grok Imagine 1.5 · 10 วินาที']],gemini:[['veo-3.1-generate-preview','Google Veo 3.1 · 8 วินาที']]};
+  // Free mode (owner's server-side OpenRouter key): shown only when the server enables it.
+  let platformQuota={enabled:false};
+  let enabledModels=null; // null until the server answers; then {provider:[model ids]}
+  const periodText={day:'วันนี้',month:'เดือนนี้',total:''};
+  async function loadVideoQuota(){
+    const quota=await api('/api/my/video-quota');
+    platformQuota=quota.platform;enabledModels=quota.enabled_models;
+    const select=$('video-provider');let opt=select.querySelector('option[value="platform"]');
+    // Hide providers whose models are all switched off for now.
+    for(const o of select.options)if(o.value!=='platform')o.hidden=o.disabled=!(enabledModels[o.value]||[]).length;
+    if(select.selectedOptions[0]&&select.selectedOptions[0].disabled){const next=[...select.options].find(o=>!o.disabled);if(next)select.value=next.value;}
+    if(!platformQuota.enabled){if(opt)opt.remove();changeVideoProvider();return;}
+    if(!opt){opt=document.createElement('option');opt.value='platform';opt.defaultSelected=true;select.prepend(opt);select.value='platform';}
+    const out=!platformQuota.remaining||!platformQuota.budget_available;
+    opt.textContent='✦ ฟรีจากระบบ · '+(platformQuota.remaining?'เหลือ '+platformQuota.remaining+'/'+platformQuota.limit+' คลิป'+(periodText[platformQuota.period]||''):'ใช้โควตาครบแล้ว')+(platformQuota.remaining&&!platformQuota.budget_available?' (งบวันนี้หมด)':'');
+    opt.disabled=out;
+    if(out&&select.value==='platform'){const next=[...select.options].find(o=>!o.disabled);if(next)select.value=next.value;}
+    videoModels.platform=platformQuota.models.map(m=>[m.id,((videoModels.openrouter.find(([id])=>id===m.id)||[m.id,m.id])[1]).replace(' · มีเสียง','')+' · ไม่มีเสียง']);
+    changeVideoProvider();
+  }
+  const videoModels={xai:[['grok-imagine-video-1.5-lite','Grok Imagine 1.5 Lite · 10 วินาที'],['grok-imagine-video-1.5','Grok Imagine 1.5 · 10 วินาที']],gemini:[['veo-3.1-generate-preview','Google Veo 3.1 · 8 วินาที']],
+    openrouter:[['google/veo-3.1-lite','Veo 3.1 Lite · 8 วินาที · มีเสียง'],['x-ai/grok-imagine-video-1.5-lite','Grok Imagine 1.5 Lite · 8 วินาที'],['google/veo-3.1-fast','Veo 3.1 Fast · 8 วินาที · มีเสียง'],['alibaba/wan-3.0','Wan 3.0 · 8 วินาที · มีเสียง'],['kwaivgi/kling-v3.0-std','Kling 3.0 Standard · 8 วินาที · มีเสียง']]};
+  // Approximate OpenRouter list price per 8 s 720p clip (Oct 2026); members must check the live price.
+  const openrouterCost={'google/veo-3.1-lite':'$0.40','x-ai/grok-imagine-video-1.5-lite':'$0.24','google/veo-3.1-fast':'$0.80','alibaba/wan-3.0':'$0.80','kwaivgi/kling-v3.0-std':'$1.01'};
+  function changeVideoModel(){
+    const provider=$('video-provider').value,model=$('video-model').value;
+    const paid=$('videoform').elements.confirm_paid;paid.required=provider!=='platform';paid.closest('label').hidden=provider==='platform';
+    if(provider==='platform'){$('video-cost-hint').textContent='ฟรี · ระบบออกค่าใช้จ่ายให้ · เหลือ '+platformQuota.remaining+' คลิป'+(periodText[platformQuota.period]||'')+' · คลิปไม่มีเสียงจากโมเดล ใส่เสียงพากย์/เพลงตอนโพสต์ได้';return;}
+    $('video-cost-hint').textContent=provider==='xai'?'xAI API คิดตามวินาทีและความละเอียด · Lite 720p ตามเอกสารประมาณ $0.30 ต่อ 10 วินาที ไม่รวมค่าอินพุต/ภาษี · ตรวจราคาล่าสุดก่อนสร้าง':provider==='openrouter'?'OpenRouter หักเครดิตที่เติมไว้ล่วงหน้า · รุ่นนี้ประมาณ '+(openrouterCost[model]||'-')+' ต่อคลิป 8 วินาที 720p · ตรวจราคาล่าสุดที่ openrouter.ai ก่อนสร้าง':'Google Veo 8 วินาที · คิดเงินตามราคา API ของ Google ตามโมเดล/สิทธิ์ที่ใช้';
+  }
   function changeVideoProvider(){
     const provider=$('video-provider').value;
-    $('video-model').innerHTML=(videoModels[provider]||[]).map(([v,label])=>`<option value="${v}">${label}</option>`).join('');
-    $('video-cost-hint').textContent=provider==='xai'?'xAI API คิดตามวินาทีและความละเอียด · Lite 720p ตามเอกสารประมาณ $0.30 ต่อ 10 วินาที ไม่รวมค่าอินพุต/ภาษี · ตรวจราคาล่าสุดก่อนสร้าง':'Google Veo 8 วินาที · คิดเงินตามราคา API ของ Google ตามโมเดล/สิทธิ์ที่ใช้';
+    const allowed=provider==='platform'||!enabledModels?null:enabledModels[provider]||[];
+    $('video-model').innerHTML=(videoModels[provider]||[]).filter(([v])=>!allowed||allowed.includes(v)).map(([v,label])=>`<option value="${v}">${label}</option>`).join('');
+    changeVideoModel();
   }
   $('video-provider').addEventListener('change',changeVideoProvider);
+  $('video-model').addEventListener('change',changeVideoModel);
   changeVideoProvider();
   $('videoform').addEventListener('submit',async e=>{
     e.preventDefault();const form=e.target;const b=$('video-start');
@@ -255,7 +318,7 @@
       const r=await fetch('/api/my/video-jobs',{method:'POST',headers:{'X-CSRF-Token':me.csrf},credentials:'same-origin',body:data});
       const body=await r.json().catch(()=>({}));
       if(!r.ok)throw Error(body.detail||'สร้างคลิปไม่สำเร็จ');
-      form.reset();await loadVideos();msg('ส่งงานให้ '+(body.provider==='xai'?'Grok':'Veo')+' แล้ว งาน #'+body.id+' · ตรวจสถานะอีกครั้งหลัง 10–30 วินาที');
+      form.reset();await loadVideoQuota();await loadVideos();msg('ส่งงานให้ '+(videoProviderNames[body.provider]||body.provider)+' แล้ว งาน #'+body.id+' · ตรวจสถานะอีกครั้งหลัง 10–30 วินาที');
     }catch(ex){msg(ex.message);}finally{b.disabled=false;b.textContent='▶ สร้างคลิปด้วย AI ที่เลือก';}
   });
   $('videolist').addEventListener('click',async e=>{
@@ -336,6 +399,7 @@
   });
   api('/api/beta/capacity').then(cap=>{
     $('capacity').textContent='เปิดรับ '+cap.registered+' / '+cap.limit+' บัญชี · เหลือ '+cap.remaining+' สิทธิ์';
+    $('capacity-register').textContent=cap.remaining?'เหลือ '+cap.remaining+' จาก '+cap.limit+' สิทธิ์':'รอบนี้เต็มแล้ว · ติดตามรอบถัดไปที่ Update Center';
     $('invite-field').hidden=!cap.invite_only;
     if(!cap.remaining){const b=$('registerform').querySelector('button[type=submit]');b.disabled=true;b.textContent='รอบ Beta เต็มแล้ว';}
   }).catch(()=>{$('capacity').textContent='ไม่สามารถตรวจสอบจำนวนสิทธิ์';});
