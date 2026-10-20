@@ -355,6 +355,11 @@ def create_app(data_dir=None, secret_key=None):
     def index():
         return FileResponse(ROOT / 'static' / 'index.html')
 
+    @app.get('/admin')
+    def admin_page():
+        # The page is static; every number on it comes from the admin-only APIs below.
+        return FileResponse(ROOT / 'static' / 'admin.html', headers={'Cache-Control':'no-store'})
+
     @app.get('/donate')
     def donate():
         return FileResponse(ROOT / 'static' / 'donate.html')
@@ -810,6 +815,79 @@ def create_app(data_dir=None, secret_key=None):
         u=require_user(req)
         return read('''SELECT id,amount_satang,note,status,created_at,verified_at
                  FROM donation_reports WHERE user_id=? ORDER BY id DESC LIMIT 100''',(u['id'],))
+
+    def require_admin(req):
+        u=require_user(req)
+        if u['role']!='admin':
+            raise HTTPException(403, 'เฉพาะผู้ดูแลระบบ')
+        return u
+
+    def month_start():
+        return datetime.now(timezone.utc).date().replace(day=1).isoformat()
+
+    def admin_member_rows():
+        # Read-only summary. Never select password_hash, session tokens or encrypted keys.
+        rows=read('''SELECT u.id,u.username,u.email,u.role,u.created_at,
+            (SELECT COUNT(*) FROM products p WHERE p.user_id=u.id) AS products,
+            (SELECT COUNT(*) FROM drafts d WHERE d.user_id=u.id) AS drafts,
+            (SELECT COUNT(*) FROM video_jobs v WHERE v.user_id=u.id) AS clips,
+            (SELECT COUNT(*) FROM video_jobs v WHERE v.user_id=u.id AND v.status='ready') AS clips_ready,
+            (SELECT COUNT(*) FROM video_jobs v WHERE v.user_id=u.id AND v.provider='platform' AND v.status!='failed' AND v.created_at>=?) AS free_used,
+            (SELECT COALESCE(SUM(v.est_cost_usd),0) FROM video_jobs v WHERE v.user_id=u.id AND v.provider='platform' AND v.status!='failed' AND v.created_at>=?) AS free_cost_month_usd,
+            (SELECT GROUP_CONCAT(c.provider) FROM credentials c WHERE c.user_id=u.id) AS own_keys,
+            (SELECT MAX(s.expires_at) FROM sessions s WHERE s.user_id=u.id) AS session_expires,
+            (SELECT MAX(v.created_at) FROM video_jobs v WHERE v.user_id=u.id) AS last_clip_at
+            FROM users u ORDER BY u.id''',(platform_period_start(),month_start()))
+        for r in rows:
+            # Sessions last SESSION_DAYS, so the newest expiry dates the most recent sign-in.
+            expires=r.pop('session_expires')
+            r['last_login_at']=((datetime.fromisoformat(expires)-timedelta(days=SESSION_DAYS)).isoformat(timespec='seconds')
+                                if expires else None)
+            r['own_keys']=sorted(set((r['own_keys'] or '').split(',')) - {''})
+            r['free_cost_month_usd']=round(r['free_cost_month_usd'],2)
+            r['free_limit']=platform_limit if platform_enabled else 0
+        return rows
+
+    @app.get('/api/admin/overview')
+    def admin_overview(req:Request):
+        require_admin(req)
+        with connect() as c:
+            members=c.execute('SELECT COUNT(*) FROM users').fetchone()[0]
+            admins=c.execute("SELECT COUNT(*) FROM users WHERE role='admin'").fetchone()[0]
+            jobs={r[0]:r[1] for r in c.execute('SELECT status,COUNT(*) FROM video_jobs GROUP BY status')}
+            free_month=c.execute("SELECT COUNT(*),COALESCE(SUM(est_cost_usd),0) FROM video_jobs WHERE provider='platform' AND status!='failed' AND created_at>=?",
+                                 (month_start(),)).fetchone()
+            spent_today=platform_spent_today(c)
+        return {'members':members,'admins':admins,'seat_limit':MAX_BETA_USERS,'video_jobs':jobs,
+                'free_mode':{'enabled':platform_enabled,'models':platform_models,'limit':platform_limit,'period':platform_period,
+                             'daily_budget_usd':platform_budget,'spent_today_usd':round(spent_today,2),
+                             'clips_this_month':free_month[0],'spent_this_month_usd':round(free_month[1],2)},
+                'enabled_models':enabled_models}
+
+    @app.get('/api/admin/members')
+    def admin_members(req:Request):
+        require_admin(req)
+        return admin_member_rows()
+
+    @app.get('/api/admin/members.csv')
+    def admin_members_csv(req:Request):
+        require_admin(req)
+        import csv, io
+        def cell(v):
+            text=', '.join(v) if isinstance(v,list) else '' if v is None else str(v)
+            # Stop spreadsheet formula injection from member-controlled text.
+            return "'"+text if text[:1] in ('=','+','-','@','\t','\r') else text
+        cols=['id','username','email','role','created_at','last_login_at','products','drafts','clips','clips_ready',
+              'free_used','free_limit','free_cost_month_usd','own_keys','last_clip_at']
+        out=io.StringIO()
+        w=csv.writer(out)
+        w.writerow(cols)
+        for r in admin_member_rows():
+            w.writerow([cell(r[k]) for k in cols])
+        stamp=datetime.now(timezone.utc).strftime('%Y%m%d')
+        # BOM so Excel opens Thai text as UTF-8.
+        return Response('\ufeff'+out.getvalue(),media_type='text/csv; charset=utf-8',
+                        headers={'Content-Disposition':f'attachment; filename="members-{stamp}.csv"','Cache-Control':'no-store'})
 
     @app.get('/api/admin/donation-reports')
     def admin_donation_reports(req:Request):

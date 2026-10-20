@@ -45,7 +45,7 @@
   document.addEventListener('change',clearValidity,true);
   function show(){
     $('auth').hidden=!!me;$('app').hidden=!me;
-    const cta=$('hero-cta');cta.textContent=me?'▶ ไปที่พื้นที่ทำงานของฉัน':'✦ สมัครฟรีเพื่อเริ่มใช้งาน';cta.href=me?'#app':'#register';$('signup-hint').hidden=!!me;const studioLink=$('studio-top-link');if(studioLink)studioLink.hidden=!(me&&me.role==='admin');
+    const cta=$('hero-cta');cta.textContent=me?'▶ ไปที่พื้นที่ทำงานของฉัน':'✦ สมัครฟรีเพื่อเริ่มใช้งาน';cta.href=me?'#app':'#register';$('signup-hint').hidden=!!me;const studioLink=$('studio-top-link');if(studioLink)studioLink.hidden=!(me&&me.role==='admin');$('admin-top-link').hidden=!(me&&me.role==='admin');
     $('who').innerHTML=me?`<span>${esc(me.username)}${me.role==='admin'?' (Admin)':''}</span><button id="logout" type="button">ออกจากระบบ</button>`:'';
     if(me)$('logout').addEventListener('click',async()=>{try{await api('/api/logout','POST');me=null;show();msg('ออกจากระบบแล้ว');}catch(e){msg(e.message);}});
   }
