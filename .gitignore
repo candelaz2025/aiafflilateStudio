@@ -4,9 +4,12 @@ __pycache__/
 .pytest_cache/
 *.pyc
 .env
+.env.local
+.env.*
+!.env.server.example
+!.env.example
 patches/
 .vercel
-.env*
 cookies*.txt
 community.db
 *.db
