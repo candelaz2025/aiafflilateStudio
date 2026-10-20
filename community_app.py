@@ -99,6 +99,10 @@ class IdeaIn(BaseModel):
 class CommentIn(BaseModel):
     body: str = Field(min_length=2, max_length=800)
 
+class PasswordChangeIn(BaseModel):
+    current_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=12, max_length=128)
+
 class KeyIn(BaseModel):
     key: str = Field(min_length=8, max_length=1500)
 
@@ -445,6 +449,26 @@ def create_app(data_dir=None, secret_key=None):
         with connect() as c:
             c.execute('DELETE FROM sessions WHERE token_hash=?',(hashlib.sha256(raw.encode()).hexdigest(),))
         response.delete_cookie('community_session',path='/')
+        return {'ok':True}
+
+    @app.post('/api/my/password')
+    def change_password(body:PasswordChangeIn,req:Request,x_csrf_token:str|None=Header(default=None)):
+        u=mutation(req,x_csrf_token)
+        row=read('SELECT password_hash FROM users WHERE id=?',(u['id'],),True)
+        try:
+            PH.verify(row['password_hash'],body.current_password)
+        except (VerifyMismatchError, VerificationError):
+            raise HTTPException(400,'รหัสผ่านปัจจุบันไม่ถูกต้อง')
+        new=body.new_password
+        if not any(c.isalpha() for c in new) or not any(c.isdigit() for c in new):
+            raise HTTPException(400,'รหัสผ่านต้องมีตัวอักษรและตัวเลข')
+        if new==body.current_password:
+            raise HTTPException(400,'รหัสผ่านใหม่ต้องไม่ซ้ำรหัสเดิม')
+        token_hash=hashlib.sha256(req.cookies.get('community_session','').encode()).hexdigest()
+        with connect() as c:
+            c.execute('UPDATE users SET password_hash=? WHERE id=?',(PH.hash(new),u['id']))
+            # Sign out every other device; keep this one signed in.
+            c.execute('DELETE FROM sessions WHERE user_id=? AND token_hash!=?',(u['id'],token_hash))
         return {'ok':True}
 
     @app.get('/api/ideas')

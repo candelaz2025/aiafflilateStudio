@@ -242,6 +242,10 @@
       return `<div class="connection-card"><div class="connection-head"><strong>${esc(p.label)}</strong><span class="status">${p.enabled?(p.configured?esc(info):'ยังไม่เชื่อม'):'ยังไม่รองรับการเชื่อมจริง'}</span></div><p class="meta">${esc(p.supports)}</p>${actions?`<form data-keyprovider="${p.id}"><label>API key ของ ${esc(p.label)}<input name="key" type="password" minlength="8" maxlength="1500" autocomplete="new-password" placeholder="วาง API key ของคุณ" required></label><div class="actions"><button type="submit" class="mini">บันทึกคีย์เข้ารหัส</button>${p.configured?`<button type="button" class="mini secondary" data-delkey="${p.id}">ลบคีย์</button>`:''}</div></form>`:'<p class="hint">ไม่ต้องใส่รหัสผ่านหรือ OTP · ระบบนี้ยังไม่มีช่องทางเชื่อมที่อนุมัติแล้ว</p>'}</div>`;
     }).join('');
   }
+  $('passwordform').addEventListener('submit',async e=>{
+    e.preventDefault();
+    try{await api('/api/my/password','POST',val(e.target));e.target.reset();msg('เปลี่ยนรหัสผ่านแล้ว · อุปกรณ์อื่นถูกออกจากระบบ');}catch(ex){msg(ex.message);}
+  });
   $('connectionlist').addEventListener('submit',async e=>{
     const form=e.target.closest('[data-keyprovider]');if(!form)return;e.preventDefault();
     const provider=form.dataset.keyprovider,key=form.elements.key.value;
