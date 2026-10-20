@@ -1,0 +1,17 @@
+data
+studio_v6/*
+!studio_v6/product_discovery.py
+!studio_v6/video_service.py
+.venv
+__pycache__
+*.pyc
+*.db
+*.key
+.env
+.env.*
+!.env.server.example
+tests
+.tests*
+.pytest_cache
+.git
+updates/backups

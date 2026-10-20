@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark"><meta name="theme-color" content="#080d1c">
+  <title>Affiliate Auto Studio | Studio (Admin) · Unified</title>
+  <link rel="stylesheet" href="/studio/static/styles.css">
+  <script src="/studio/static/app.js" defer></script>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <a class="brand" href="/studio/" aria-label="Home"><span class="brandmark">✦</span><span><strong>AFFILIATE</strong><small>AUTO STUDIO</small></span></a>
+    <div class="side-overline">WORKSPACE</div>
+    <nav class="nav" aria-label="Sections">
+      <button data-tab="autopilot" class="nav-button active"><span>⚡</span> ออโต้ 24/7</button>
+      <button data-tab="overview" class="nav-button"><span>▦</span> ภาพรวม</button>
+      <button data-tab="external" class="nav-button"><span>◎</span> ค้นหาจากเว็บภายนอก</button>
+      <button data-tab="radar" class="nav-button"><span>⌁</span> ข้อมูลสินค้า Affiliate</button>
+      <button data-tab="products" class="nav-button"><span>▣</span> คลังสินค้า</button>
+      <button data-tab="drafts" class="nav-button"><span>✺</span> สร้างคลิป AI</button>
+      <button data-tab="queue" class="nav-button"><span>◷</span> คิวโพสต์</button>
+      <button data-tab="setup" class="nav-button"><span>⚙</span> ตั้งค่าการเชื่อมต่อ</button>
+    </nav>
+    <div class="sidebar-bottom"><span class="online"></span> Product Radar + Veo <small>คิว TikTok / Shopee</small></div>
+  </aside>
+  <main class="main">
+    <header class="topbar">
+      <div><span class="eyebrow">CONTENT COMMAND CENTER</span><h1>สร้างคลิปขายสินค้า <em>ด้วย AI</em></h1><p class="sub">TikTok Affiliate + Shopee Video · ใช้งานร่วมกับ Google Flow</p></div>
+      <div class="toolbar"><a class="button button-outline" href="/">← Community V7.3</a><span class="pill pill-success">● Studio แอดมิน (ทดสอบ)</span><a class="button button-quiet" href="https://labs.google/fx/tools/flow" target="_blank" rel="noopener noreferrer">เปิด Google Flow ↗</a></div>
+    </header>
+
+    <section id="autopilot" class="tab active">
+      <div class="section-title"><div><span class="eyebrow">AUTO WORKFLOW ENGINE</span>
+        <h2>⚡ ระบบค้นหา → เขียนบท → สร้างคลิป → คิวโพสต์</h2>
+        <p>ทำงานต่อเนื่องขณะเปิดเซิร์ฟเวอร์ · ไม่ถือว่ามีสิทธิ์โพสต์หรือปักตะกร้าโดยอัตโนมัติ</p></div></div>
+      <div class="note">⚠ Google Trends = แนวโน้มค้นหา ไม่ใช่ยอดขาย · ผลค้นหาเว็บเป็นแค่ลิงก์ที่อาจตรงรุ่น · TikTok ต้องอนุมัติการเผยแพร่ทีละคลิป · Shopee ปักตะกร้าและเผยแพร่เองจนกว่าจะมี API ทางการที่เข้าถึงได้</div>
+      <div class="columns">
+        <article class="panel">
+          <div class="horizontal"><div><h3>ศูนย์ควบคุมออโต้</h3><p class="muted" id="auto-running">ตรวจสถานะ...</p></div><span id="auto-live" class="pill">ปิดระบบ</span></div>
+          <form class="form" id="auto-form">
+            <label><input type="checkbox" id="auto-enabled" style="width:auto"> เปิดตัวจัดการงานอัตโนมัติ (ระหว่างที่เซิร์ฟเวอร์ออนไลน์)</label>
+            <label><input type="checkbox" id="auto-discover" style="width:auto"> ค้นหาคำสินค้าที่กำลังเป็นกระแสจาก Google Trends ไทย</label>
+            <label><input type="checkbox" id="auto-prepare" style="width:auto"> เลือกสินค้าที่มีลิงก์จากฟีด/ผู้ใช้ยืนยัน แล้วทำบทรีวิวเอง</label>
+            <label><input type="checkbox" id="auto-generate" style="width:auto"> สร้างวิดีโอด้วย Google Veo API เอง (มีค่าใช้จ่ายจริง)</label>
+            <label><input type="checkbox" id="auto-no-ref" style="width:auto"> ยอมให้ AI สร้างวิดีโอจากชื่อสินค้า แม้ไม่มีรูปอ้างอิง (เสี่ยงสินค้าไม่ตรงรุ่น)</label>
+            <div class="twofields"><label>สร้างบทใหม่ต่อรอบ <input id="auto-max-drafts" type="number" min="1" max="10" value="3"></label>
+            <label>จำกัดคลิปเสียเครดิตต่อวัน <input id="auto-max-videos" type="number" min="0" max="10" value="2"></label></div>
+            <label>สแกนเทรนด์ใหม่ทุก (ชั่วโมง) <input id="auto-hours" type="number" min="1" max="168" value="12"></label>
+            <div class="actions"><button class="button button-primary" type="submit">บันทึกและเปิดใช้ค่าใหม่</button>
+            <button class="button button-outline" type="button" id="auto-now">▶ สั่งทำงานหนึ่งรอบตอนนี้</button></div>
+          </form>
+          <p class="muted">ระบบจะไม่สร้างคลิปโดยใช้เครดิตหากยังไม่ใส่ Gemini API key หรือไม่ได้เปิดสวิตช์ผลิตวิดีโอ</p>
+        </article>
+        <article class="panel">
+          <h3>สถานะการเชื่อมต่อ</h3>
+          <div id="auto-providers" class="list-items"></div>
+          <p class="muted">ใช้ Google Flow ผ่านหน้าเว็บได้เหมือนเดิม แต่ถ้าต้องการสร้างคลิปเองโดยไม่กด ต้องใช้ Gemini Veo API คนละโควตากับเครดิต Flow</p>
+          <h3>ผลค้นหาเว็บที่อาจตรงกับสินค้า</h3>
+          <p class="muted">ค้นผ่าน Brave Search API (ถ้ามี key) ต้องตรวจรุ่นและสิทธิ์ Affiliate ก่อนใช้งาน</p>
+          <div id="auto-possible" class="list-items"></div>
+        </article>
+      </div>
+      <article class="panel">
+        <div class="horizontal"><div><h3>คิวส่ง TikTok ทาง API</h3><p class="muted">ต้องเชื่อม TikTok Login Kit และได้รับ video.publish รวมถึงอนุมัติคลิป/ตั้งค่าความเป็นส่วนตัวทีละโพสต์ ไม่รองรับการปักตะกร้าอัตโนมัติ</p></div><a id="tiktok-login" class="button button-outline" href="/studio/api/tiktok/auth/start">เชื่อม TikTok อย่างเป็นทางการ ↗</a></div>
+        <div class="note" id="tiktok-note">ยังไม่ได้เชื่อมบัญชี TikTok / การโพสต์จะไม่เกิดขึ้นจนกว่าจะอนุมัติ</div>
+        <div class="list-items" id="auto-publish-list"></div>
+        <div class="form" id="auto-approve-panel" hidden>
+          <h3 id="auto-approve-title">ยืนยันคลิปที่จะเผยแพร่</h3>
+          <p id="auto-creator-name" class="muted">ตรวจบัญชี TikTok</p>
+          <label>แคปชั่นที่อนุมัติให้เผยแพร่ <textarea id="auto-approved-caption" rows="3" maxlength="2200" required></textarea></label>
+          <label>ความเป็นส่วนตัว <select id="auto-privacy"></select></label>
+          <label>วันและเวลาโพสต์ <input type="datetime-local" id="auto-post-at" required></label>
+          <label><input id="auto-no-basket-ack" type="checkbox" style="width:auto"> ฉันรับทราบว่าคลิปนี้ยังไม่มีตะกร้าสินค้า การโพสต์ผ่าน Content Posting API ไม่ได้ปักสินค้าให้</label>
+          <label><input id="auto-aigc-ack" type="checkbox" style="width:auto"> ฉันดูคลิปและบทแล้ว อนุญาตให้โพสต์ พร้อมป้าย AI และยืนยันสิทธิ์สื่อที่ใช้</label>
+          <div class="actions"><button id="auto-approve-go" class="button button-primary">ยืนยันคลิปและจัดเวลาโพสต์</button><button id="auto-approve-cancel" class="button button-quiet">ยกเลิก</button></div>
+        </div>
+      </article>
+      <article class="panel"><div class="horizontal"><h3>ประวัติการทำงานจริง</h3><button id="auto-refresh" class="button button-quiet">↻ อัปเดต</button></div>
+         <div id="auto-logs" class="list-items"></div>
+      </article>
+    </section>
+    <section id="overview" class="tab">
+      <div class="stats">
+        <article class="stat"><span>สินค้าในเรดาร์</span><strong id="stat-radar">0</strong><small>ข้อมูลจากแหล่งที่เชื่อมไว้</small></article>
+        <article class="stat"><span>สินค้า</span><strong id="stat-products">0</strong><small>รายการในระบบ</small></article>
+        <article class="stat"><span>บทรีวิว</span><strong id="stat-drafts">0</strong><small>พรอมต์ที่พร้อมใช้</small></article>
+        <article class="stat"><span>วิดีโอ</span><strong id="stat-videos">0</strong><small>ไฟล์ MP4 ที่มีแล้ว</small></article>
+        <article class="stat"><span>งานรอโพสต์</span><strong id="stat-queue">0</strong><small>TikTok / Shopee</small></article>
+      </div>
+      <div class="columns">
+        <article class="panel accent-panel">
+          <div class="panel-heading"><span class="tag">START HERE</span><h2>สร้างคลิปรีวิวใน 4 ขั้นตอน</h2><p>ทำได้ทันทีโดยไม่ต้องเชื่อมบัญชี TikTok หรือ Shopee</p></div>
+          <div class="steps">
+            <div><b>01</b><span><strong>เพิ่มสินค้า</strong><small>ชื่อสินค้า จุดเด่น กลุ่มเป้าหมาย และรูปภาพอ้างอิง</small></span></div>
+            <div><b>02</b><span><strong>สร้างบท + Prompt</strong><small>POV เห็นมือใช้สินค้าจริง แนวตั้ง 9:16 เสียงพากย์ไทย</small></span></div>
+            <div><b>03</b><span><strong>ส่งไป Google Flow</strong><small>คัดลอกพรอมต์ เปิด Flow สร้างคลิป แล้วดาวน์โหลด MP4</small></span></div>
+            <div><b>04</b><span><strong>นำกลับมาจัดคิว</strong><small>ตรวจคลิปและโพสต์เองใน TikTok หรือ Shopee</small></span></div>
+          </div>
+          <button class="button button-primary" data-goto="external">◎ ค้นหาสินค้าเว็บภายนอก →</button>
+        </article>
+        <article class="panel">
+          <div class="panel-heading"><span class="tag tag-violet">GOOGLE FLOW</span><h2>สถานะการเชื่อมต่อ</h2><p>เลือกวิธีผลิตวิดีโอได้ 2 ทาง</p></div>
+          <div class="mode"><span class="modeicon">↗</span><div><b>Flow เว็บไซต์ <span class="soft-pill">พร้อมใช้</span></b><p>คัดลอกพรอมต์จากระบบไปสร้างคลิปใน Flow โดยตรง ใช้เครดิต Flow ตามบัญชี Google ของนาย</p></div></div>
+          <div class="mode"><span class="modeicon violet">✧</span><div><b>Gemini Veo API <span class="soft-pill" id="api-mode-pill">ยังไม่ตั้งค่า</span></b><p>โหมดสั่งสร้างอัตโนมัติด้วยโมเดลตระกูลเดียวกับใน Flow แต่คิดค่าบริการ API แยกต่างหาก</p></div></div>
+          <div class="note">⚠️ TikTok ทำคิวส่งอัตโนมัติได้หลังผู้ใช้อนุมัติแต่ละคลิปและได้รับสิทธิ์ API; ยังปักตะกร้าไม่ได้ และ Shopee ยังไม่มีการโพสต์ผ่าน API ในรุ่นนี้ และไม่ต้องให้รหัสผ่าน TikTok/Shopee กับระบบ</div>
+        </article>
+      </div>
+      <article class="panel compact"><div class="horizontal"><div><h2>ฟอร์แมตคลิปที่ตั้งไว้</h2><p class="muted">ใช้ภาพสินค้าเป็นข้อมูลอ้างอิงเท่านั้น ไม่เอารูปหน้าร้านมาเป็นภาพเปิดหรือเฟรมค้าง</p></div><div class="chips"><span>9:16</span><span>8 วินาที (Veo API)</span><span>POV</span><span>พากย์ไทย</span><span>UGC สมจริง</span></div></div></article>
+    </section>
+    <section id="external" class="tab">
+      <div class="section-title"><div><span class="eyebrow">EXTERNAL PRODUCT DISCOVERY</span><h2>◎ ค้นหาสินค้าน่าสนใจจากเว็บภายนอก</h2><p>ไม่ต้องเชื่อม TikTok / Shopee API · ค้นจาก Google Trends, บทความข่าวสินค้าสาธารณะ และไอเดียสำรองเมื่อไม่มีผล · แยกจากยอดขายจริง</p></div></div>
+      <div class="note" style="margin-bottom:18px">Google Trends รายงานกระแสการค้นหา ไม่ใช่ยอดขายจริง · ระบบไม่ยืนยันว่ามีสินค้าในแพลตฟอร์มจนกว่าจะเปิดตรวจและบันทึกลิงก์เอง · ต้องเช็กสิทธิ์ Affiliate/ค่าคอมจากบัญชีของตนก่อนโพสต์</div>
+      <div class="columns">
+        <article class="panel">
+          <div class="horizontal"><div><h3>สแกนเทรนด์ไทย</h3><p class="muted">ลอง Google Trends ก่อน ตามด้วยบทความข่าวสินค้า และหัวข้อสำรองในกรณีที่ไม่มีข้อมูลตรงเงื่อนไข</p></div><button class="button button-primary" id="external-scan">◎ สแกนตอนนี้</button></div>
+          <p id="external-last" class="muted">ยังไม่เคยสแกน</p>
+          <p class="muted">สินค้าที่ไม่ปรากฏในเทรนด์สดอาจขายดีได้เช่นกัน แนะนำดูข้อมูลจาก <a href="https://www.amazon.com/Best-Sellers/zgbs" target="_blank" rel="noopener noreferrer">Amazon Best Sellers ↗</a> และ <a href="https://trends.google.com/trending?geo=TH" target="_blank" rel="noopener noreferrer">Google Trends ไทย ↗</a> แล้วบันทึกสินค้าที่สนใจพร้อมแหล่งที่มา</p>
+        </article>
+        <article class="panel">
+          <h3>เพิ่มสินค้าจากเว็บภายนอก</h3>
+          <form class="form" id="external-add-form">
+            <label>ชื่อสินค้าที่พบ <input name="title" minlength="2" maxlength="150" placeholder="เช่น เครื่องดูดฝุ่นไร้สาย รุ่น..." required></label>
+            <label>เว็บไซต์ที่พบ <input name="source_name" maxlength="140" placeholder="เช่น Amazon Best Sellers"></label>
+            <label>ลิงก์หน้าแหล่งข้อมูล HTTPS <input name="source_url" type="url" required placeholder="https://..."></label>
+            <label>หมวดหมู่ <input name="category" maxlength="130" placeholder="เช่น เครื่องใช้ในบ้าน"></label>
+            <button class="button button-outline">+ เพิ่มเข้ารายการตรวจสอบ</button>
+          </form>
+          <p class="muted">หรือ <label style="display:inline">นำเข้า CSV <input id="external-import-csv" type="file" accept=".csv,text/csv" style="max-width:220px"></label> <button class="button button-quiet" id="external-import-button" type="button">นำเข้า</button></p>
+          <p class="muted">รูปแบบไฟล์: <code>title,source_name,source_url,category</code> — ต้องมีลิงก์หลักฐานของแต่ละรายการ</p>
+        </article>
+      </div>
+      <article class="panel">
+        <div class="horizontal"><div><h3>รายการที่ค้นพบ</h3><p class="muted">ตรวจชื่อสินค้าและรุ่นให้ตรงกันก่อนเลือกทำคลิป · คะแนนบ่งชี้กระแส ไม่ใช่การคาดการณ์ยอดขาย</p></div><span class="pill" id="external-count">0 รายการ</span></div>
+        <div class="radar-filters"><label>ค้นหาชื่อ <input id="external-query" maxlength="100" placeholder="ชื่อสินค้าหรือหมวดหมู่"></label>
+          <label>สถานะ <select id="external-state"><option value="all">ทั้งหมด</option><option value="unreviewed">ยังไม่ตรวจพบสินค้าในแอป</option><option value="matched">ตรวจพบในแอปแล้ว (ผู้ใช้ยืนยัน)</option></select></label>
+          <button class="button button-outline" id="external-filter">กรอง</button></div>
+        <div id="external-list" class="radar-results"><p class="empty">กดสแกนเพื่อค้นหาคำสินค้าที่เป็นกระแส หรือเพิ่มรายการจากแหล่งภายนอกก่อน</p></div>
+      </article>
+      <article class="panel" id="external-check-panel" hidden>
+        <div class="horizontal"><div><h3>ตรวจสินค้าใน TikTok / Shopee</h3><p class="muted" id="external-selection">เลือกรายการสินค้า</p></div><button class="button button-quiet" id="external-cancel">ปิด</button></div>
+        <p class="muted">กดค้นหา แล้วเปิดดูสินค้ารุ่นที่ตรงกันในแพลตฟอร์มของนาย ตรวจว่าปักตะกร้าได้และมีค่าคอมก่อนกดยืนยัน</p>
+        <div class="actions" style="margin-bottom:12px"><a class="button button-outline" id="external-tiktok-search" target="_blank" rel="noopener noreferrer">ค้นหา TikTok Shop ↗</a><a class="button button-outline" id="external-shopee-search" target="_blank" rel="noopener noreferrer">ค้นหา Shopee ↗</a></div>
+        <form id="external-match-form" class="form">
+          <label>ลิงก์สินค้าบน TikTok <input id="external-tiktok-link" placeholder="https://shop.tiktok.com/th/..."></label>
+          <label><input type="checkbox" id="external-tiktok-confirm" style="width:auto"> ฉันตรวจแล้วว่ามีสินค้าและบัญชีฉันเลือกปักตะกร้าสินค้านี้ได้บน TikTok</label>
+          <label>ลิงก์สินค้าบน Shopee <input id="external-shopee-link" placeholder="https://shopee.co.th/..."></label>
+          <label><input type="checkbox" id="external-shopee-confirm" style="width:auto"> ฉันตรวจแล้วว่ามีสินค้าและบัญชีฉันเลือกปักตะกร้าสินค้านี้ได้บน Shopee</label>
+          <label>ข้อมูล/จุดเด่นที่ตรวจสอบได้ <textarea id="external-features" rows="2" maxlength="700" placeholder="ใส่เฉพาะสเปกหรือข้อมูลที่ตรวจสอบได้จากหน้าสินค้า"></textarea></label>
+          <label>กลุ่มเป้าหมาย <input id="external-audience" maxlength="200" placeholder="เช่น คนอยู่คอนโด"></label>
+          <div class="actions"><button class="button button-outline" type="submit">บันทึกผลการตรวจสอบ</button><button class="button button-primary" id="external-prepare" type="button">สร้างบทรีวิว + ส่งต่อ Google Flow →</button></div>
+        </form>
+        <div class="note">ปุ่มนี้สร้างเฉพาะสคริปต์ พรอมต์ และคิวสำหรับแพลตฟอร์มที่ยืนยันแล้ว ไม่ได้โพสต์หรือปักตะกร้าให้อัตโนมัติ</div>
+      </article>
+    </section>
+    <section id="setup" class="tab">
+      <div class="section-title"><div><span class="eyebrow">LOCAL ACCOUNT SETUP</span><h2>⚙ ตั้งค่าการเชื่อมต่อ</h2><p>กรอกคีย์จากคอมพิวเตอร์เครื่องนี้เท่านั้น · ระบบไม่แสดงค่าคีย์ที่บันทึกแล้ว</p></div></div>
+      <div class="note">Google Flow ใช้งานผ่านเว็บไซต์แยกจาก Gemini Veo API · หากต้องการให้ระบบสั่งสร้างคลิปเอง ต้องมี Gemini API key ที่มีสิทธิ์ใช้งานและอาจมีค่าใช้จ่าย · TikTok โพสต์ต้องได้สิทธิ์ video.publish · Shopee Video / ตะกร้าอัตโนมัติยังไม่รองรับในรุ่นนี้</div>
+      <article class="panel"><h3>สถานะบริการ</h3><p id="setup-status">กำลังตรวจสอบ...</p>
+      <form class="form" id="setup-form">
+        <label>Gemini / Veo API key <input type="password" name="gemini_api_key" autocomplete="off" placeholder="เว้นว่างหากยังไม่มี หรือเพื่อคงค่าเดิม"></label>
+        <label>Brave Search API key (ทางเลือก ใช้ค้นลิงก์ที่อาจตรงสินค้า) <input type="password" name="brave_search_api_key" autocomplete="off" placeholder="ทางเลือก — ไม่จำเป็นสำหรับไอเดียเริ่มต้น"></label>
+        <label>OpenAI API key (ทางเลือก ใช้ช่วยเขียนบท) <input type="password" name="openai_api_key" autocomplete="off" placeholder="ทางเลือก — มีบทเทมเพลตฟรีอยู่แล้ว"></label>
+        <button class="button button-primary" type="submit">บันทึกคีย์บนคอมพิวเตอร์นี้</button>
+      </form>
+      <p class="muted">⚠ ห้ามส่งภาพคีย์ รหัสผ่าน หรือ OTP ให้ผู้อื่น · ตั้งค่า TikTok Developer OAuth ต้องใช้สิทธิ์และ Redirect HTTPS ที่ลงทะเบียน · <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">Google AI Studio API key ↗</a></p>
+      </article>
+    </section>
+    <section id="radar" class="tab">
+      <div class="section-title"><div><span class="eyebrow">PRODUCT INTELLIGENCE</span><h2>⌁ เรดาร์ค้นหาสินค้าขายดี</h2><p>คัดสินค้าจากข้อมูลที่เชื่อมต่อหรือไฟล์ CSV แล้วจัดอันดับตามตัวเลขที่มีจริง — ไม่สร้างยอดขายขึ้นมาเอง</p></div></div>
+      <div class="columns">
+        <article class="panel">
+          <div class="horizontal"><div><h3>แหล่งข้อมูลสินค้า</h3><p class="muted">เมื่อได้รับสิทธิ์ฟีดจากผู้ให้บริการ จึงสแกนข้อมูลใหม่ได้อัตโนมัติ</p></div><button class="button button-outline" id="radar-sync">↻ สแกนจากฟีดตอนนี้</button></div>
+          <div class="radar-connections"><div><span class="platform">TikTok Affiliate</span><b id="radar-tiktok-status">ยังไม่เชื่อม</b></div><div><span class="platform shopee">Shopee Affiliate</span><b id="radar-shopee-status">ยังไม่เชื่อม</b></div></div>
+          <p class="muted" id="radar-last-scan">ยังไม่เคยสแกนข้อมูล</p>
+          <div class="note" id="radar-warning">ยังไม่มีข้อมูลยอดขายเรียลไทม์ ต้องเชื่อม API/ฟีดที่ได้รับอนุญาต หรือนำเข้าไฟล์ข้อมูลก่อน</div>
+        </article>
+        <article class="panel">
+          <h3>นำเข้าข้อมูลสินค้าจาก CSV</h3>
+          <p class="muted">สำหรับเริ่มใช้งานระหว่างรอสิทธิ์ API รองรับคอลัมน์ title, price, commission_pct, units_sold_30d, rating, reviews, url, category, features</p>
+          <form id="radar-import-form" class="form">
+            <label>เลือกแพลตฟอร์ม <select id="radar-import-platform"><option value="tiktok">TikTok Affiliate</option><option value="shopee">Shopee Affiliate</option></select></label>
+            <label>ไฟล์ CSV (UTF-8) <input type="file" id="radar-csv" accept=".csv,text/csv" required></label>
+            <button class="button button-primary" type="submit">นำเข้าและจัดอันดับสินค้า</button>
+          </form>
+          <p class="muted" style="margin:12px 0 0"><a href="/studio/static/radar_sample.csv" download style="color:#7ddcd4">↓ ดาวน์โหลดไฟล์แม่แบบ CSV</a></p>
+        </article>
+      </div>
+      <article class="panel">
+        <div class="horizontal"><div><h3>สินค้าน่าสนใจตามข้อมูลที่มี</h3><p class="muted">คะแนน 0–100 เป็นคะแนนช่วยคัดเลือก ไม่ใช่เปอร์เซ็นต์โอกาสขายสำเร็จ · ตัวเลขยอดขายอ้างอิงจากฟีด/ไฟล์ที่ได้รับมา</p></div><button class="button button-primary" id="radar-prepare-top">✦ เตรียมบท 3 สินค้าอันดับแรก</button></div>
+        <div class="radar-filters">
+          <label>แพลตฟอร์ม <select id="radar-platform"><option value="all">ทุกแพลตฟอร์ม</option><option value="tiktok">TikTok</option><option value="shopee">Shopee</option></select></label>
+          <label>ยอดขายขั้นต่ำ <select id="radar-min-sales"><option value="0">ทั้งหมด</option><option value="100">100+</option><option value="1000">1,000+</option><option value="10000">10,000+</option></select></label>
+          <label>ค่าคอมขั้นต่ำ <select id="radar-min-commission"><option value="0">ทั้งหมด</option><option value="5">5%</option><option value="10">10%</option><option value="15">15%</option><option value="20">20%</option></select></label>
+          <label>ค้นหา <input id="radar-query" placeholder="ชื่อสินค้า / หมวดหมู่" maxlength="100"></label>
+          <button class="button button-outline" id="radar-filter" type="button">ค้นหา</button>
+        </div>
+        <div id="radar-results" class="radar-results"><p class="empty">ยังไม่มีข้อมูลสินค้า เชื่อมฟีดหรือนำเข้า CSV ก่อน</p></div>
+        <div class="note" style="margin-top:12px">การเตรียมบทสร้างเฉพาะ Script + Flow Prompt + คิวตรวจสอบเท่านั้น ไม่เสียเครดิตสร้างวิดีโอ ไม่โพสต์ ไม่ปักตะกร้าเอง และไม่รับรองว่ายอดขายหรือค่าคอมจะคงเดิม</div>
+      </article>
+    </section>
+    <section id="products" class="tab">
+      <div class="section-title"><div><span class="eyebrow">STEP 01</span><h2>คลังสินค้า</h2><p>กรอกเฉพาะข้อมูลจริง เพื่อไม่ให้ AI แต่งสรรพคุณเกินจริง</p></div></div>
+      <div class="columns">
+        <article class="panel"><h3>เพิ่มสินค้าใหม่</h3>
+          <form id="product-form" class="form">
+            <label>ชื่อสินค้า <input name="title" maxlength="120" minlength="2" required placeholder="เช่น กระบอกน้ำเก็บอุณหภูมิ"></label>
+            <div class="twofields"><label>ราคา (ไม่บังคับ) <input name="price" maxlength="80" placeholder="เช่น 199 บาท"></label><label>กลุ่มเป้าหมาย <input name="audience" maxlength="300" placeholder="เช่น คนทำงานออฟฟิศ"></label></div>
+            <label>จุดเด่นหรือข้อมูลสินค้าที่ตรวจสอบได้ <textarea name="features" rows="3" maxlength="1000" placeholder="เขียนทีละบรรทัด เช่น วัสดุสแตนเลส / มีฝาปิด"></textarea></label>
+            <div class="twofields"><label>ลิงก์ TikTok สินค้า <input name="tiktok_link" inputmode="url" placeholder="https://..."></label><label>ลิงก์ Shopee สินค้า <input name="shopee_link" inputmode="url" placeholder="https://..."></label></div>
+            <label>ภาพอ้างอิงสินค้า <input id="new-reference" name="reference" type="file" accept="image/jpeg,image/png,image/webp"><small>ใช้เป็นตัวอย่างลักษณะสินค้า ไม่ใช้เป็นเฟรมเปิดหรือภาพนิ่งในวิดีโอ</small></label>
+            <button class="button button-primary" type="submit">บันทึกสินค้า +</button>
+          </form>
+        </article>
+        <article class="panel"><div class="panel-heading"><h3>สินค้าในระบบ</h3><p>เลือกสินค้าเพื่อเริ่มสร้างบทรีวิวได้เลย</p></div><div id="product-list" class="list-items"><p class="empty">ยังไม่มีสินค้า ลองเพิ่มสินค้าแรกทางซ้าย</p></div></article>
+      </div>
+    </section>
+    <section id="drafts" class="tab">
+      <div class="section-title"><div><span class="eyebrow">STEP 02 & 03</span><h2>AI Video Creator</h2><p>สร้างบทและพรอมต์พร้อมส่งต่อให้ Google Flow</p></div></div>
+      <article class="panel compact"><form id="draft-form" class="create-row"><label>เลือกสินค้า <select id="product-select" required><option value="">เลือกสินค้าก่อน</option></select></label><div><small>สร้างคิวลงทั้งสองช่องทาง</small><div class="chips"><span>TikTok</span><span>Shopee</span></div></div><button class="button button-primary" type="submit">✦ สร้างบทรีวิว</button></form></article>
+      <div class="columns big-left">
+        <article class="panel"><div class="horizontal"><h3>บทรีวิว + Flow Prompt</h3><span class="tag" id="draft-selected">ยังไม่เลือกบท</span></div>
+          <p id="draft-empty" class="empty">เลือกสินค้าแล้วกด “สร้างบทรีวิว” เพื่อเริ่มต้น</p>
+          <div id="draft-editor" hidden>
+            <div class="form">
+              <label>Hook เรียกความสนใจ <input id="field-hook" maxlength="200"></label>
+              <label>บทพูดภาษาไทย <textarea id="field-voiceover" rows="3" maxlength="2000"></textarea></label>
+              <label>ข้อความบนคลิป <input id="field-onscreen" maxlength="200"></label>
+              <label>แคปชั่น + แฮชแท็ก <textarea id="field-caption" rows="3" maxlength="2200"></textarea></label>
+              <label>Flow Prompt (ภาษาอังกฤษ) <textarea id="field-prompt" class="code-input" rows="10" maxlength="4000"></textarea></label>
+              <div class="actions"><button id="save-draft" class="button button-quiet" type="button">บันทึกการแก้ไข</button><button id="copy-prompt" class="button button-primary" type="button">⧉ คัดลอก Prompt</button><a id="flow-open" class="button button-outline" href="https://labs.google/fx/tools/flow" target="_blank" rel="noopener noreferrer">เปิด Google Flow ↗</a></div>
+            </div>
+            <div class="divider"></div>
+            <h3>รับคลิปที่สร้างจาก Flow</h3><p class="muted">นำพรอมต์ไปใส่ใน Flow พร้อมแนบภาพอ้างอิง จากนั้นดาวน์โหลด MP4 และนำกลับเข้าระบบ</p>
+            <form id="import-flow-form" class="import-row"><input id="flow-video-file" type="file" accept="video/mp4,video/quicktime,video/webm" required><button class="button button-outline" type="submit">นำเข้าคลิป MP4</button></form>
+            <div id="video-spot" class="video-spot" hidden><video id="preview-video" controls playsinline preload="metadata"></video><a class="button button-outline" id="video-download" download>ดาวน์โหลดคลิป</a></div>
+            <div class="divider"></div>
+            <div class="mode"><span class="modeicon violet">✧</span><div><b>ตัวเลือก: สร้างอัตโนมัติผ่าน Gemini Omni API</b><p>ต้องใส่ GEMINI_API_KEY บนเซิร์ฟเวอร์ก่อน ปุ่มนี้อาจมีค่าใช้จ่ายจริงต่อการสร้างหนึ่งครั้ง และไม่ใช้เครดิต Flow</p><button id="omni-create" class="button button-quiet" type="button">สร้างวิดีโอด้วย API (มีค่าใช้จ่าย)</button></div></div>
+          </div>
+        </article>
+        <article class="panel"><h3>บทรีวิวที่สร้างแล้ว</h3><p class="muted">เลือกเพื่อแก้ไข คัดลอกไป Flow หรือแนบคลิป</p><div id="draft-list" class="list-items"><p class="empty">ยังไม่มีบทรีวิว</p></div>
+          <div class="divider"></div><h3>คำแนะนำสำหรับ Flow</h3><ol class="instructions"><li>เลือกโมเดล Gemini Omni Flash เพื่อให้ได้คลิป 10 วินาที</li><li>ตั้งแนวตั้ง 9:16 และแนบภาพสินค้าเป็น Reference เท่านั้น</li><li>วางพรอมต์ ตรวจสอบผลลัพธ์แล้วดาวน์โหลด MP4</li><li>กลับมาใช้ปุ่มนำเข้าคลิปเพื่อบันทึกงาน</li></ol></article>
+      </div>
+    </section>
+    <section id="queue" class="tab">
+      <div class="section-title"><div><span class="eyebrow">STEP 04</span><h2>คิวโพสต์ TikTok & Shopee</h2><p>หนึ่งบทรีวิวแยกเป็นสองคิวงาน พร้อมสถานะและลิงก์โพสต์จริง</p></div></div>
+      <article class="panel"><div class="horizontal"><div><h3>จัดการคิว</h3><p class="muted">การกด “โพสต์แล้ว” เป็นการบันทึกผลที่นายไปโพสต์เอง ไม่ได้เผยแพร่จากระบบ</p></div><button id="refresh-queue" class="button button-quiet">↻ รีเฟรช</button></div><div id="queue-list" class="queue-list"><p class="empty">ยังไม่มีคิว</p></div></article>
+      <div class="note" style="margin-top:14px">โปรดตรวจว่าคลิปเป็นไปตามข้อกำหนด AI-generated content ของแพลตฟอร์ม และตรวจสอบลิงก์ตะกร้าภายใน TikTok/Shopee ก่อนเผยแพร่</div>
+    </section>
+    <footer>Affiliate Auto Studio · Flow integration MVP · ข้อมูลเก็บบนเซิร์ฟเวอร์ที่เรียกใช้แอปนี้</footer>
+  </main>
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

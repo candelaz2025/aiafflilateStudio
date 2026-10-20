@@ -1,0 +1,35 @@
+# Virtual environment & python caches
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Local data & generated outputs (Vercel uses /tmp)
+auto_studio/output/
+auto_studio/data/
+data/
+
+# macOS native desktop bundles
+AIStudio.app/
+AppIcon.icns
+.DS_Store
+
+# Testing and legacy files
+tests/
+tests_beta/
+tests_unified/
+tests_auto_studio/
+developer_tools/
+affiliate-auto-studio-master.zip
+studio_v6/
+community_app.py
+updater.py
+promote_admin.py
+
+# Git
+.git/
+.gitignore

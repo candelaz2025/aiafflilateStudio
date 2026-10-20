@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Studio Pro — Auto Gen Video, Drama AI, UGC, Meta AI & Google Flow</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+Thai:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="mac-app-theme">
+  <!-- Window Titlebar for macOS Native Feel -->
+  <header class="mac-titlebar">
+    <div class="window-controls">
+      <span class="control close"></span>
+      <span class="control minimize"></span>
+      <span class="control zoom"></span>
+    </div>
+    <div class="app-branding">
+      <div class="app-logo">✦</div>
+      <div class="app-name">AI Studio Pro <span class="version-tag">macOS Desktop</span></div>
+    </div>
+    <div class="header-status">
+      <button class="btn btn-xs btn-templates" onclick="openTemplatesModal()">
+        📚 คลังเทมเพลต (30 แบบ)
+      </button>
+      <div class="engine-badge google" title="Google Flow / Veo Engine">
+        <span class="dot"></span> Google Flow
+      </div>
+      <div class="engine-badge meta" id="headerMetaBadge" title="Meta AI Movie Gen Engine">
+        <span class="dot"></span> Meta AI
+      </div>
+      <button id="workerToggleBtn" class="worker-btn running" onclick="toggleWorker()">
+        <span class="pulse"></span> Auto Worker: <strong id="workerStateText">ON</strong>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <div class="app-layout">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <nav class="nav-menu">
+        <button class="nav-item active" data-tab="tab-dashboard" onclick="switchTab('tab-dashboard')">
+          <span class="nav-icon">⌂</span>
+          <span class="nav-label">แดชบอร์ด & สถานะ</span>
+        </button>
+        <button class="nav-item" data-tab="tab-workflow" onclick="switchTab('tab-workflow')">
+          <span class="nav-icon">⚡</span>
+          <span class="nav-label">โชว์การทำงานสด</span>
+        </button>
+        <button class="nav-item" data-tab="tab-storyboard" onclick="switchTab('tab-storyboard')">
+          <span class="nav-icon">🎨</span>
+          <span class="nav-label">Storyboard & ภาพ AI</span>
+        </button>
+        <button class="nav-item" data-tab="tab-drama" onclick="switchTab('tab-drama')">
+          <span class="nav-icon">🎬</span>
+          <span class="nav-label">Drama AI Studio</span>
+        </button>
+        <button class="nav-item" data-tab="tab-ugc" onclick="switchTab('tab-ugc')">
+          <span class="nav-icon">✨</span>
+          <span class="nav-label">UGC Creator AI</span>
+        </button>
+        <button class="nav-item" data-tab="tab-prompt" onclick="switchTab('tab-prompt')">
+          <span class="nav-icon">💡</span>
+          <span class="nav-label">ช่วยคิด Prompt</span>
+        </button>
+        <button class="nav-item" data-tab="tab-calendar" onclick="switchTab('tab-calendar')">
+          <span class="nav-icon">📅</span>
+          <span class="nav-label">Calendar สร้างแผน</span>
+        </button>
+        <button class="nav-item" data-tab="tab-queue" onclick="switchTab('tab-queue')">
+          <span class="nav-icon">▦</span>
+          <span class="nav-label">ระบบจัดคิว</span>
+          <span class="badge" id="queueBadge">0</span>
+        </button>
+        <button class="nav-item" data-tab="tab-settings" onclick="switchTab('tab-settings')">
+          <span class="nav-icon">⚙</span>
+          <span class="nav-label">ตั้งค่า & Cookie Meta</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="quick-sample">
+          <span>ทดสอบสร้างคลิปทันที:</span>
+          <div class="sample-btn-group">
+            <button onclick="triggerSampleTest('google_flow')" class="btn-xs google">Google Veo</button>
+            <button onclick="triggerSampleTest('meta_ai')" class="btn-xs meta">Meta AI</button>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Content Workspace -->
+    <main class="main-content">
+      <!-- Top Alert Notification Area -->
+      <div id="toastNotification" class="toast hidden"></div>
+
+      <!-- TAB 1: DASHBOARD -->
+      <section id="tab-dashboard" class="tab-pane active">
+        <div class="pane-header">
+          <div>
+            <span class="eyebrow">AUTOMATION OVERVIEW</span>
+            <h1>แดชบอร์ดระบบ Auto Gen Video</h1>
+            <p>ควบคุมการสร้างคลิป Drama AI, UGC, Storyboard, คิวงาน และการกระจายงานไปยัง Meta.ai และ Google Flow</p>
+          </div>
+          <div class="header-actions">
+            <button class="btn btn-primary" onclick="openTemplatesModal()">📚 คลัง 30 เทมเพลต</button>
+            <button class="btn btn-secondary" onclick="loadDashboard()">🔄 รีเฟรช</button>
+          </div>
+        </div>
+
+        <!-- Metric Stat Cards -->
+        <div class="metrics-grid">
+          <div class="metric-card cyan">
+            <div class="metric-icon">⏳</div>
+            <div class="metric-info">
+              <span class="metric-label">คิวที่รอดำเนินการ</span>
+              <strong class="metric-value" id="statQueued">0</strong>
+            </div>
+            <span class="metric-sub">กำลังจัดลำดับอัตโนมัติ</span>
+          </div>
+
+          <div class="metric-card purple">
+            <div class="metric-icon">⚡</div>
+            <div class="metric-info">
+              <span class="metric-label">กำลังประมวลผลสด</span>
+              <strong class="metric-value" id="statRunning">0</strong>
+            </div>
+            <span class="metric-sub">Meta AI / Google Flow</span>
+          </div>
+
+          <div class="metric-card emerald">
+            <div class="metric-icon">🎬</div>
+            <div class="metric-info">
+              <span class="metric-label">วิดีโอที่สร้างสำเร็จ</span>
+              <strong class="metric-value" id="statCompleted">0</strong>
+            </div>
+            <span class="metric-sub">พร้อมส่งออก & โพสต์</span>
+          </div>
+
+          <div class="metric-card amber">
+            <div class="metric-icon">📅</div>
+            <div class="metric-info">
+              <span class="metric-label">แผนใน Calendar</span>
+              <strong class="metric-value" id="statScheduled">0</strong>
+            </div>
+            <span class="metric-sub">Auto Gen ตามกำหนดเวลา</span>
+          </div>
+        </div>
+
+        <!-- Live Visual Pipeline Highlight -->
+        <div class="card mt-4">
+          <div class="card-header">
+            <h3>✦ ระบบโชว์การทำงานสด (Live Generation Pipeline)</h3>
+            <span class="live-indicator"><span class="blink">●</span> Live Monitoring</span>
+          </div>
+          <div class="pipeline-flow" id="pipelineFlow">
+            <div class="step-node" id="step-crafting">
+              <div class="node-icon">💡</div>
+              <div class="node-info">
+                <strong>1. คิด & ปรับ Prompt</strong>
+                <small>Character Lock & Script</small>
+              </div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="step-node" id="step-dispatching">
+              <div class="node-icon">🚀</div>
+              <div class="node-info">
+                <strong>2. ส่ง Engine</strong>
+                <small>Google Flow / Meta AI</small>
+              </div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="step-node" id="step-rendering">
+              <div class="node-icon">⚡</div>
+              <div class="node-info">
+                <strong>3. Render โมชัน 9:16</strong>
+                <small>Latent Diffusion 24fps</small>
+              </div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="step-node" id="step-downloading">
+              <div class="node-icon">📥</div>
+              <div class="node-info">
+                <strong>4. ประมวลผลไฟล์</strong>
+                <small>MP4 H.264 & Thumbnail</small>
+              </div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="step-node" id="step-completed">
+              <div class="node-icon">✓</div>
+              <div class="node-info">
+                <strong>5. คอนเทนต์พร้อมใช้</strong>
+                <small>แจ้งเตือนบน Mac OSX</small>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Output Grid -->
+        <div class="card mt-4">
+          <div class="card-header">
+            <h3>🎬 วิดีโอล่าสุดที่สร้างเสร็จ</h3>
+            <button class="btn btn-text" onclick="switchTab('tab-queue')">ดูคิวทั้งหมด →</button>
+          </div>
+          <div class="video-grid" id="recentVideosGrid">
+            <div class="empty-state">ยังไม่มีวิดีโอในระบบ กดทดสอบสร้างคลิปจากแถบด้านซ้ายได้ทันที!</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: LIVE WORKFLOW -->
+      <section id="tab-workflow" class="tab-pane">
+        <div class="pane-header">
+          <div>
+            <span class="eyebrow">REALTIME EXECUTION</span>
+            <h1>ระบบโชว์การทำงาน (Live Workflow Engine)</h1>
+            <p>ติดตามการทำงานแบบเรียลไทม์ ตรวจสอบ Log, ความคืบหน้าของงานที่กำลังเรนเดอร์ และการส่งข้อมูลไปยัง Meta.ai / Google Flow</p>
+          </div>
+          <button class="btn btn-secondary" onclick="loadWorkflowLogs()">🔄 อัปเดต Log</button>
+        </div>
+
+        <div class="grid-2">
+          <!-- Active Job Inspector -->
+          <div class="card">
+            <div class="card-header">
+              <h3>⚡ งานที่กำลังประมวลผล (Active Task)</h3>
+              <span class="status-badge" id="wfActiveBadge">Idle</span>
+            </div>
+            <div class="active-job-body" id="wfActiveBody">
+              <div class="empty-state">ขณะนี้ไม่มีงานที่กำลังเรนเดอร์ ระบบพร้อมรับงานใหม่</div>
+            </div>
+          </div>
+
+          <!-- Terminal Live Log Output -->
+          <div class="card terminal-card">
+            <div class="card-header">
+              <div class="terminal-dots"><span></span><span></span><span></span></div>
+              <h3>Worker Terminal Logs</h3>
+              <span class="text-xs text-muted">macOS Realtime Stream</span>
+            </div>
+            <div class="terminal-console" id="terminalLogs">
+              <div class="log-line info">[System] AI Studio Pro background worker running.</div>
+              <div class="log-line info">[Engine] Google Flow & Meta AI connectors initialized.</div>
+              <div class="log-line success">[Ready] Standing by for incoming queue or calendar triggers...</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2.5: STORYBOARD & IMAGE GENERATION -->
+      <section id="tab-storyboard" class="tab-pane">
+        <div class="pane-header">
+          <div>
+            <span class="eyebrow">VISUAL STORYBOARD & CHARACTER LOCK</span>
+            <h1>Storyboard Studio (ระบบสร้างภาพและสตอรี่บอร์ด AI)</h1>
+            <p>สร้างสตอรี่บอร์ดทีละฉาก พร้อมภาพประกอบ การล็อกคาแรกเตอร์ตัวละคร (Character Lock), เลือกเพศ, โทนเสียง และโทนภาพ</p>
+          </div>
+          <button class="btn btn-primary" onclick="openTemplatesModal()">📚 เลือกจาก 30 เทมเพลต</button>
+        </div>
+
+        <div class="grid-2">
+          <!-- Storyboard Generator Form -->
+          <div class="card">
+            <div class="card-header">
+              <h3>✦ ตั้งค่า Storyboard & Character Lock</h3>
+            </div>
+            <form id="storyboardForm" onsubmit="handleGenerateStoryboard(event)">
+              <div class="form-group">
+                <label>หัวข้อ หรือ ชื่อสินค้า</label>
+                <input type="text" id="sbTopic" class="form-control" required placeholder="เช่น เซรั่มโสมเกาหลี หรือ ศึกทายาทหมื่นล้าน">
+              </div>
+
+              <div class="grid-2">
+                <div class="form-group">
+                  <label>ประเภทคอนเทนต์</label>
+                  <select id="sbType" class="form-control" onchange="updateStoryboardType(this.value)">
+                    <option value="ugc">UGC Creator Review</option>
+                    <option value="drama">Drama Micro-Series</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label>🔒 ล็อกเพศตัวละคร (Gender)</label>
+                  <select id="sbGender" class="form-control" onchange="updateGenderPreset(this.value)">
+                    <option value="female">ผู้หญิง (Female Creator / Lead)</option>
+                    <option value="male">ผู้ชาย (Male Creator / Lead)</option>
+                    <option value="duo">คู่รัก / ไม่ระบุ (Duo / Couple)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label>🔒 ตัวละครที่ล็อก (Character Lock Preset)</label>
+                <select id="sbCharacterPreset" class="form-control" onchange="applyCharacterPreset(this.value)">
+                  <option value="char_arin">อริน (Arin) · 24yo สาวเก่ง สู้ชีวิต / ครีเอเตอร์ป้ายยา</option>
+                  <option value="char_phat">ภัทร (Phat) · 28yo ประธานหนุ่มสุขุม สูทเนวีชาร์โคล</option>
+                  <option value="char_ploy">พลอย (Ploy) · 22yo สาวบิวตี้ ผิวกระจก เสื้อไหมพรม</option>
+                  <option value="char_ken">เคน (Ken) · 25yo ครีเอเตอร์สายไอที แว่นกระ ฮู้ดดำ</option>
+                </select>
+              </div>
+
+              <div class="grid-2">
+                <div class="form-group">
+                  <label>🎙 โทนเสียง (Voice Tone)</label>
+                  <select id="sbVoiceTone" class="form-control">
+                    <option value="authentic_friendly">เสียงจริงใจ เป็นกันเอง (Authentic)</option>
+                    <option value="energetic_hype">เสียงตื่นเต้น เร้าใจ (High Energy)</option>
+                    <option value="dramatic_intense">เสียงดุดัน จริงจัง (Dramatic)</option>
+                    <option value="warm_storyteller">เสียงนุ่มนวล เล่าเรื่อง (Storyteller)</option>
+                    <option value="luxury_seductive">เสียงหรูหรา สุขุม (Luxury)</option>
+                    <option value="whisper_asmr">เสียงกระซิบ ASMR (Sensory)</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label>🎨 โทนภาพ (Visual Tone)</label>
+                  <select id="sbVisualTone" class="form-control">
+                    <option value="natural_daylight">Natural Daylight (แสงธรรมชาติ POV)</option>
+                    <option value="cinematic_35mm">Cinematic 35mm (โทนหนังฟิล์ม)</option>
+                    <option value="korean_aesthetic">Korean Clean (เกาหลี คลีน มินิมอล)</option>
+                    <option value="cyberpunk_neon">Cyberpunk Neon (แสงไฟนีออนฟ้า-ม่วง)</option>
+                    <option value="warm_golden_hour">Golden Hour (แสงแดดสีทองอบอุ่น)</option>
+                    <option value="vintage_retro">Vintage 90s (เรโทรฟิล์มเกรน)</option>
+                    <option value="dark_noir">Dark Noir (ดาร์ก นัวร์ แสงเงาดราม่า)</option>
+                    <option value="luxury_studio">Luxury Studio (สตูดิโอไฮเอนด์)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label>จำนวนฉาก Storyboard (Scenes)</label>
+                <select id="sbScenesCount" class="form-control">
+                  <option value="3">3 ฉาก (Hook → Demo → CTA)</option>
+                  <option value="4" selected>4 ฉาก (Hook → Problem → Demo → CTA)</option>
+                  <option value="5">5 ฉากเต็มรูปแบบ</option>
+                </select>
+              </div>
+
+              <button type="submit" id="sbSubmitBtn" class="btn btn-primary w-full">
+                🎨 สร้าง Storyboard พร้อมภาพประกอบฉาก AI
+              </button>
+            </form>
+          </div>
+
+          <!-- Storyboard Output Showcase -->
+          <div class="card">
+            <div class="card-header">
+              <h3>🖼 ผลลัพธ์ Storyboard & ภาพประกอบฉาก</h3>
+              <button class="btn btn-xs btn-primary hidden" id="queueAllSbBtn" onclick="queueAllStoryboardScenes()">🚀 สั่ง Gen วิดีโอทุกฉาก</button>
+            </div>
+            <div id="storyboardContainer" class="storyboard-gallery">
+              <div class="empty-state">เลือกหัวข้อหรือเทมเพลต แล้วกดปุ่มสร้าง Storyboard เพื่อเรนเดอร์ภาพฉาก</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: DRAMA AI STUDIO -->
+      <section id="tab-drama" class="tab-pane">
+        <div class="pane-header">
+          <div>
+            <span class="eyebrow">SHORT DRAMA STUDIO</span>
+            <h1>Drama AI (ระบบเขียนบทละครสั้น & สร้างฉากอัตโนมัติ)</h1>
+            <p>สร้างซีรีส์สั้น TikTok / Reels ลุ้นระทึก พร้อมฉากเปิด Hook 3 วินาทีแรก, บทพูดเชือดเฉือน, และ Visual Prompt สำหรับ AI Video</p>
+          </div>
+          <button class="btn btn-secondary" onclick="openTemplatesModal('drama')">📚 เทมเพลตดราม่า (15 แบบ)</button>
+        </div>
+
+        <div class="grid-2">
+          <!-- Generator Form -->
+          <div class="card">
+            <div class="card-header">
+              <h3>✦ ตั้งค่าสร้างซีรีส์ดราม่า</h3>
+            </div>
+            <form id="dramaForm" onsubmit="handleGenerateDrama(event)">
+              <div class="form-group">
+                <label>แนวละคร (Genre)</label>
+                <select id="dramaGenre" class="form-control" required>
+                  <option value="revenge_wealth">ประธานหนุ่มปลอมตัว / ทวงคืนความยุติธรรม</option>
+                  <option value="family_conflict">ศึกแม่ผัวลูกสะใภ้ / ความลับตระกูลดัง</option>
+                  <option value="thriller_suspense">ลุ้นระทึก / หักมุมซ้อนแผนในห้องปิดตาย</option>
+                  <option value="office_drama">ดราม่าออฟฟิศ / เชือดเฉือนทางธุรกิจ</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>ชื่อเรื่อง (เว้นว่างเพื่อให้ AI ตั้งให้)</label>
+                <input type="text" id="dramaTitle" class="form-control" placeholder="เช่น สะใภ้ร้อยล้านที่ถูกลืม">
+              </div>
+
+              <div class="grid-2">
+                <div class="form-group">
+                  <label>🔒 เพศตัวละครหลัก</label>
+                  <select id="dramaGender" class="form-control">
+                    <option value="male">ชาย (ภัทร - ประธานหนุ่ม)</option>
+                    <option value="female">หญิง (อริน - สะใภ้สู้ชีวิต)</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label>🎨 โทนภาพ (Visual Tone)</label>
+                  <select id="dramaVisualTone" class="form-control">
+                    <option value="cinematic_35mm">Cinematic 35mm Film</option>
+                    <option value="dark_noir">Dark Chiaroscuro Noir</option>
+                    <option value="cyberpunk_neon">Cyberpunk Neon</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label>จำนวนตอน (Episodes)</label>
+                <select id="dramaEpisodes" class="form-control">
+                  <option value="3">3 ตอนจบ (Mini Series)</option>
+                  <option value="5" selected>5 ตอน (Viral Standard)</option>
+                  <option value="7">7 ตอน (Weekly Campaign)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>รายละเอียดเพิ่มเติม หรือ ปมที่ต้องการเน้น</label>
+                <textarea id="dramaNotes" rows="3" class="form-control" placeholder="เช่น ให้มีฉากเปิดพินัยกรรม และฉากตบโต๊ะในห้องอาหารหรู"></textarea>
+              </div>
+
+              <button type="submit" id="dramaSubmitBtn" class="btn btn-primary w-full">
+                🎬 สร้างบทละครและฉากวิดีโอ AI
+              </button>
+            </form>
+          </div>
+
+          <!-- Generated Drama Preview -->
+          <div class="card">
+            <div class="card-header">
+              <h3>📜 ตัวอย่างบทและคิวฉาก</h3>
+              <button id="saveDramaBtn" class="btn btn-xs btn-secondary hidden" onclick="saveCurrentDrama()">💾 บันทึกซีรีส์นี้</button>
+            </div>
+            <div id="dramaResultContainer" class="drama-result-box">
+              <div class="empty-state">กรอกแบบฟอร์มด้านซ้าย แล้วกดปุ่มสร้างบท เพื่อดูผลลัพธ์</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: UGC CREATOR AI -->
+      <section id="tab-ugc" class="tab-pane">
+        <div class="pane-header">
+          <div>
+            <span class="eyebrow">HIGH-CONVERTING CONTENT</span>
+            <h1>UGC Creator AI (สร้างคลิปป้ายยา & รีวิวสไตล์ครีเอเตอร์)</h1>
+            <p>คิดสคริปต์พูดจริงใจ 3-Second Viral Hook, ปัญหา-ทางออก, การสาธิตสินค้า POV, และ Visual Prompt สำหรับ TikTok Shop & Shopee</p>
+          </div>
+          <button class="btn btn-secondary" onclick="openTemplatesModal('ugc')">📚 เทมเพลต UGC (15 แบบ)</button>
+        </div>
+
+        <div class="grid-2">
+          <!-- UGC Form -->
+          <div class="card">
+            <div class="card-header">
+              <h3>✦ ข้อมูลสินค้า & คอนเซปต์</h3>
+            </div>
+            <form id="ugcForm" onsubmit="handleGenerateUgc(event)">
+              <div class="form-group">
+                <label>ชื่อสินค้า / ไอเทม</label>
+                <input type="text" id="ugcProduct" class="form-control" required placeholder="เช่น เซรั่มโสมเกาหลีหน้าใส, หม้อทอดไร้น้ำมัน 5 ลิตร">
+              </div>
+
+              <div class="grid-2">
+                <div class="form-group">
+                  <label>🔒 เพศครีเอเตอร์</label>
+                  <select id="ugcGender" class="form-control">
+                    <option value="female">ผู้หญิง (Female Creator)</option>
+                    <option value="male">ผู้ชาย (Male Creator)</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label>🎙 โทนเสียงพูด</label>
+                  <select id="ugcVoiceTone" class="form-control">
+                    <option value="authentic_friendly">เสียงจริงใจ เป็นกันเอง</option>
+                    <option value="energetic_hype">เสียงตื่นเต้น เร้าใจ ไวรัล</option>
+                    <option value="whisper_asmr">เสียงกระซิบ ASMR ละมุน</option>
+                    <option value="luxury_seductive">เสียงหรูหรา สุขุม มั่นใจ</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label>หมวดหมู่สินค้า (Niche)</label>
+                <select id="ugcNiche" class="form-control">
+                  <option value="skincare">สกินแคร์ / ความงาม (Skincare & Beauty)</option>
+                  <option value="gadget">อุปกรณ์ไอที & แก็ดเจ็ต (Tech Gadgets)</option>
+                  <option value="home">ของใช้ในบ้าน / เครื่องครัว (Home & Living)</option>
+                  <option value="fashion">แฟชั่น & เสื้อผ้า (Fashion & Shoes)</option>
+                  <option value="health">อาหารเสริม & สุขภาพ (Health & Wellness)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>สูตร Hook ป้ายยา (Hook Formula)</label>
+                <select id="ugcHookType" class="form-control">
+                  <option value="problem_solution">ปัญหาที่ทุกคนเจอ → เฉลยทางรอด (Problem - Solution)</option>
+                  <option value="unboxing_first_impression">POV แกะกล่องสด & สัมผัสแรก (Unboxing Real Reaction)</option>
+                  <option value="seven_day_challenge">ท้าพิสูจน์ผลลัพธ์ 7 วัน (7-Day Transformation)</option>
+                  <option value="stop_scrolling_warning">เตือนภัย / อย่าเพิ่งซื้อถ้ายังไม่รู้สิ่งนี้ (Stop Scrolling Warning)</option>
+                </select>
+              </div>
+
+              <button type="submit" id="ugcSubmitBtn" class="btn btn-primary w-full">
+                ✨ สร้างสคริปต์ UGC & ฉากวิดีโอ AI
+              </button>
+            </form>
+          </div>
+
+          <!-- UGC Preview -->
+          <div class="card">
+            <div class="card-header">
+              <h3>📱 สคริปต์พูด & ฉากสำหรับสร้างคลิป</h3>
+              <button id="saveUgcBtn" class="btn btn-xs btn-secondary hidden" onclick="saveCurrentUgc()">💾 บันทึกแคมเปญนี้</button>
+            </div>
+            <div id="ugcResultContainer" class="ugc-result-box">
+              <div class="empty-state">กรอกรายละเอียดสินค้าด้านซ้าย แล้วกดปุ่มสร้างเพื่อดูสคริปต์</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 5: ช่วยคิด PROMPT STUDIO -->
+      <section id="tab-prompt" class="tab-pane">
+        <div class="pane-header">
+          <div>
+            <span class="eyebrow">AI PROMPT STUDIO</span>
+            <h1>ระบบช่วยคิด Prompt (Video Prompt Optimizer)</h1>
+            <p>แปลงไอเดียทั่วไปให้กลายเป็น Prompt สั่งการ AI Video ระดับสตูดิโอ Hollywood พร้อมมุมกล้อง แสง และ Negative Prompt สำหรับ Meta AI & Google Flow</p>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <!-- Input Form -->
+          <div class="card">
+            <div class="card-header">
+              <h3>✦ ป้อนไอเดียตั้งต้น</h3>
+            </div>
+            <form id="promptForm" onsubmit="handleOptimizePrompt(event)">
+              <div class="form-group">
+                <label>ไอเดีย หรือ ฉากที่ต้องการ (พิมพ์ไทยหรืออังกฤษได้)</label>
+                <textarea id="promptRaw" rows="3" class="form-control" required placeholder="เช่น สาวไทยกำลังหยดเซรั่มลงบนหน้าแล้วยิ้ม หรือ ชายในชุดสูทเดินฝ่าสายฝนในกรุงเทพฯ"></textarea>
+              </div>
+
+              <div class="form-group">
+                <label>เป้าหมาย Engine ที่จะนำไป Gen</label>
+                <select id="promptEngine" class="form-control">
+                  <option value="google_flow">Google Flow / Google Veo 3.1</option>
+                  <option value="meta_ai">Meta AI Movie Gen / Imagine Video</option>
+                  <option value="universal">Universal High Quality Prompt</option>
+                </select>
+              </div>
+
+              <div class="grid-2">
+                <div class="form-group">
+                  <label>มุมกล้อง (Camera Motion)</label>
+                  <select id="promptCamera" class="form-control">
+                    <option value="">สุ่มมุมกล้องที่เหมาะสม (AI Auto)</option>
+                    <option value="Handheld dynamic iPhone POV with subtle natural shake">Handheld POV สั่นไหวธรรมชาติ</option>
+                    <option value="Slow cinematic push-in towards the subject's face">ซูมเข้าใบหน้าช้าๆ (Cinematic Push-in)</option>
+                    <option value="Extreme macro close-up panning across texture details">มาโครซูมเนื้อสัมผัส (Extreme Macro)</option>
+                    <option value="Low angle Dutch tilt emphasizing dramatic tension">มุมเงยเอียงดราม่า (Dutch Angle)</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label>การจัดแสง (Lighting & Style)</label>
+                  <select id="promptLighting" class="form-control">
+                    <option value="">สุ่มการจัดแสงที่สวยงาม (AI Auto)</option>
+                    <option value="Natural soft morning window sunlight with gentle lens flare">แสงเช้าธรรมชาติ ละมุนริมหน้าต่าง</option>
+                    <option value="Dramatic high-contrast chiaroscuro with deep moody rim shadows">แสงดราม่าเงามืด ตัดขอบคมชัด</option>
+                    <option value="Warm golden hour sunset glow, cinematic 35mm film grain">แสงสีทองยามเย็น สไตล์ฟิล์ม 35mm</option>
+                    <option value="Cool cyberpunk neon lighting with vibrant purple and cyan accents">แสงนีออน Cyberpunk ฟ้า-ม่วง</option>
+                  </select>
+                </div>
+              </div>
+
+              <button type="submit" id="promptSubmitBtn" class="btn btn-primary w-full">
+                💡 ปรับแต่ง Prompt ให้พร้อมสร้างคลิป
+              </button>
+            </form>
+          </div>
+
+          <!-- Optimized Output -->
+          <div class="card">
+            <div class="card-header">
+              <h3>✨ ผลลัพธ์ Prompt ขั้นสูง</h3>
+              <button class="btn btn-xs btn-primary hidden" id="promptQueueDirectBtn" onclick="queueOptimizedPromptDirect()">🚀 ส่งเข้าคิวสร้างคลิปทันที</button>
+            </div>
+            <div id="promptResultContainer" class="prompt-result-box">
+              <div class="empty-state">ป้อนไอเดียแล้วกดปรับแต่ง Prompt ด้านซ้าย</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 6: CALENDAR สร้างแผน -->
+      <section id="tab-calendar" class="tab-pane">
+        <div class="pane-header">
+          <div>
+            <span class="eyebrow">CONTENT PLANNER & AUTO-SCHEDULER</span>
+            <h1>ระบบ Calendar ช่วยสร้างแผนคอนเทนต์</h1>
+            <p>วางแผนปล่อยคลิปอัตโนมัติ 7 วัน / 14 วัน / 30 วัน สั่งให้ระบบเริ่มสร้างวิดีโอล่วงหน้าตามวันเวลาที่กำหนดได้ 100%</p>
+          </div>
+          <div class="header-actions">
+            <button class="btn btn-primary" onclick="openPlanModal()">📅 + AI สร้างแผนอัตโนมัติ</button>
+            <button class="btn btn-secondary" onclick="queueAllCalendarNow()">⚡ สั่งสร้างทั้งหมดตอนนี้ (Queue All)</button>
+          </div>
+        </div>
+
+        <!-- Calendar Visual Board -->
+        <div class="card">
+          <div class="card-header">
+            <h3>ตารางการปล่อยคอนเทนต์และสถานะการสร้าง</h3>
+            <span class="text-xs text-muted" id="calendarCountSummary">0 รายการ</span>
+          </div>
+          <div class="calendar-list" id="calendarEventsList">
+            <div class="empty-state">ยังไม่มีรายการแผนใน Calendar กดปุ่ม "+ AI สร้างแผนอัตโนมัติ" ด้านบนเพื่อเริ่มต้น</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 7: ระบบจัดคิว -->
+      <section id="tab-queue" class="tab-pane">
+        <div class="pane-header">
+          <div>
+            <span class="eyebrow">TASK QUEUE & CONTROLLER</span>
+            <h1>ระบบจัดคิว (Queue Management)</h1>
+            <p>ตรวจสอบสถานะคิวงาน จัดลำดับความสำคัญ และดูวิดีโอที่เรนเดอร์เสร็จแล้ว</p>
+          </div>
+          <button class="btn btn-secondary" onclick="loadQueueTable()">🔄 รีเฟรชคิว</button>
+        </div>
+
+        <div class="card">
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>ชื่องาน</th>
+                  <th>ประเภท</th>
+                  <th>Engine</th>
+                  <th>สถานะ</th>
+                  <th>ความคืบหน้า</th>
+                  <th>วิดีโอ</th>
+                  <th>จัดการ</th>
+                </tr>
+              </thead>
+              <tbody id="queueTableBody">
+                <tr><td colspan="8" class="text-center">กำลังโหลดข้อมูลคิว...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 8: SETTINGS & ENGINES & META COOKIE -->
+      <section id="tab-settings" class="tab-pane">
+        <div class="pane-header">
+          <div>
+            <span class="eyebrow">SYSTEM CONFIGURATION</span>
+            <h1>ตั้งค่าระบบ, คีย์ API & เชื่อมต่อ Cookie Meta AI</h1>
+            <p>จัดการ Cookie สำหรับ Meta.ai Auto Gen, คีย์ API Google Gemini / Veo และการแจ้งเตือนบน macOS</p>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <!-- Meta AI Cookie Connector Box -->
+          <div class="card">
+            <div class="card-header">
+              <h3>🍪 เชื่อมต่อ Meta AI ผ่าน Cookie (Auto Gen)</h3>
+              <span class="status-badge queued" id="metaCookieBadge">ยังไม่ได้เชื่อม</span>
+            </div>
+
+            <!-- Cookie File Upload Dropzone -->
+            <div class="cookie-upload-box" id="cookieDropzone" onclick="document.getElementById('cookieFileInput').click()" ondragover="handleCookieDragOver(event)" ondragleave="handleCookieDragLeave(event)" ondrop="handleCookieFileDrop(event)">
+              <input type="file" id="cookieFileInput" accept=".json,.txt,.cookies" style="display:none;" onchange="handleCookieFileSelected(event)">
+              <div class="upload-icon">📁</div>
+              <div class="upload-text">
+                <strong>คลิกเพื่ออัปโหลดไฟล์ หรือลากไฟล์ Cookie มาวางที่นี่</strong>
+                <span class="upload-hint">รองรับไฟล์ <code>cookies.json</code> (จาก Cookie-Editor / EditThisCookie) หรือ <code>cookies.txt</code> (Netscape)</span>
+              </div>
+            </div>
+            <div id="cookieUploadStatus" class="upload-status-bar hidden"></div>
+
+            <div class="form-group">
+              <label>หรือ วางค่า Cookie ด้วยตนเอง (Manual Paste / Key=Value / JSON)</label>
+              <textarea id="metaCookieInput" rows="4" class="form-control" placeholder="วาง Cookie ที่คัดลอกมา เช่น c_user=1000...; xs=...; datr=... หรือวางข้อความ JSON"></textarea>
+              <small class="text-muted" style="display:block; margin-top:4px;">
+                วิธีเอา Cookie: เปิด <a href="https://www.meta.ai" target="_blank" style="color:var(--cyan-primary);">meta.ai</a> ในเบราว์เซอร์ → ติดตั้งส่วนขยาย <strong>Cookie-Editor</strong> → กด Export as JSON แล้วอัปโหลดไฟล์ หรือคัดลอกค่ามาวาง
+              </small>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button type="button" class="btn btn-primary" onclick="verifyAndSaveMetaCookie()">
+                🔍 ตรวจสอบและบันทึก Cookie
+              </button>
+              <button type="button" class="btn btn-secondary" onclick="triggerSampleTest('meta_ai')">
+                🚀 สั่ง Meta AI Gen คลิป
+              </button>
+            </div>
+            <div id="metaCookieVerifyResult" class="mt-2 text-xs" style="color: #94a3b8;"></div>
+          </div>
+
+          <!-- General Engine Settings -->
+          <div class="card">
+            <div class="card-header">
+              <h3>⚙ การตั้งค่า Engine & โมเดล</h3>
+            </div>
+            <form id="settingsForm" onsubmit="handleSaveSettings(event)">
+              <div class="form-group">
+                <label>Engine เริ่มต้น (Default Video Engine)</label>
+                <select id="cfgDefaultEngine" class="form-control">
+                  <option value="google_flow">Google Flow / Google Veo 3.1</option>
+                  <option value="meta_ai">Meta AI Movie Gen</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Google Gemini API Key (สำหรับ Veo & Prompt Assistant)</label>
+                <input type="password" id="cfgGeminiKey" class="form-control" placeholder="AIzaSy...">
+                <small class="text-muted">ใช้สร้างคลิป Veo ผ่าน Gemini API อย่างเป็นทางการ</small>
+              </div>
+
+              <div class="form-group checkbox-group">
+                <label class="switch-label">
+                  <input type="checkbox" id="cfgSimulationMode">
+                  <span><strong>โหมดจำลองความเร็วสูง (High-Speed Studio Simulation Mode)</strong><br><small class="text-muted">เปิดไว้เพื่อทดสอบระบบและเรนเดอร์ในเครื่องทันที ปิดเมื่อต้องการเรียก Meta AI / Google API สด</small></span>
+                </label>
+              </div>
+
+              <div class="form-group checkbox-group">
+                <label class="switch-label">
+                  <input type="checkbox" id="cfgNotifyMacos" checked>
+                  <span><strong>การแจ้งเตือนบน macOS (Native AppleScript Notifications)</strong><br><small class="text-muted">ส่ง Banner แจ้งเตือนขึ้นบนหน้าจอ Mac ทันทีเมื่อสร้างวิดีโอเสร็จ</small></span>
+                </label>
+              </div>
+
+              <button type="submit" class="btn btn-primary w-full">💾 บันทึกการตั้งค่าทั้งหมด</button>
+            </form>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Video Playback Modal -->
+  <div id="videoModal" class="modal hidden">
+    <div class="modal-backdrop" onclick="closeVideoModal()"></div>
+    <div class="modal-content video-modal-content">
+      <div class="modal-header">
+        <h3 id="modalVideoTitle">เครื่องเล่นวิดีโอ</h3>
+        <button class="modal-close" onclick="closeVideoModal()">✕</button>
+      </div>
+      <div class="modal-body text-center">
+        <video id="modalVideoPlayer" controls autoplay loop playsinline class="vertical-player"></video>
+        <div class="video-meta mt-2" id="modalVideoMeta"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 30 Templates Showcase Modal -->
+  <div id="templatesModal" class="modal hidden">
+    <div class="modal-backdrop" onclick="closeTemplatesModal()"></div>
+    <div class="modal-content templates-modal-content">
+      <div class="modal-header">
+        <div>
+          <h3>📚 คลังเทมเพลตคอนเทนต์ยอดฮิต (30 แบบ)</h3>
+          <p class="text-xs text-muted">คลิกเลือกเทมเพลตเพื่อโหลดสคริปต์, โทนเสียง และฉากวิดีโอเข้า Storyboard ทันที</p>
+        </div>
+        <button class="modal-close" onclick="closeTemplatesModal()">✕</button>
+      </div>
+      <div class="templates-filter-bar">
+        <button class="filter-chip active" onclick="filterTemplates('all')">ทั้งหมด (30)</button>
+        <button class="filter-chip" onclick="filterTemplates('ugc')">UGC Creator (15)</button>
+        <button class="filter-chip" onclick="filterTemplates('drama')">Drama Series (15)</button>
+      </div>
+      <div class="modal-body templates-grid" id="templatesGridContainer">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Content Plan Modal -->
+  <div id="planModal" class="modal hidden">
+    <div class="modal-backdrop" onclick="closePlanModal()"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>📅 AI สร้างแผนคอนเทนต์ลง Calendar อัตโนมัติ</h3>
+        <button class="modal-close" onclick="closePlanModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="planForm" onsubmit="handleGeneratePlan(event)">
+          <div class="form-group">
+            <label>ประเภทแคมเปญ</label>
+            <select id="planType" class="form-control">
+              <option value="drama">Drama AI Series (ซีรีส์สั้นหลายตอน)</option>
+              <option value="ugc">UGC Creator Campaign (แคมเปญป้ายยาสินค้า)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>หัวข้อ หรือ ชื่อสินค้า</label>
+            <input type="text" id="planTopic" class="form-control" required placeholder="เช่น สะใภ้หมื่นล้าน หรือ เซรั่มหน้าใสใบบัวบก">
+          </div>
+
+          <div class="grid-2">
+            <div class="form-group">
+              <label>จำนวนวันวางแผน</label>
+              <select id="planDays" class="form-control">
+                <option value="7" selected>7 วัน (1 สัปดาห์)</option>
+                <option value="14">14 วัน (2 สัปดาห์)</option>
+                <option value="30">30 วัน (1 เดือน)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>เวลาที่ต้องการปล่อยคลิปแต่ละวัน</label>
+              <input type="time" id="planTime" class="form-control" value="19:00">
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="form-group">
+              <label>ช่องทางเป้าหมาย</label>
+              <select id="planChannel" class="form-control">
+                <option value="tiktok">TikTok Video</option>
+                <option value="reels">Facebook / IG Reels</option>
+                <option value="shorts">YouTube Shorts</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Engine ที่ใช้ Gen</label>
+              <select id="planEngine" class="form-control">
+                <option value="google_flow">Google Flow / Veo</option>
+                <option value="meta_ai">Meta AI Movie Gen</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group checkbox-group">
+            <label class="switch-label">
+              <input type="checkbox" id="planAutoGen" checked>
+              <span>เปิดใช้งาน Auto Gen เมื่อถึงวันและเวลาที่กำหนด</span>
+            </label>
+          </div>
+
+          <button type="submit" id="planSubmitBtn" class="btn btn-primary w-full">🚀 สร้างแผนและเพิ่มลง Calendar ทันที</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

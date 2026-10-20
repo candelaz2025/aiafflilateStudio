@@ -1,0 +1,21 @@
+#!/bin/bash
+BUNDLE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/../../.." && pwd )"
+
+# Target project directory detection
+if [ -f "$BUNDLE_DIR/auto_studio/mac_launcher.py" ]; then
+    PROJECT_DIR="$BUNDLE_DIR"
+elif [ -f "/Users/candelaz/Desktop/AIStudio/auto_studio/mac_launcher.py" ]; then
+    PROJECT_DIR="/Users/candelaz/Desktop/AIStudio"
+else
+    PROJECT_DIR="$BUNDLE_DIR"
+fi
+
+cd "$PROJECT_DIR"
+export PATH="/opt/homebrew/bin:/opt/homebrew/opt/ffmpeg-full/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
+export PYTHONPATH="$PROJECT_DIR:$PYTHONPATH"
+
+if [ -f "$PROJECT_DIR/.venv/bin/python" ]; then
+    exec "$PROJECT_DIR/.venv/bin/python" "$PROJECT_DIR/auto_studio/mac_launcher.py" "$@"
+else
+    exec python3 "$PROJECT_DIR/auto_studio/mac_launcher.py" "$@"
+fi

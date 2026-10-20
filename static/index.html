@@ -1,0 +1,1133 @@
+<!doctype html>
+<html lang="th" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#3B82F6">
+  <meta name="description" content="Affiliate Auto Studio · AI Content Automation Dashboard with Metric Flow Design System">
+  <title>Affiliate Auto Studio · V7.10</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+
+<div class="app-container">
+
+  <!-- ==========================================
+       SIDEBAR NAVIGATION (METRIC FLOW)
+       ========================================== -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <a href="#" class="sidebar-brand" data-tab="dash">
+        <div class="sidebar-logo">A</div>
+        <div class="sidebar-brand-text">
+          <span class="sidebar-brand-name">Affiliate Studio</span>
+          <span class="sidebar-brand-meta">V7.10 · METRIC FLOW</span>
+        </div>
+      </a>
+      <button class="sidebar-collapse-btn" id="sidebarCollapseBtn" title="พับ/ขยาย Sidebar" aria-label="Toggle Sidebar">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </button>
+    </div>
+
+    <nav class="sidebar-nav">
+      <!-- Section: Main Workflow -->
+      <div>
+        <div class="nav-group-title" data-i18n="nav_group_main">เวิร์กโฟลว์หลัก</div>
+        <ul class="nav-list">
+          <li>
+            <button class="nav-item-btn active" data-tab="dash">
+              <span class="nav-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+              </span>
+              <span class="nav-label" data-i18n="nav_dash">ภาพรวม (Overview)</span>
+            </button>
+          </li>
+          <li>
+            <button class="nav-item-btn" data-tab="radar">
+              <span class="nav-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="m4.93 4.93 4.24 4.24"></path><path d="m14.83 9.17 4.24-4.24"></path><path d="m14.83 14.83 4.24 4.24"></path><path d="m9.17 14.83-4.24 4.24"></path><circle cx="12" cy="12" r="2"></circle></svg>
+              </span>
+              <span class="nav-label" data-i18n="nav_radar">Product Radar</span>
+              <span class="nav-badge" data-i18n="badge_hot">HOT</span>
+            </button>
+          </li>
+          <li>
+            <button class="nav-item-btn" data-tab="drafts">
+              <span class="nav-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+              </span>
+              <span class="nav-label" data-i18n="nav_drafts">AI Video Factory (บทรีวิว)</span>
+            </button>
+          </li>
+          <li>
+            <button class="nav-item-btn" data-tab="video">
+              <span class="nav-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+              </span>
+              <span class="nav-label" data-i18n="nav_video">สร้างคลิป AI & Mockup</span>
+              <span class="nav-badge" data-i18n="badge_gen">GEN</span>
+            </button>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Section: Management -->
+      <div>
+        <div class="nav-group-title" data-i18n="nav_group_mgmt">การจัดการ (Management)</div>
+        <ul class="nav-list">
+          <li>
+            <button class="nav-item-btn" data-tab="products">
+              <span class="nav-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+              </span>
+              <span class="nav-label" data-i18n="nav_products">สินค้าของฉัน (My Products)</span>
+              <span class="nav-badge mono" id="badge-products-count">0</span>
+            </button>
+          </li>
+          <li>
+            <button class="nav-item-btn" data-tab="queue">
+              <span class="nav-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+              </span>
+              <span class="nav-label" data-i18n="nav_queue">คิวโพสต์ & ตารางงาน</span>
+              <span class="nav-badge mono" id="badge-queue-count">0</span>
+            </button>
+          </li>
+          <li>
+            <button class="nav-item-btn" data-tab="tracking">
+              <span class="nav-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+              </span>
+              <span class="nav-label" data-i18n="nav_tracking">ติดตามยอดขาย & สถิติ</span>
+            </button>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Section: Community -->
+      <div>
+        <div class="nav-group-title" data-i18n="nav_group_community">ชุมชน (Community)</div>
+        <ul class="nav-list">
+          <li>
+            <button class="nav-item-btn" data-tab="ideas">
+              <span class="nav-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+              </span>
+              <span class="nav-label" data-i18n="nav_ideas">Community Lab</span>
+            </button>
+          </li>
+          <li>
+            <button class="nav-item-btn" data-tab="new">
+              <span class="nav-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+              </span>
+              <span class="nav-label" data-i18n="nav_new">เสนอฟีเจอร์ / แจ้งบั๊ก</span>
+            </button>
+          </li>
+          <li>
+            <a class="support-link" href="/donate">
+              <span class="nav-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+              </span>
+              <span class="nav-label" data-i18n="nav_donate">สนับสนุน / Donate ↗</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Section: Admin & System -->
+      <div>
+        <div class="nav-group-title" data-i18n="nav_group_system">ระบบ & ตั้งค่า (System)</div>
+        <ul class="nav-list">
+          <li>
+            <button class="nav-item-btn" data-tab="users_mgmt">
+              <span class="nav-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><polyline points="16 11 18 13 22 9"></polyline></svg>
+              </span>
+              <span class="nav-label" data-i18n="nav_users">จัดการผู้ใช้ (User Mgmt)</span>
+              <span class="nav-badge" data-i18n="badge_admin">ADMIN</span>
+            </button>
+          </li>
+          <li>
+            <button class="nav-item-btn" data-tab="keys">
+              <span class="nav-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+              </span>
+              <span class="nav-label" data-i18n="nav_keys">API Keys & การเชื่อมต่อ</span>
+            </button>
+          </li>
+        </ul>
+      </div>
+    </nav>
+
+    <!-- Sidebar User Footer -->
+    <div class="sidebar-footer">
+      <div class="user-compact-card" id="userCompactCard">
+        <div class="user-avatar" id="userAvatar">K</div>
+        <div class="user-info">
+          <span class="user-name" id="userName">Kevin</span>
+          <span class="user-role-badge mono" id="userRole">ADMIN</span>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="sidebarLogoutBtn" title="ออกจากระบบ" aria-label="Sign out">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ==========================================
+       MAIN CONTENT WRAPPER
+       ========================================== -->
+  <div class="main-wrapper">
+
+    <!-- Topbar Navigation -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open menu">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+        </button>
+
+        <div class="global-search">
+          <span class="global-search-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          </span>
+          <input type="text" class="global-search-input" id="globalSearchInput" placeholder="ค้นหาสินค้า, บทรีวิว หรือคิวงาน... (กด Ctrl+K)" data-i18n-ph="search_placeholder">
+          <span class="search-shortcut">Ctrl K</span>
+        </div>
+      </div>
+
+      <div class="topbar-right">
+        <!-- Energy Quota Badge -->
+        <div class="energy-badge" title="โควต้าวิดีโอและ AI วันนี้">
+          <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+          <span class="mono" id="topbarEnergy">⚡ 2.4 / 3 วันนี้</span>
+        </div>
+
+        <!-- Language Toggle -->
+        <div class="lang-toggle" role="group" aria-label="Language selection">
+          <button class="lang-btn active" id="langThBtn">TH</button>
+          <button class="lang-btn" id="langEnBtn">EN</button>
+        </div>
+
+        <!-- Dark/Light Theme Toggle -->
+        <button class="theme-toggle-btn" id="themeToggleBtn" title="สลับโหมดสว่าง/มืด" aria-label="Toggle theme">
+          <svg class="sun-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+          <svg class="moon-icon" style="display:none;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+        </button>
+
+        <!-- Notification Bell -->
+        <button class="notif-btn" id="notifBtn" title="การแจ้งเตือน" aria-label="Notifications">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+          <span class="notif-badge">3</span>
+        </button>
+
+        <!-- User Quick Status / Switch -->
+        <button class="btn btn-secondary btn-sm" id="authModalTriggerBtn" data-i18n="btn_login_register">เข้าสู่ระบบ / สลับบัญชี</button>
+      </div>
+    </header>
+
+    <!-- Main Content Canvas -->
+    <main class="content-canvas">
+
+      <!-- Status Notification Message Banner -->
+      <div id="statusBanner" class="status-msg-banner" role="status" aria-live="polite"></div>
+
+      <!-- ==========================================
+           TAB 1: ภาพรวม (DASHBOARD) - POPCONT STYLE
+           ========================================== -->
+      <section id="dash" class="tab-section active">
+        
+        <!-- Hero Greeting Card (Reference Image 1) -->
+        <div class="hero-dashboard-card">
+          <div class="hero-header-row">
+            <span class="hero-greeting-tag">
+              <span id="heroGreetingTime">☀️ สวัสดีตอนค่ำ</span>, <span id="heroUserName">KEVIN</span>
+            </span>
+            <span class="hero-status-pill">✓ <span data-i18n="hero_status_ready">แบรนด์ & โมเดล AI พร้อมแล้ว</span></span>
+          </div>
+          <h1 class="hero-heading" data-i18n="hero_title">มาสร้างคอนเทนต์กันเลย 🎯</h1>
+
+          <!-- Prompt Command Bar -->
+          <div class="hero-prompt-bar">
+            <span class="prompt-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3z"></path></svg>
+            </span>
+            <input type="text" class="hero-prompt-input" id="heroPromptInput" placeholder="วันนี้อยากสร้างคอนเทนต์หรือค้นหาสินค้าอะไรดี?" data-i18n-ph="hero_prompt_placeholder">
+            <button class="hero-prompt-btn" id="heroPromptSubmitBtn">
+              <span data-i18n="btn_create_now">สร้างเลย</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+            </button>
+          </div>
+
+          <!-- Quick Actions Pills -->
+          <div class="hero-pills-row">
+            <button class="hero-quick-pill" data-quick="radar_hot">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+              <span data-i18n="quick_shopee_extra">สินค้า Shopee Extra Comm</span>
+            </button>
+            <button class="hero-quick-pill" data-quick="weekly_script">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line></svg>
+              <span data-i18n="quick_weekly">คอนเทนต์รายสัปดาห์</span>
+            </button>
+            <button class="hero-quick-pill" data-quick="instant_video">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+              <span data-i18n="quick_gen_mockup">สร้างคลิป AI Mockup ทันที</span>
+            </button>
+            <button class="hero-quick-pill" data-quick="open_queue">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>
+              <span data-i18n="quick_queue">เปิดคิวโพสต์ลง TikTok</span>
+            </button>
+          </div>
+
+          <div class="hero-tip-bar">
+            <span>💡</span>
+            <span data-i18n="hero_tip_text">อยากได้คลิปปังทั้งสัปดาห์ ลองค้นหาใน Product Radar แล้วกดส่งไปสร้างบท AI ครั้งเดียวได้ 3 แนวทาง</span>
+          </div>
+        </div>
+
+        <!-- 3 KPI Pipeline Cards (Metric Flow) -->
+        <div class="kpi-row">
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                <span data-i18n="kpi_drafts">ดราฟต์บทรีวิว</span>
+              </span>
+              <span class="kpi-badge chip-primary" data-i18n="badge_ready">พร้อมสร้างคลิป</span>
+            </div>
+            <div class="kpi-value mono" id="kpi-drafts-num">0</div>
+            <button class="kpi-footer-link" data-goto="drafts">
+              <span data-i18n="kpi_view_drafts">ดูบทรีวิวทั้งหมด</span> →
+            </button>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                <span data-i18n="kpi_scheduled">คิวงานรอโพสต์</span>
+              </span>
+              <span class="kpi-badge chip-warning" data-i18n="badge_queue">อยู่ในคิว</span>
+            </div>
+            <div class="kpi-value mono" id="kpi-queue-num">0</div>
+            <button class="kpi-footer-link" data-goto="queue">
+              <span data-i18n="kpi_manage_queue">จัดการคิวโพสต์</span> →
+            </button>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                <span data-i18n="kpi_published">สินค้าที่ติดตาม</span>
+              </span>
+              <span class="kpi-badge chip-success" data-i18n="badge_active">กำลังติดตาม</span>
+            </div>
+            <div class="kpi-value mono" id="kpi-products-num">0</div>
+            <button class="kpi-footer-link" data-goto="products">
+              <span data-i18n="kpi_view_products">เปิดดูสินค้าของฉัน</span> →
+            </button>
+          </div>
+        </div>
+
+        <!-- Onboarding & Walkthrough (Reference Image 1) -->
+        <section class="onboarding-section">
+          <div class="section-header-row">
+            <h2 class="section-title">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+              <span data-i18n="walkthrough_header">วิธีใช้ - เริ่มต้นใช้งาน (Guided Walkthrough)</span>
+            </h2>
+            <button class="section-more-link" id="openFullWalkthroughBtn">
+              <span data-i18n="btn_view_all_steps">ดูขั้นตอนทั้งหมด</span> →
+            </button>
+          </div>
+
+          <div class="onboarding-grid">
+            <!-- Step 1 Card -->
+            <div class="walkthrough-card step-1" data-step="1">
+              <div>
+                <span class="walkthrough-step-badge" data-i18n="step_1_badge">ขั้นตอนที่ 1</span>
+                <h3 class="walkthrough-title" data-i18n="step_1_title">ค้นหาสินค้า & สแกน Shopee</h3>
+                <p class="walkthrough-desc" data-i18n="step_1_desc">เลือกสินค้ามาแรง ดูค่าคอมมิชชัน Extra Comm สูง บันทึกเข้าระบบในคลิกเดียว</p>
+              </div>
+              <div class="walkthrough-play-btn" title="ดูคำแนะนำ">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+              </div>
+            </div>
+
+            <!-- Step 2 Card -->
+            <div class="walkthrough-card step-2" data-step="2">
+              <div>
+                <span class="walkthrough-step-badge" data-i18n="step_2_badge">ขั้นตอนที่ 2</span>
+                <h3 class="walkthrough-title" data-i18n="step_2_title">สร้างบทรีวิว AI Video Factory</h3>
+                <p class="walkthrough-desc" data-i18n="step_2_desc">AI สังเคราะห์สคริปต์ 3 องก์ (Hook, Pain Point, Call-to-action) พร้อม visual prompt</p>
+              </div>
+              <div class="walkthrough-play-btn" title="ดูคำแนะนำ">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+              </div>
+            </div>
+
+            <!-- Step 3 Card -->
+            <div class="walkthrough-card step-3" data-step="3">
+              <div>
+                <span class="walkthrough-step-badge" data-i18n="step_3_badge">ขั้นตอนที่ 3</span>
+                <h3 class="walkthrough-title" data-i18n="step_3_title">สร้างคลิป AI & เชื่อมต่อคิว</h3>
+                <p class="walkthrough-desc" data-i18n="step_3_desc">เรนเดอร์คลิป 9:16 Mockup เสมือนจริง ดูตัวอย่างคลิปในมือถือแล้วส่งเข้าคิวโพสต์</p>
+              </div>
+              <div class="walkthrough-play-btn" title="ดูคำแนะนำ">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Quick Summary Table -->
+        <div class="mf-card">
+          <div class="section-header-row" style="margin-bottom:12px;">
+            <h3 style="font-size:16px; font-weight:700;" data-i18n="recent_pipeline">ประวัติงานล่าสุด (Recent Pipeline Activity)</h3>
+            <button class="btn btn-ghost btn-sm" id="refreshRecentBtn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+              <span data-i18n="btn_refresh">รีเฟรช</span>
+            </button>
+          </div>
+          <div class="data-table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th data-i18n="col_type">ประเภท</th>
+                  <th data-i18n="col_title">ชื่อรายการ / หัวข้อ</th>
+                  <th data-i18n="col_platform">แพลตฟอร์ม</th>
+                  <th data-i18n="col_status">สถานะ</th>
+                  <th data-i18n="col_action">การทำงาน</th>
+                </tr>
+              </thead>
+              <tbody id="dashRecentTbody">
+                <tr>
+                  <td colspan="5" style="text-align:center; color:var(--color-text-muted);" data-i18n="loading_data">กำลังโหลดข้อมูล...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </section>
+
+
+      <!-- ==========================================
+           TAB 2: PRODUCT RADAR (ค้นหาสินค้า & SHOPEE)
+           ========================================== -->
+      <section id="radar" class="tab-section">
+        <h2 class="page-title" data-i18n="radar_page_title">⌕ Product Radar & Shopee Scanner</h2>
+        <p class="page-subtitle" data-i18n="radar_page_desc">ค้นหาสินค้ากระแสจริง ข้อมูลยืนยันได้ พร้อมตรวจค่า Extra Commission</p>
+
+        <!-- Search Bar Card -->
+        <div class="mf-card" style="margin-bottom:20px;">
+          <form id="radarform" style="display:flex; flex-direction:column; gap:12px;">
+            <div style="display:flex; gap:10px;">
+              <input type="text" name="q" id="radar-query" class="form-input" style="flex:1;" value="แก้วเก็บความเย็น" required placeholder="เช่น พัดลมพกพา, แก้วเก็บความเย็น, กล้องฟิล์ม">
+              <button type="submit" id="radar-submit" class="btn btn-primary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <span data-i18n="btn_search_products">ค้นหาสินค้าจริง</span>
+              </button>
+              <button type="button" id="radar-auto" class="btn btn-secondary">
+                <span data-i18n="btn_auto_scan">✦ สแกนกระแสสินค้าอัตโนมัติ</span>
+              </button>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+              <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer;">
+                <input type="checkbox" id="extra-comm-mode">
+                <span data-i18n="label_extra_comm_only">เน้นเฉพาะ EXTRA COMM (คอมมิชชันพิเศษจาก Shopee)</span>
+              </label>
+              <div style="display:flex; gap:6px;">
+                <span style="font-size:12px; color:var(--color-text-muted);" data-i18n="try_keywords">คำค้นยอดนิยม:</span>
+                <button type="button" class="btn btn-ghost btn-sm" data-radar-example="พัดลมพกพา">พัดลมพกพา</button>
+                <button type="button" class="btn btn-ghost btn-sm" data-radar-example="แก้วเก็บความเย็น">แก้วเก็บความเย็น</button>
+                <button type="button" class="btn btn-ghost btn-sm" data-radar-example="หูฟังไร้สาย">หูฟังไร้สาย</button>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <!-- Shopee User Copy / Report Import -->
+        <div class="mf-card" style="margin-bottom:20px;">
+          <div class="section-header-row" style="margin-bottom:8px;">
+            <h3 style="font-size:15px; font-weight:700;" data-i18n="shopee_import_title">▣ สแกนหรือนำเข้าข้อมูล Shopee Affiliate</h3>
+            <a href="https://affiliate.shopee.co.th/dashboard" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-sm">
+              <span data-i18n="btn_open_shopee">เปิด Shopee Affiliate</span> ↗
+            </a>
+          </div>
+          <p style="font-size:13px; color:var(--color-text-muted); margin-bottom:12px;" data-i18n="shopee_import_desc">
+            คัดลอกข้อความสินค้าจากหน้า Shopee หรืออัปโหลดรายงาน CSV เพื่อวิเคราะห์ค่าคอมมิชชันและนำเข้าอัตโนมัติ
+          </p>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+            <div>
+              <label class="form-label" data-i18n="label_paste_shopee">วางข้อความสินค้าจาก Shopee</label>
+              <textarea id="shopee-paste-input" class="form-textarea" rows="3" placeholder="วางลิงก์หรือข้อความ เช่น https://s.shopee.co.th/... หรือตารางสินค้า"></textarea>
+              <button type="button" id="shopee-scan-copied" class="btn btn-secondary btn-sm" style="margin-top:8px;" data-i18n="btn_parse_copied">วิเคราะห์ข้อความ</button>
+            </div>
+            <div>
+              <label class="form-label" data-i18n="label_csv_report">รายงาน CSV รายได้ Shopee</label>
+              <input type="file" id="shopee-report-file" accept=".csv" class="form-input">
+              <p style="font-size:11px; color:var(--color-text-muted); margin-top:6px;" data-i18n="csv_hint">ไฟล์ CSV จากเมนู Conversion Report หรือ Custom Link</p>
+            </div>
+          </div>
+          <div id="shopee-preview-box" style="margin-top:12px;" hidden></div>
+        </div>
+
+        <!-- Radar Results Area -->
+        <div class="mf-card">
+          <h3 style="font-size:16px; font-weight:700; margin-bottom:14px;" data-i18n="radar_results_title">ผลการสำรวจและกระแสสินค้า</h3>
+          <div id="radar-results">
+            <div style="text-align:center; padding:32px; color:var(--color-text-muted);" data-i18n="radar_placeholder">
+              กดปุ่ม "ค้นหาสินค้าจริง" หรือ "สแกนกระแสสินค้าอัตโนมัติ" เพื่อเริ่มต้น
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- ==========================================
+           TAB 3: สินค้าของฉัน (MY PRODUCTS)
+           ========================================== -->
+      <section id="products" class="tab-section">
+        <div class="section-header-row">
+          <div>
+            <h2 class="page-title" data-i18n="products_page_title">📋 สินค้าของฉัน (My Products)</h2>
+            <p class="page-subtitle" data-i18n="products_page_desc">รายการสินค้าที่คุณเลือกสำหรับทำคลิปวิดีโอและติดตามผลงาน</p>
+          </div>
+          <button class="btn btn-primary" id="addNewProductBtn" data-i18n="btn_add_product">+ เพิ่มสินค้าใหม่</button>
+        </div>
+
+        <!-- Add Product Form Card (Collapsible) -->
+        <div class="mf-card" id="addProductCard" style="display:none; margin-bottom:20px;">
+          <h3 style="font-size:15px; font-weight:700; margin-bottom:12px;" data-i18n="add_product_title">เพิ่มสินค้าเข้ารายการ</h3>
+          <form id="productform">
+            <div style="display:grid; grid-template-columns:2fr 2fr 1fr; gap:12px; margin-bottom:12px;">
+              <div>
+                <label class="form-label" data-i18n="label_product_title">ชื่อสินค้า</label>
+                <input name="title" class="form-input" required placeholder="เช่น พัดลมพกพาไร้ใบพัด หมุนได้ 360 องศา">
+              </div>
+              <div>
+                <label class="form-label" data-i18n="label_product_url">ลิงก์สินค้า Affiliate (ถ้ามี)</label>
+                <input name="url" type="url" class="form-input" placeholder="https://s.shopee.co.th/...">
+              </div>
+              <div>
+                <label class="form-label" data-i18n="label_platform">แพลตฟอร์ม</label>
+                <select name="platform" class="form-select">
+                  <option value="shopee">Shopee</option>
+                  <option value="tiktok">TikTok</option>
+                  <option value="other">อื่น ๆ</option>
+                </select>
+              </div>
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:8px;">
+              <button type="button" class="btn btn-ghost" id="cancelAddProductBtn" data-i18n="btn_cancel">ยกเลิก</button>
+              <button type="submit" class="btn btn-primary" data-i18n="btn_save_product">บันทึกสินค้า</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Products Table -->
+        <div class="data-table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th data-i18n="col_id">ID</th>
+                <th data-i18n="col_product_name">ชื่อสินค้า</th>
+                <th data-i18n="col_platform">แพลตฟอร์ม</th>
+                <th data-i18n="col_extra_comm">Extra Comm</th>
+                <th data-i18n="col_created">เพิ่มเมื่อ</th>
+                <th data-i18n="col_actions">การทำงาน</th>
+              </tr>
+            </thead>
+            <tbody id="productlist">
+              <tr>
+                <td colspan="6" style="text-align:center; padding:24px; color:var(--color-text-muted);" data-i18n="no_products">ยังไม่มีสินค้าในรายการ ลองเพิ่มสินค้าแรกได้เลย</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+
+      <!-- ==========================================
+           TAB 4: AI VIDEO FACTORY (เขียนบทรีวิว)
+           ========================================== -->
+      <section id="drafts" class="tab-section">
+        <h2 class="page-title" data-i18n="drafts_page_title">🎬 AI Video Factory (สร้างบทรีวิว POV)</h2>
+        <p class="page-subtitle" data-i18n="drafts_page_desc">สร้างสคริปต์ 3 องก์ (Hook, Pain Point, Call-to-action) พร้อม visual prompt สำหรับสร้างคลิป</p>
+
+        <!-- Script Generator Form Card -->
+        <div class="mf-card" style="margin-bottom:24px;">
+          <form id="draftform">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:14px;">
+              <div>
+                <label class="form-label" data-i18n="label_select_product">1. เลือกสินค้าที่จะเขียนบท</label>
+                <select name="product_id" id="draft-product" class="form-select" required>
+                  <option value="" data-i18n="opt_select_product">-- กรุณาเลือกสินค้า --</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label" data-i18n="label_script_style">2. รูปแบบบทรีวิว (POV Style)</label>
+                <select name="style" id="draft-style-select" class="form-select">
+                  <option value="pov_fast" data-i18n="opt_style_fast">⚡ สายป้ายยาเร็ว สั้นกระชับ (15-30s)</option>
+                  <option value="pov_pain" data-i18n="opt_style_pain">🔥 ชูความหงุดหงิดเดิม แล้วแก้ปัญหา (Pain Point)</option>
+                  <option value="pov_7days" data-i18n="opt_style_7days">🗓 รีวิวผลการใช้จริง 7 วัน (Authentic Experience)</option>
+                  <option value="pov_compare" data-i18n="opt_style_compare">⚖️ เปรียบเทียบตัวเดิม vs ตัวใหม่</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" data-i18n="label_script_text">3. เนื้อหาสคริปต์เสียงพากย์ (Voiceover Script)</label>
+              <textarea name="script" id="draft-script-input" class="form-textarea" rows="4" required placeholder="พิมพ์หรือกดปุ่ม AI ช่วยร่างสคริปต์ด้านล่าง"></textarea>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" data-i18n="label_prompt_text">4. Visual Prompt (สำหรับเครื่องยนต์สร้างวิดีโอ AI)</label>
+              <textarea name="prompt" id="draft-prompt-input" class="form-textarea" rows="2" required placeholder="คำสั่งกำกับฉาก เช่น 9:16 vertical video of portable fan on modern desk, high detail, studio lighting"></textarea>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <button type="button" class="btn btn-secondary" id="autoGenerateScriptBtn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                <span data-i18n="btn_auto_ai_draft">✦ ให้ AI ร่างบทอัตโนมัติ</span>
+              </button>
+              <button type="submit" class="btn btn-primary">
+                <span data-i18n="btn_save_draft">บันทึกบทรีวิวนี้</span>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Saved Drafts List -->
+        <h3 style="font-size:16px; font-weight:700; margin-bottom:12px;" data-i18n="saved_drafts_title">บทรีวิวที่บันทึกไว้</h3>
+        <div id="draftlist" class="grid-cols-2">
+          <div style="grid-column:span 2; text-align:center; padding:24px; color:var(--color-text-muted);" data-i18n="no_drafts">
+            ยังไม่มีบทรีวิว เลือกลองร่างบทแรกด้านบนได้เลย
+          </div>
+        </div>
+      </section>
+
+
+      <!-- ==========================================
+           TAB 5: สร้างคลิป AI & SMARTPHONE MOCKUP
+           ========================================== -->
+      <section id="video" class="tab-section">
+        <h2 class="page-title" data-i18n="video_page_title">▶ สร้างคลิป AI & 9:16 Video Mockup</h2>
+        <p class="page-subtitle" data-i18n="video_page_desc">สร้างวิดีโอสำหรับ TikTok / Shopee Video พร้อมจำลองการแสดงผลบนสมาร์ตโฟนเสมือนจริง</p>
+
+        <div class="mockup-container">
+          <!-- Left Configuration Card -->
+          <div class="mf-card" style="flex:1;">
+            <h3 style="font-size:16px; font-weight:700; margin-bottom:14px;" data-i18n="gen_video_settings">ตั้งค่าวิดีโอที่จะสร้าง</h3>
+            
+            <form id="videojobform">
+              <div class="form-group">
+                <label class="form-label" data-i18n="label_choose_draft">1. เลือกบทรีวิว (จาก AI Video Factory)</label>
+                <select name="draft_id" id="video-draft-select" class="form-select" required>
+                  <option value="" data-i18n="opt_select_draft">-- กรุณาเลือกบทรีวิว --</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" data-i18n="label_choose_engine">2. เลือกเครื่องยนต์ AI (Engine)</label>
+                <select name="engine_type" id="video-engine-select" class="form-select">
+                  <option value="mockup_instant" selected data-i18n="opt_instant_mockup">⚡ Instant AI Video Mockup (เรนเดอร์ตัวอย่างทันที ไม่เสียเครดิต)</option>
+                  <option value="google_veo" data-i18n="opt_google_veo">🎥 Google Veo 3.1 Preview (Gemini API 9:16 8s)</option>
+                  <option value="grok_imagine" data-i18n="opt_grok_imagine">🌌 xAI Grok Imagine (Prompt-to-Video)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" data-i18n="label_aspect_ratio">3. อัตราส่วนและรูปแบบ</label>
+                <div style="display:flex; gap:10px;">
+                  <span class="chip chip-primary mono">9:16 Vertical Video</span>
+                  <span class="chip chip-success mono">1080 x 1920 Full HD</span>
+                  <span class="chip chip-warning mono">Shopee & TikTok Ready</span>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer;">
+                  <input type="checkbox" id="veo-cost-consent" checked>
+                  <span data-i18n="consent_terms">ยินยอมทดสอบและยอมรับเงื่อนไขการใช้งานโมเดล AI</span>
+                </label>
+              </div>
+
+              <button type="submit" class="btn btn-primary btn-lg" id="generateVideoBtn" style="width:100%; margin-top:8px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                <span data-i18n="btn_generate_video_now">🚀 สั่งสร้างคลิปวิดีโอ (Generate Video)</span>
+              </button>
+            </form>
+
+            <!-- Render Progress Tracker -->
+            <div id="renderProgressBox" class="render-progress-card" style="display:none; margin-top:20px;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-weight:600; font-size:13px;" id="progressStageText" data-i18n="progress_preparing">กำลังเตรียมการสร้างวิดีโอ...</span>
+                <span class="mono" style="font-weight:700; color:var(--color-primary);" id="progressPercentText">0%</span>
+              </div>
+              <div class="progress-bar-track">
+                <div class="progress-bar-fill" id="progressBarFill"></div>
+              </div>
+              <p style="font-size:11px; color:var(--color-text-muted);" id="progressDetailText" data-i18n="progress_details">ระบบกำลังสังเคราะห์ภาพเคลื่อนไหว 9:16 และซิงก์เสียงพากย์...</p>
+            </div>
+
+            <!-- Existing Jobs Table -->
+            <div style="margin-top:24px;">
+              <div class="section-header-row" style="margin-bottom:8px;">
+                <h4 style="font-size:14px; font-weight:700;" data-i18n="history_jobs_title">รายการคลิปที่เคยสร้าง</h4>
+                <button type="button" class="btn btn-ghost btn-sm" id="refreshVideoJobsBtn" data-i18n="btn_refresh">รีเฟรช</button>
+              </div>
+              <div id="videojoblist" style="display:flex; flex-direction:column; gap:8px;">
+                <div style="font-size:12px; color:var(--color-text-muted);" data-i18n="no_jobs">ยังไม่มีประวัติคลิป</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Smartphone 9:16 Interactive Mockup Player -->
+          <div class="phone-mockup-frame">
+            <div class="phone-notch"></div>
+            
+            <div class="phone-screen">
+              <!-- Video Viewport Canvas -->
+              <div class="phone-video-viewport" id="phoneVideoViewport">
+                <canvas id="simulatedCanvas" class="simulated-canvas" width="320" height="580"></canvas>
+              </div>
+
+              <!-- Overlay Interactive UI -->
+              <div class="video-overlay-ui">
+                <div class="video-top-meta">
+                  <span class="mono" style="font-size:11px; opacity:0.8;">9:16 LIVE PREVIEW</span>
+                  <span class="chip chip-success mono" style="font-size:10px;">HD 60FPS</span>
+                </div>
+
+                <!-- Right Side Floating Buttons -->
+                <div class="video-right-actions">
+                  <div class="action-circle-btn" id="mockupProfileAvatar">
+                    <div style="width:36px; height:36px; border-radius:50%; background:#FF5E36; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; border:2px solid #FFFFFF;">K</div>
+                  </div>
+                  <button class="action-circle-btn" id="mockupLikeBtn">
+                    <svg viewBox="0 0 24 24" fill="#FF2442" stroke="#FF2442"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                    <span id="mockupLikeCount">12.4K</span>
+                  </button>
+                  <button class="action-circle-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                    <span>348</span>
+                  </button>
+                  <button class="action-circle-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                    <span>1.2K</span>
+                  </button>
+                </div>
+
+                <!-- Bottom Captions and Product Basket -->
+                <div class="video-bottom-info">
+                  <div class="video-creator-tag">@kevin_creator · Affiliate Auto</div>
+                  <div class="video-script-caption" id="mockupScriptCaption">
+                    "พัดลมพกพาตัวนี้บอกเลยว่าโคตรเย็น! ปรับได้ 5 ระดับ พกง่ายมาก ตะกร้าซ้ายล่างเลยจ้า #ป้ายยาช้อปปี้"
+                  </div>
+                  
+                  <!-- Shopee Orange Basket Card -->
+                  <div class="video-basket-pill" id="mockupBasketPill">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+                    <span id="mockupBasketTitle" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:180px;">พัดลมพกพาไร้ใบพัด</span>
+                    <span class="basket-price" id="mockupBasketPrice">฿199</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Mockup Quick Actions -->
+            <div style="display:flex; gap:8px; margin-top:12px;">
+              <button class="btn btn-secondary btn-sm" id="togglePlayMockupBtn" style="flex:1;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                <span data-i18n="btn_play_pause">เล่น / พัก</span>
+              </button>
+              <button class="btn btn-primary btn-sm" id="sendMockupToQueueBtn" style="flex:1;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <span data-i18n="btn_send_to_queue">ส่งเข้าคิวโพสต์</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- ==========================================
+           TAB 6: คิวโพสต์ (QUEUE & PUBLISH)
+           ========================================== -->
+      <section id="queue" class="tab-section">
+        <h2 class="page-title" data-i18n="queue_page_title">▦ คิวโพสต์ & จัดการการเผยแพร่</h2>
+        <p class="page-subtitle" data-i18n="queue_page_desc">ตรวจสอบคลิป เช็กลิสต์เตรียมเผยแพร่ แยกตามแพลตฟอร์ม TikTok Affiliate และ Shopee Video</p>
+
+        <!-- Add to Queue Form -->
+        <div class="mf-card" style="margin-bottom:20px;">
+          <h3 style="font-size:15px; font-weight:700; margin-bottom:12px;" data-i18n="add_queue_title">เพิ่มงานเข้าคิวโพสต์</h3>
+          <form id="queueform">
+            <div style="display:grid; grid-template-columns:2fr 1fr 2fr 1fr; gap:12px; align-items:flex-end;">
+              <div>
+                <label class="form-label" data-i18n="label_queue_draft">เลือกบทดราฟต์</label>
+                <select id="queue-draft" name="draft_id" class="form-select" required>
+                  <option value="" data-i18n="opt_select_draft">-- กรุณาเลือกบท --</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label" data-i18n="label_platform">แพลตฟอร์ม</label>
+                <select name="platform" class="form-select">
+                  <option value="tiktok">TikTok</option>
+                  <option value="shopee">Shopee Video</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label" data-i18n="label_video_url">หรือแนบลิงก์วิดีโอ (ถ้ามี)</label>
+                <input name="video_url" type="url" class="form-input" placeholder="https://...">
+              </div>
+              <div>
+                <button type="submit" class="btn btn-primary" style="width:100%;" data-i18n="btn_add_queue">+ เพิ่มคิว</button>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <!-- Queue Feed Area -->
+        <div class="data-table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th data-i18n="col_id">ID</th>
+                <th data-i18n="col_title">ชื่อสินค้า / บทรีวิว</th>
+                <th data-i18n="col_platform">แพลตฟอร์ม</th>
+                <th data-i18n="col_status">สถานะ</th>
+                <th data-i18n="col_created">สร้างเมื่อ</th>
+                <th data-i18n="col_action">การทำงาน</th>
+              </tr>
+            </thead>
+            <tbody id="queuelist">
+              <tr>
+                <td colspan="6" style="text-align:center; padding:24px; color:var(--color-text-muted);" data-i18n="no_queue">ยังไม่มีรายการในคิวโพสต์</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+
+      <!-- ==========================================
+           TAB 7: ติดตามยอดขาย (SALES TRACKER)
+           ========================================== -->
+      <section id="tracking" class="tab-section">
+        <h2 class="page-title" data-i18n="tracking_page_title">⏱ ติดตามยอดขาย & สถิติ Affiliate</h2>
+        <p class="page-subtitle" data-i18n="tracking_page_desc">บันทึกยอดวิว ยอดคลิก คำสั่งซื้อ และค่าคอมมิชชันของแต่ละคอนเทนต์เพื่อวัดผลลัพธ์ ROI</p>
+
+        <!-- KPI Metrics Grid -->
+        <div class="kpi-row" style="margin-bottom:24px;">
+          <div class="kpi-card">
+            <div class="kpi-title" data-i18n="metric_total_views">👁 ยอดวิวสะสม</div>
+            <div class="kpi-value mono" id="totalViewsMetric">142,500</div>
+            <span class="chip chip-success mono">+28.4% สัปดาห์นี้</span>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-title" data-i18n="metric_total_orders">📦 คำสั่งซื้อสำเร็จ</div>
+            <div class="kpi-value mono" id="totalOrdersMetric">842</div>
+            <span class="chip chip-primary mono">อัตราซื้อ 5.9%</span>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-title" data-i18n="metric_total_comm">💰 ค่าคอมมิชชันรวม</div>
+            <div class="kpi-value mono" style="color:var(--color-secondary);" id="totalCommMetric">฿18,450.00</div>
+            <span class="chip chip-success mono">รวม Extra Comm</span>
+          </div>
+        </div>
+
+        <!-- Tracking Table -->
+        <div class="data-table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th data-i18n="col_product">สินค้า</th>
+                <th data-i18n="col_views">ยอดวิว</th>
+                <th data-i18n="col_clicks">คลิกตะกร้า</th>
+                <th data-i18n="col_orders">คำสั่งซื้อ</th>
+                <th data-i18n="col_sales">ยอดขาย (บาท)</th>
+                <th data-i18n="col_comm">ค่าคอม (บาท)</th>
+                <th data-i18n="col_action">บันทึกยอด</th>
+              </tr>
+            </thead>
+            <tbody id="trackingTbody">
+              <tr>
+                <td colspan="7" style="text-align:center; padding:24px; color:var(--color-text-muted);" data-i18n="loading_tracking">กำลังโหลดข้อมูลสถิติ...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+
+      <!-- ==========================================
+           TAB 8: COMMUNITY LAB (ชุมชน & เสนอไอเดีย)
+           ========================================== -->
+      <section id="ideas" class="tab-section">
+        <div class="section-header-row">
+          <div>
+            <h2 class="page-title" data-i18n="community_page_title">👥 Community Lab & โหวตฟีเจอร์</h2>
+            <p class="page-subtitle" data-i18n="community_page_desc">ชุมชนร่วมทดสอบ เสนอฟีเจอร์ และโหวตสิ่งที่อยากให้พัฒนาในเวอร์ชันถัดไป</p>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <select id="sort" class="form-select" style="width:160px;">
+              <option value="top" data-i18n="sort_top_votes">โหวตสูงสุด</option>
+              <option value="new" data-i18n="sort_newest">ใหม่ล่าสุด</option>
+            </select>
+            <button class="btn btn-primary" data-goto="new" data-i18n="btn_new_proposal">+ เสนอไอเดียใหม่</button>
+          </div>
+        </div>
+
+        <div id="feed" style="display:flex; flex-direction:column; gap:12px;">
+          <div style="text-align:center; padding:32px; color:var(--color-text-muted);" data-i18n="loading_ideas">กำลังโหลดข้อเสนอชุมชน...</div>
+        </div>
+      </section>
+
+
+      <!-- ==========================================
+           TAB 9: เสนอไอเดียใหม่ (NEW PROPOSAL)
+           ========================================== -->
+      <section id="new" class="tab-section">
+        <h2 class="page-title" data-i18n="new_proposal_title">✦ เสนอฟีเจอร์ / แจ้งปัญหา (Bug Report)</h2>
+        <p class="page-subtitle" data-i18n="new_proposal_desc">ส่งข้อเสนอเพื่อให้สมาชิกคนอื่นร่วมโหวตและนำไปพัฒนา</p>
+
+        <div class="mf-card" style="max-width:680px;">
+          <form id="ideaform">
+            <div class="form-group">
+              <label class="form-label" data-i18n="label_idea_kind">ประเภท</label>
+              <select name="kind" class="form-select">
+                <option value="feature" data-i18n="kind_feature">เสนอฟีเจอร์ใหม่ (Feature Request)</option>
+                <option value="bug" data-i18n="kind_bug">แจ้งบั๊ก / ปัญหา (Bug Report)</option>
+                <option value="feedback" data-i18n="kind_feedback">ความคิดเห็น / ข้อเสนอแนะ (Feedback)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" data-i18n="label_idea_title">หัวข้อข้อเสนอ</label>
+              <input name="title" class="form-input" minlength="5" maxlength="110" required placeholder="เช่น อยากให้มีระบบใส่เพลงฮิต TikTok อัตโนมัติ">
+            </div>
+            <div class="form-group">
+              <label class="form-label" data-i18n="label_idea_body">รายละเอียด</label>
+              <textarea name="body" class="form-textarea" rows="5" minlength="10" maxlength="2000" required placeholder="อธิบายขั้นตอนหรือความต้องการอย่างละเอียด..."></textarea>
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:8px;">
+              <button type="button" class="btn btn-ghost" data-goto="ideas" data-i18n="btn_back">ย้อนกลับ</button>
+              <button type="submit" class="btn btn-primary" data-i18n="btn_submit_idea">ส่งข้อเสนอไปยังชุมชน</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+
+      <!-- ==========================================
+           TAB 10: ระบบจัดการผู้ใช้ (USER MANAGEMENT - ADMIN)
+           ========================================== -->
+      <section id="users_mgmt" class="tab-section">
+        <div class="section-header-row">
+          <div>
+            <h2 class="page-title" data-i18n="users_page_title">👤 ระบบจัดการผู้ใช้ (User Management)</h2>
+            <p class="page-subtitle" data-i18n="users_page_desc">ดูข้อมูลสมาชิก สถิติการใช้งาน เปลี่ยนระดับสิทธิ์ และจัดการบัญชีผู้ใช้ในระบบ</p>
+          </div>
+          <button class="btn btn-primary" id="openAddUserModalBtn" data-i18n="btn_add_user">+ เพิ่มผู้ใช้งานใหม่</button>
+        </div>
+
+        <!-- Metric Summary Cards -->
+        <div class="kpi-row" style="margin-bottom:20px;">
+          <div class="kpi-card">
+            <div class="kpi-title" data-i18n="total_registered_users">👥 ผู้ใช้งานทั้งหมด</div>
+            <div class="kpi-value mono" id="totalUsersCount">1</div>
+            <span class="chip chip-primary mono">Beta 100 Seats</span>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-title" data-i18n="admin_count">🛡️ ผู้ดูแลระบบ (Admins)</div>
+            <div class="kpi-value mono" id="adminUsersCount">1</div>
+            <span class="chip chip-success mono">Full Control</span>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-title" data-i18n="beta_remaining">⚡ ที่นั่งว่างคงเหลือ</div>
+            <div class="kpi-value mono" id="remainingBetaSeats">99</div>
+            <span class="chip chip-warning mono">Local & Community</span>
+          </div>
+        </div>
+
+        <!-- Users Table -->
+        <div class="data-table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th data-i18n="col_id">ID</th>
+                <th data-i18n="col_user">ผู้ใช้</th>
+                <th data-i18n="col_email">อีเมล</th>
+                <th data-i18n="col_role">บทบาท (Role)</th>
+                <th data-i18n="col_stats">สินค้า / บท / คิว</th>
+                <th data-i18n="col_registered">วันที่สมัคร</th>
+                <th data-i18n="col_actions">การจัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="userManagementTbody">
+              <tr>
+                <td colspan="7" style="text-align:center; padding:24px; color:var(--color-text-muted);" data-i18n="loading_users">กำลังโหลดรายชื่อผู้ใช้...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+
+      <!-- ==========================================
+           TAB 11: API KEYS & CONNECTION SETTINGS
+           ========================================== -->
+      <section id="keys" class="tab-section">
+        <h2 class="page-title" data-i18n="keys_page_title">⚙ API Keys & การเชื่อมต่อบริการภายนอก</h2>
+        <p class="page-subtitle" data-i18n="keys_page_desc">เชื่อมต่อ Google Gemini / Veo, xAI Grok, Brave Search เพื่อให้ระบบสร้างคอนเทนต์อัตโนมัติ</p>
+
+        <div class="mf-card" style="margin-bottom:20px; background:var(--color-primary-light); border-color:var(--color-primary);">
+          <strong style="color:var(--color-primary);" data-i18n="key_security_notice">🔒 ความปลอดภัยระดับสูง:</strong>
+          <span style="font-size:13px; color:var(--color-text-main);" data-i18n="key_security_desc">คีย์ API ของคุณจะถูกเข้ารหัสด้วย Fernet Encryption เก็บไว้ในเครื่องนี้เท่านั้น ไม่มีการเปิดเผยหรือแชร์ให้บุคคลภายนอก</span>
+        </div>
+
+        <div id="connectionlist" class="grid-cols-2" style="margin-bottom:20px;"></div>
+
+        <div class="mf-card">
+          <h3 style="font-size:15px; font-weight:700; margin-bottom:8px;" data-i18n="keys_guide_title">คำแนะนำการรับ API Key</h3>
+          <ul style="font-size:13px; color:var(--color-text-muted); padding-left:20px; line-height:1.8;">
+            <li><strong>Google Gemini / Veo:</strong> รับคีย์ได้จาก <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer">Google AI Studio ↗</a> (ใช้สำหรับวิเคราะห์สินค้าและสร้างคลิป Veo)</li>
+            <li><strong>xAI Grok:</strong> รับคีย์ได้จาก <a href="https://console.x.ai" target="_blank" rel="noopener noreferrer">xAI Console ↗</a></li>
+            <li><strong>Brave Search:</strong> รับคีย์ฟรี 2,000 queries/month จาก <a href="https://brave.com/search/api/" target="_blank" rel="noopener noreferrer">Brave Search API ↗</a></li>
+          </ul>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+
+<!-- ==========================================
+     INTERACTIVE WALKTHROUGH MODAL
+     ========================================== -->
+<div class="modal-backdrop" id="walkthroughModal" hidden>
+  <div class="modal-content">
+    <button class="modal-close-btn" id="closeWalkthroughBtn" aria-label="Close modal">&times;</button>
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+      <span class="chip chip-primary mono">WALKTHROUGH TOUR</span>
+      <span class="hero-status-pill">3 ขั้นตอนสู่ยอดขาย</span>
+    </div>
+    <h2 style="font-size:22px; font-weight:700; margin-bottom:8px;" id="modalWalkthroughTitle">ขั้นตอนที่ 1: ค้นหาสินค้า & สแกน Shopee Extra Comm</h2>
+    <p style="font-size:14px; color:var(--color-text-muted); margin-bottom:20px;" id="modalWalkthroughDesc">
+      เริ่มต้นการทำ Affiliate ที่มีประสิทธิภาพสูงสุด ด้วยการค้นหาสินค้าที่มีกระแสจริง และมีค่าคอมมิชชันพิเศษ Extra Commission สูงถึง 15-30%
+    </p>
+
+    <!-- Visual Interactive Preview inside Modal -->
+    <div style="background:var(--color-surface-subtle); border:1px solid var(--color-border); border-radius:var(--radius-lg); padding:20px; margin-bottom:20px; text-align:center;" id="modalStepVisualBox">
+      <div style="font-size:40px; margin-bottom:10px;">🔍 ➔ 🏷 ➔ 🎬</div>
+      <p style="font-size:13px; font-weight:600; color:var(--color-text-main);">เลือกสินค้ากระแส → เพิ่มในรายการ → กดสร้างบทรีวิวอัตโนมัติ</p>
+    </div>
+
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <div style="display:flex; gap:6px;">
+        <button class="btn btn-ghost btn-sm" id="walkPrevStepBtn">← ขั้นตอนก่อนหน้า</button>
+        <button class="btn btn-ghost btn-sm" id="walkNextStepBtn">ขั้นตอนถัดไป →</button>
+      </div>
+      <button class="btn btn-primary" id="walkActionGoBtn">ลองทำขั้นตอนนี้ทันที 🚀</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ==========================================
+     LOGIN / REGISTER / SWITCH ACCOUNT MODAL
+     ========================================== -->
+<div class="modal-backdrop" id="authModal" hidden>
+  <div class="modal-content" style="max-width:440px;">
+    <button class="modal-close-btn" id="closeAuthModalBtn" aria-label="Close modal">&times;</button>
+    
+    <div class="auth-tab-row">
+      <button class="auth-tab-btn active" id="tabLoginBtn" data-i18n="tab_login">เข้าสู่ระบบ (Sign In)</button>
+      <button class="auth-tab-btn" id="tabRegisterBtn" data-i18n="tab_register">สมัครสมาชิก (Register)</button>
+    </div>
+
+    <!-- Login Form -->
+    <form id="loginform">
+      <div class="form-group">
+        <label class="form-label" data-i18n="label_email">อีเมล</label>
+        <input name="email" type="email" class="form-input" required placeholder="name@example.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label" data-i18n="label_password">รหัสผ่าน</label>
+        <input name="password" type="password" class="form-input" required placeholder="••••••••">
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%; margin-top:10px;" data-i18n="btn_login_submit">เข้าสู่ระบบ</button>
+      
+      <!-- One-Click Quick Demo Login -->
+      <div style="margin-top:16px; padding-top:16px; border-top:1px dashed var(--color-border); text-align:center;">
+        <p style="font-size:12px; color:var(--color-text-muted); margin-bottom:8px;" data-i18n="quick_login_hint">หรือทดลองใช้งานด้วยบัญชี Admin ทันที</p>
+        <button type="button" class="btn btn-secondary btn-sm" id="quickDemoLoginBtn" style="width:100%;">
+          ⚡ เข้าสู่ระบบทันทีในโหมด Admin (Demo)
+        </button>
+      </div>
+    </form>
+
+    <!-- Register Form -->
+    <form id="registerform" style="display:none;">
+      <div class="form-group">
+        <label class="form-label" data-i18n="label_username">ชื่อผู้ใช้ (Username)</label>
+        <input name="username" class="form-input" minlength="3" maxlength="32" required placeholder="เช่น kevin_affiliate">
+      </div>
+      <div class="form-group">
+        <label class="form-label" data-i18n="label_email">อีเมล</label>
+        <input name="email" type="email" class="form-input" required placeholder="name@example.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label" data-i18n="label_password">รหัสผ่าน (ตัวอักษรและตัวเลข)</label>
+        <input name="password" type="password" class="form-input" minlength="6" required placeholder="••••••••">
+      </div>
+      <input type="hidden" name="invite_code" value="">
+      <button type="submit" class="btn btn-primary" style="width:100%; margin-top:10px;" data-i18n="btn_register_submit">สมัครเข้าร่วม Beta</button>
+    </form>
+  </div>
+</div>
+
+
+<!-- ==========================================
+     ADD USER MODAL (ADMIN)
+     ========================================== -->
+<div class="modal-backdrop" id="addUserModal" hidden>
+  <div class="modal-content" style="max-width:440px;">
+    <button class="modal-close-btn" id="closeAddUserModalBtn" aria-label="Close modal">&times;</button>
+    <h3 style="font-size:18px; font-weight:700; margin-bottom:14px;" data-i18n="add_user_title">เพิ่มผู้ใช้งานใหม่</h3>
+    <form id="addUserForm">
+      <div class="form-group">
+        <label class="form-label" data-i18n="label_username">ชื่อผู้ใช้ (Username)</label>
+        <input name="username" id="addUsernameInput" class="form-input" minlength="3" maxlength="32" required placeholder="เช่น creator01">
+      </div>
+      <div class="form-group">
+        <label class="form-label" data-i18n="label_email">อีเมล</label>
+        <input name="email" id="addUserEmailInput" type="email" class="form-input" required placeholder="creator01@example.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label" data-i18n="label_password">รหัสผ่าน</label>
+        <input name="password" id="addUserPasswordInput" type="password" class="form-input" minlength="4" required placeholder="Admin1234">
+      </div>
+      <div class="form-group">
+        <label class="form-label" data-i18n="label_role">ระดับสิทธิ์ (Role)</label>
+        <select name="role" id="addUserRoleSelect" class="form-select">
+          <option value="member">Member (สมาชิกทั่วไป)</option>
+          <option value="admin">Admin (ผู้ดูแลระบบ)</option>
+        </select>
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
+        <button type="button" class="btn btn-ghost" id="cancelAddUserBtn" data-i18n="btn_cancel">ยกเลิก</button>
+        <button type="submit" class="btn btn-primary" data-i18n="btn_create_user">สร้างผู้ใช้</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="/static/app.js" defer></script>
+</body>
+</html>
