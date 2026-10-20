@@ -1,0 +1,38 @@
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    environment:
+      PUBLIC_DEPLOYMENT: "1"
+      COOKIE_SECURE: "1"
+      MAX_BETA_USERS: "100"
+      BETA_INVITE_CODE: ${BETA_INVITE_CODE:?Set BETA_INVITE_CODE in .env}
+      APP_MASTER_KEY: ${APP_MASTER_KEY:?Set APP_MASTER_KEY in .env}
+    expose:
+      - "8010"
+    volumes:
+      - beta_data:/app/data
+    networks:
+      - internal
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    depends_on:
+      - app
+    environment:
+      DOMAIN: ${DOMAIN:?Set DOMAIN in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - internal
+networks:
+  internal:
+volumes:
+  beta_data:
+  caddy_data:
+  caddy_config:

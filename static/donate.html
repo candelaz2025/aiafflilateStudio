@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>สนับสนุนการพัฒนา | Affiliate Auto Studio</title>
+<link rel="stylesheet" href="/static/styles.css">
+<link rel="stylesheet" href="/static/donate.css">
+</head>
+<body>
+<header><div class="wrap header"><div class="brand"><span class="mark">A</span><div><strong>Affiliate Auto Studio</strong><small>Neon Beta V7.4 · Development Fund</small></div></div><a class="back-link" href="/">← กลับหน้า Community</a></div></header>
+<main class="wrap donation-main">
+  <div class="donation-intro"><span class="eyebrow">COMMUNITY SUPPORTED</span><h1>ร่วมสนับสนุนให้ระบบนี้เติบโตไปด้วยกัน ❤</h1><p>เราอยากให้ Affiliate Auto Studio เป็นเครื่องมือที่ทุกคนมีส่วนช่วยกันสร้างได้ เงินสนับสนุนโดยสมัครใจจะช่วยเป็นค่าเซิร์ฟเวอร์ ค่าทดสอบ และเวลาพัฒนาฟีเจอร์ใหม่ ๆ</p></div>
+  <div class="donation-grid">
+    <section class="bank-card" aria-label="บัญชีรับเงินสนับสนุน"><div class="bank-card-top"><span class="bank-monogram">SCB</span><div><strong>โอนผ่านแอปธนาคาร</strong><small>ตรวจสอบชื่อผู้รับก่อนยืนยันทุกครั้ง</small></div></div>
+      <div class="bank-body">
+        <div class="bank-label">ธนาคาร</div><div class="bank-value" id="bank">กำลังโหลดข้อมูล...</div>
+        <div class="bank-label">เลขที่บัญชี</div><div class="account-row"><strong id="account">—</strong><button type="button" id="copyAccount" class="copy-button" disabled>คัดลอกเลขบัญชี</button></div>
+        <div class="bank-label">ชื่อบัญชีผู้รับ</div><div class="bank-value" id="payee">—</div>
+        <button type="button" id="copyAll" class="wide-button" disabled>คัดลอกข้อมูลสำหรับโอน</button>
+      </div>
+      <div class="transfer-note">เงินจะโอนเข้าบัญชีผู้พัฒนาโดยตรง · ไม่มีการตัดเงินจากแอปโดยอัตโนมัติ · ยังไม่มี QR รับชำระเงินที่ตรวจสอบแล้ว</div>
+    </section>
+    <aside class="how-card"><div class="heart-icon">♥</div><h2>ทุกการสนับสนุนมีความหมาย</h2><ol><li>เปิดแอปธนาคารของคุณ</li><li>เลือกโอนเงินไปยังบัญชีตามที่แสดง</li><li>ตรวจสอบชื่อผู้รับและจำนวนเงินก่อนโอน</li><li>ถ้ามีบัญชี Community สามารถแจ้งโอนให้ผู้ดูแลตรวจสอบได้ด้านล่าง</li></ol><p id="notice" class="fine-print">การสนับสนุนโดยสมัครใจ ไม่ใช่ค่าสมัคร ไม่ได้ให้สิทธิ์ใช้ฟีเจอร์เพิ่มเติมโดยอัตโนมัติ และไม่ใช่การบริจาคที่ยืนยันสิทธิลดหย่อนภาษี</p></aside>
+  </div>
+  <section id="reportArea" class="report-card">
+    <div class="report-heading"><div><h2>แจ้งการสนับสนุน</h2><p>ส่วนนี้เป็นเพียงการแจ้งข้อมูล ไม่ใช่หลักฐานยืนยันว่าได้รับเงินแล้ว</p></div><span class="review-tag">ตรวจสอบโดยผู้ดูแล</span></div>
+    <p id="loginPrompt">ถ้าโอนแล้วและต้องการติดตามสถานะ สามารถ <a href="/">เข้าสู่ระบบ Community</a> เพื่อแจ้งการโอนได้ ไม่บังคับสมัครเพื่อโอนเงิน</p>
+    <form id="reportForm" hidden>
+      <div class="form-two"><label>จำนวนที่โอน (บาท)<input name="amount_baht" type="number" min="1" max="1000000" step="0.01" inputmode="decimal" placeholder="เช่น 100" required></label><label>หมายเหตุ (ไม่จำเป็น)<input name="note" maxlength="200" placeholder="เช่น โอนวันนี้เวลา 14:30"></label></div>
+      <p class="fine-print">ไม่ต้องส่งรหัสธนาคาร รหัสผ่าน OTP หรือข้อมูลบัตร และกรุณาตรวจสอบว่าโอนเงินจริงก่อนแจ้ง</p>
+      <button type="submit" class="submit-report">ส่งข้อมูลแจ้งโอน (รอตรวจสอบ)</button>
+    </form>
+    <div id="myHistory" hidden><h3>รายการแจ้งโอนของฉัน</h3><div id="myList" class="donation-list"></div></div>
+  </section>
+  <section id="adminArea" class="report-card" hidden><div class="report-heading"><div><h2>ตรวจสอบการสนับสนุน — ผู้ดูแล</h2><p>กดยืนยันเฉพาะรายการที่ตรวจสอบเงินเข้าบัญชีไทยพาณิชย์เรียบร้อยแล้ว</p></div></div><div id="adminList" class="donation-list"></div></section>
+  <p id="donateMessage" class="donation-message" role="status" aria-live="polite"></p>
+</main>
+<footer>Affiliate Auto Studio Beta V7.4 · ต้นแบบทดสอบบนเครื่อง · ยังไม่ได้เชื่อมธนาคารหรือระบบออกใบเสร็จ</footer>
+<script src="/static/donate.js" defer></script>
+</body></html>
