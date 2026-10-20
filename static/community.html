@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="th" data-theme="light">
+<html lang="th" data-theme="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,143 +7,387 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>ชุมชน & เสนอไอเดีย (Community Lab) | Affiliate Auto Studio</title>
-  <link rel="stylesheet" href="/static/styles.css?v=20261020-002">
+  <link rel="stylesheet" href="/static/styles.css?v=20261020-004">
   <style>
-    .community-main {
-      max-width: 1200px;
+    /* LANDING PAGE THEME ADAPTATION FOR COMMUNITY */
+    body {
+      background: #090D16;
+      color: #F8FAFC;
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    .landing-header {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      background: rgba(9, 13, 22, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      height: 68px;
+    }
+
+    .landing-header-inner {
+      max-width: 1240px;
       margin: 0 auto;
-      padding: 32px 20px 60px;
+      padding: 0 24px;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: #FFFFFF;
+    }
+
+    .brand-icon {
+      width: 38px;
+      height: 38px;
+      background: linear-gradient(135deg, #2563EB, #7C3AED);
+      color: #FFFFFF;
+      font-weight: 800;
+      font-size: 18px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 15px rgba(37, 99, 235, 0.4);
+    }
+
+    .brand-text strong {
+      font-size: 15px;
+      font-weight: 800;
+      display: block;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-text small {
+      font-size: 10.5px;
+      color: #94A3B8;
+      font-family: var(--font-mono);
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      display: block;
+    }
+
+    .nav-links-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .nav-link {
+      color: #94A3B8;
+      text-decoration: none;
+      font-size: 13.5px;
+      font-weight: 500;
+      padding: 8px 14px;
+      border-radius: 8px;
+      transition: all 150ms ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .nav-link:hover {
+      color: #FFFFFF;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .nav-link.active {
+      color: #60A5FA;
+      background: rgba(37, 99, 235, 0.15);
+      border: 1px solid rgba(37, 99, 235, 0.3);
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-nav-topup {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+      color: #FFFFFF;
+      text-decoration: none;
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      box-shadow: 0 2px 10px rgba(245, 158, 11, 0.3);
+      transition: transform 150ms ease;
+    }
+
+    .btn-nav-topup:hover {
+      transform: translateY(-1px);
+    }
+
+    .hero-glow {
+      position: absolute;
+      top: -120px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 900px;
+      height: 520px;
+      background: radial-gradient(circle, rgba(37, 99, 235, 0.22) 0%, rgba(16, 185, 129, 0.15) 45%, transparent 70%);
+      filter: blur(70px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .community-container {
+      position: relative;
+      z-index: 1;
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+      flex: 1;
       width: 100%;
     }
+
     .comm-hero {
-      background: linear-gradient(135deg, rgba(37,99,235,0.06), rgba(16,185,129,0.05));
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-xl);
-      padding: 32px;
-      margin-bottom: 32px;
+      background: linear-gradient(145deg, rgba(37,99,235,0.12) 0%, rgba(15,23,42,0.85) 100%);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px;
+      padding: 36px;
+      margin-bottom: 36px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       flex-wrap: wrap;
       gap: 24px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+      backdrop-filter: blur(12px);
     }
+
+    .hero-pill-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      background: rgba(37, 99, 235, 0.15);
+      border: 1px solid rgba(37, 99, 235, 0.35);
+      border-radius: 9999px;
+      color: #60A5FA;
+      font-size: 12.5px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      margin-bottom: 12px;
+    }
+
     .comm-hero-text h1 {
-      font-size: clamp(24px, 3.2vw, 34px);
+      font-size: clamp(26px, 3.5vw, 38px);
       font-weight: 800;
-      color: var(--color-text-main);
-      margin-top: 8px;
-      margin-bottom: 8px;
+      letter-spacing: -0.02em;
+      color: #FFFFFF;
+      margin-bottom: 10px;
+      line-height: 1.25;
     }
+
     .comm-hero-text p {
       font-size: 15px;
-      color: var(--color-text-muted);
-      max-width: 650px;
+      color: #94A3B8;
+      max-width: 680px;
+      line-height: 1.6;
     }
+
     .comm-stats-card {
-      background: var(--color-surface);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-lg);
-      padding: 20px 24px;
-      min-width: 260px;
-      box-shadow: var(--shadow-sm);
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      padding: 24px;
+      min-width: 280px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
     }
+
     .comm-layout {
       display: grid;
-      grid-template-columns: 1fr 340px;
+      grid-template-columns: 1fr 360px;
       gap: 28px;
       align-items: start;
     }
+
     .vote-box {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      min-width: 54px;
-      padding: 10px 8px;
-      background: var(--color-surface-subtle);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-md);
+      min-width: 58px;
+      padding: 12px 10px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
       transition: all 150ms ease;
     }
+
     .vote-box.has-voted {
-      background: var(--color-primary-subtle);
-      border-color: var(--color-primary-border);
+      background: rgba(37, 99, 235, 0.2);
+      border-color: rgba(59, 130, 246, 0.5);
+      box-shadow: 0 0 15px rgba(37, 99, 235, 0.3);
     }
+
     .vote-box.has-voted .vote-num {
-      color: var(--color-primary);
+      color: #60A5FA;
     }
+
     .vote-btn {
       background: none;
       border: none;
       cursor: pointer;
-      color: var(--color-text-muted);
-      font-size: 16px;
+      color: #94A3B8;
+      font-size: 18px;
       line-height: 1;
       padding: 4px;
       transition: all 150ms ease;
     }
+
     .vote-btn:hover {
-      color: var(--color-primary);
+      color: #FFFFFF;
       transform: translateY(-2px);
     }
+
     .vote-num {
       font-family: var(--font-mono);
-      font-size: 15px;
-      font-weight: 700;
+      font-size: 16px;
+      font-weight: 800;
       margin: 4px 0 2px;
-      color: var(--color-text-main);
+      color: #FFFFFF;
     }
+
     .idea-card {
-      background: var(--color-surface);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-lg);
-      padding: 20px;
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 22px;
       display: flex;
-      gap: 18px;
-      box-shadow: var(--shadow-sm);
+      gap: 20px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.25);
       transition: all 150ms ease;
+      backdrop-filter: blur(10px);
     }
+
     .idea-card:hover {
-      border-color: var(--color-border-hover);
-      box-shadow: var(--shadow-md);
+      border-color: rgba(255, 255, 255, 0.18);
+      transform: translateY(-1px);
     }
+
     .idea-meta {
       display: flex;
       align-items: center;
       gap: 8px;
       flex-wrap: wrap;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
     }
+
     .comments-tray {
-      margin-top: 14px;
+      margin-top: 16px;
       padding-top: 14px;
-      border-top: 1px solid var(--color-border);
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
     }
+
     .comment-bubble {
-      background: var(--color-surface-subtle);
-      border-radius: var(--radius-sm);
-      padding: 8px 12px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 8px;
+      padding: 10px 14px;
       font-size: 13px;
       margin-bottom: 8px;
+      line-height: 1.5;
     }
+
+    .side-widget-card {
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 24px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+    }
+
+    .chip-filter {
+      padding: 6px 14px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #94A3B8;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 150ms ease;
+    }
+
+    .chip-filter:hover {
+      color: #FFFFFF;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .chip-filter.active {
+      color: #FFFFFF;
+      background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+      border-color: rgba(37, 99, 235, 0.5);
+      box-shadow: 0 2px 10px rgba(37, 99, 235, 0.3);
+    }
+
+    .landing-footer {
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(9, 13, 22, 0.95);
+      padding: 32px 24px;
+      margin-top: auto;
+    }
+
+    .landing-footer-inner {
+      max-width: 1240px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      font-size: 13px;
+      color: #94A3B8;
+    }
+
+    .landing-footer-inner a {
+      color: #94A3B8;
+      text-decoration: none;
+      margin-left: 16px;
+      transition: color 150ms ease;
+    }
+
+    .landing-footer-inner a:hover {
+      color: #FFFFFF;
+    }
+
     @media (max-width: 900px) {
       .comm-layout {
         grid-template-columns: 1fr;
       }
+      .nav-links-group {
+        display: none;
+      }
     }
   </style>
-  <script>
-    (function() {
-      const savedTheme = localStorage.getItem('aas_theme') || 'light';
-      document.documentElement.dataset.theme = savedTheme;
-    })();
-  </script>
 </head>
 <body>
 
+<div class="hero-glow"></div>
+
 <!-- TOPBAR NAVIGATION -->
-<header class="app-topbar unified-nav">
-  <div class="unified-nav-inner">
+<header class="landing-header">
+  <div class="landing-header-inner">
     <a href="/" class="brand-group">
       <div class="brand-icon">A</div>
       <div class="brand-text">
@@ -159,54 +403,55 @@
       </a>
       <a class="nav-link" href="/">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
-        <span>Dashboard</span>
+        <span>แดชบอร์ด</span>
       </a>
       <a class="nav-link active" href="/community">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-        <span>ชุมชน</span>
+        <span>ชุมชน & โหวตไอเดีย</span>
       </a>
       <a class="nav-link support-link" href="/donate">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path></svg>
-        <span>สนับสนุน</span>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path></svg>
+        <span>สนับสนุนการพัฒนา</span>
       </a>
       <a class="nav-link" href="/updates">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"></polyline></svg>
-        <span>ศูนย์อัปเดต</span>
+        <span>อัปเดตระบบ</span>
       </a>
     </nav>
 
     <div class="nav-actions">
-      <a class="btn-nav-topup" href="/#topup" title="เติมเครดิต AI Studio">
+      <div id="userPill" style="display:none; align-items:center; gap:8px;">
+        <span class="chip chip-primary mono" id="userNameBadge">Guest</span>
+      </div>
+      <a class="btn-nav-topup" href="/#topup" title="เติมเครดิตสร้างคลิป AI">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
         <span>⚡ เติมเครดิต</span>
       </a>
-      <a class="back-link" href="/">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
-        <span>เข้า Dashboard</span>
+      <a href="/" class="nav-link" style="border:1px solid rgba(255,255,255,0.15);">
+        <span>เข้า Studio &rarr;</span>
       </a>
-      <button id="commThemeToggle" class="theme-toggle-btn" title="สลับโหมดสว่าง/มืด" aria-label="Toggle Theme">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
-      </button>
     </div>
   </div>
 </header>
 
 <!-- MAIN CONTAINER -->
-<main class="community-main">
+<main class="community-container">
   <!-- HERO BANNER -->
   <section class="comm-hero">
     <div class="comm-hero-text">
-      <span class="chip chip-primary mono" style="margin-bottom:8px;">👥 COMMUNITY LAB · BETA 100 CO-CREATION</span>
-      <h1>ศูนย์รวมชุมชนนักสร้างคอนเทนต์ Affiliate Auto Studio</h1>
+      <div class="hero-pill-badge">
+        <span>👥 CREATOR COMMUNITY · ชุมชนนักสร้างคอนเทนต์ Affiliate AI</span>
+      </div>
+      <h1>ศูนย์รวมชุมชนและโหวต Roadmap Affiliate Auto Studio</h1>
       <p>ร่วมแชร์ไอเดีย เสนอฟีเจอร์ใหม่ โหวต Roadmap และแลกเปลี่ยนเทคนิคการสร้างคอนเทนต์ Affiliate ระบบอัตโนมัติ เพื่อสร้างรายได้ไปด้วยกัน</p>
     </div>
     <div class="comm-stats-card">
-      <div style="font-size:12px; color:var(--color-text-muted); text-transform:uppercase; font-weight:700; letter-spacing:0.05em; margin-bottom:4px;">สถานะโควตา Beta 100</div>
-      <div style="font-family:var(--font-mono); font-size:26px; font-weight:800; color:var(--color-primary);" id="commCapacityText">กำลังโหลด...</div>
-      <div style="height:6px; background:var(--color-surface-subtle); border-radius:3px; margin:10px 0; overflow:hidden;">
+      <div style="font-size:12px; color:#94A3B8; text-transform:uppercase; font-weight:700; letter-spacing:0.05em; margin-bottom:4px;">สถานะโควตา Beta 100</div>
+      <div style="font-family:var(--font-mono); font-size:26px; font-weight:800; color:#60A5FA;" id="commCapacityText">กำลังโหลด...</div>
+      <div style="height:6px; background:rgba(255,255,255,0.08); border-radius:3px; margin:10px 0; overflow:hidden;">
         <div id="commCapacityBar" style="height:100%; width:0%; background:linear-gradient(90deg, #2563EB, #10B981); transition:width 500ms ease;"></div>
       </div>
-      <div style="font-size:12px; color:var(--color-secondary); font-weight:600;" id="commCapacitySub">กำลังตรวจสอบที่นั่ง...</div>
+      <div style="font-size:12px; color:#34D399; font-weight:600;" id="commCapacitySub">กำลังตรวจสอบที่นั่ง...</div>
     </div>
   </section>
 
@@ -217,15 +462,15 @@
       <!-- CONTROLS ROW -->
       <div style="display:flex; justify-content:space-between; align-items:center; gap:16px; margin-bottom:20px; flex-wrap:wrap;">
         <div style="display:flex; gap:8px;">
-          <button class="chip chip-filter active" data-filter="all">ทั้งหมด</button>
-          <button class="chip chip-filter" data-filter="feature">🚀 Features</button>
-          <button class="chip chip-filter" data-filter="bug">🐛 Bugs</button>
-          <button class="chip chip-filter" data-filter="feedback">💡 Feedback</button>
+          <button class="chip-filter active" data-filter="all">ทั้งหมด</button>
+          <button class="chip-filter" data-filter="feature">🚀 Features</button>
+          <button class="chip-filter" data-filter="bug">🐛 Bugs</button>
+          <button class="chip-filter" data-filter="feedback">💡 Feedback</button>
         </div>
 
         <div style="display:flex; gap:10px; align-items:center;">
-          <span style="font-size:13px; color:var(--color-text-muted);">เรียงลำดับ:</span>
-          <select id="commSortSelect" class="form-select" style="width:140px; height:34px; padding:4px 10px; font-size:13px;">
+          <span style="font-size:13px; color:#94A3B8;">เรียงลำดับ:</span>
+          <select id="commSortSelect" class="form-select" style="width:140px; height:34px; padding:4px 10px; font-size:13px; background:rgba(15,23,42,0.8); color:#FFFFFF; border-color:rgba(255,255,255,0.15);">
             <option value="top">โหวตสูงสุด</option>
             <option value="new">ใหม่ล่าสุด</option>
           </select>
@@ -234,7 +479,7 @@
 
       <!-- FEED LIST -->
       <div id="commFeed" style="display:flex; flex-direction:column; gap:14px;">
-        <div class="mf-card" style="text-align:center; padding:40px; color:var(--color-text-muted);">
+        <div class="side-widget-card" style="text-align:center; padding:40px; color:#94A3B8;">
           กำลังโหลดข้อเสนอชุมชน...
         </div>
       </div>
@@ -243,16 +488,16 @@
     <!-- RIGHT: QUICK SUBMIT & ROADMAP -->
     <div style="display:flex; flex-direction:column; gap:20px;">
       <!-- QUICK PROPOSE CARD -->
-      <div class="mf-card" style="padding:22px;">
-        <h3 style="font-size:16px; font-weight:700; margin-bottom:6px; display:flex; align-items:center; gap:8px;">
+      <div class="side-widget-card">
+        <h3 style="font-size:16px; font-weight:700; color:#FFFFFF; margin-bottom:6px; display:flex; align-items:center; gap:8px;">
           <span>✦ เสนอไอเดีย / แจ้งบั๊ก</span>
         </h3>
-        <p style="font-size:13px; color:var(--color-text-muted); margin-bottom:16px;">ส่งความคิดเห็นเพื่อให้สมาชิกคนอื่นร่วมโหวตและนำไปพัฒนา</p>
+        <p style="font-size:13px; color:#94A3B8; margin-bottom:16px;">ส่งความคิดเห็นเพื่อให้สมาชิกคนอื่นร่วมโหวตและนำไปพัฒนา</p>
 
         <form id="commIdeaForm">
           <div class="form-group" style="margin-bottom:12px;">
-            <label class="form-label" style="font-size:12px;">ประเภทข้อเสนอ</label>
-            <select name="kind" class="form-select" style="font-size:13px; height:36px;" required>
+            <label class="form-label" style="font-size:12px; color:#CBD5E1;">ประเภทข้อเสนอ</label>
+            <select name="kind" class="form-select" style="font-size:13px; height:36px; background:rgba(0,0,0,0.3); color:#FFFFFF; border-color:rgba(255,255,255,0.15);" required>
               <option value="feature">🚀 เสนอฟีเจอร์ใหม่ (Feature)</option>
               <option value="bug">🐛 แจ้งปัญหา / บั๊ก (Bug Report)</option>
               <option value="feedback">💡 ข้อเสนอแนะทั่วไป (Feedback)</option>
@@ -260,16 +505,16 @@
           </div>
 
           <div class="form-group" style="margin-bottom:12px;">
-            <label class="form-label" style="font-size:12px;">หัวข้อ (สั้นกระชับ)</label>
-            <input name="title" class="form-input" style="font-size:13px; height:36px;" minlength="5" maxlength="110" required placeholder="เช่น อยากได้ระบบสุ่มเพลงฮิต TikTok">
+            <label class="form-label" style="font-size:12px; color:#CBD5E1;">หัวข้อ (สั้นกระชับ)</label>
+            <input name="title" class="form-input" style="font-size:13px; height:36px; background:rgba(0,0,0,0.3); color:#FFFFFF; border-color:rgba(255,255,255,0.15);" minlength="5" maxlength="110" required placeholder="เช่น อยากได้ระบบสุ่มเพลงฮิต TikTok">
           </div>
 
           <div class="form-group" style="margin-bottom:16px;">
-            <label class="form-label" style="font-size:12px;">รายละเอียด</label>
-            <textarea name="body" class="form-textarea" rows="4" style="font-size:13px;" minlength="10" maxlength="2000" required placeholder="อธิบายข้อเสนอแนะ หรือปัญหาที่พบอย่างละเอียด..."></textarea>
+            <label class="form-label" style="font-size:12px; color:#CBD5E1;">รายละเอียด</label>
+            <textarea name="body" class="form-textarea" rows="4" style="font-size:13px; background:rgba(0,0,0,0.3); color:#FFFFFF; border-color:rgba(255,255,255,0.15);" minlength="10" maxlength="2000" required placeholder="อธิบายข้อเสนอแนะ หรือปัญหาที่พบอย่างละเอียด..."></textarea>
           </div>
 
-          <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">
+          <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; font-weight:700;">
             ส่งข้อเสนอเข้าชุมชน
           </button>
         </form>
@@ -277,40 +522,40 @@
       </div>
 
       <!-- ROADMAP PREVIEW CARD -->
-      <div class="mf-card" style="padding:22px;">
-        <h4 style="font-size:15px; font-weight:700; margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+      <div class="side-widget-card">
+        <h4 style="font-size:15px; font-weight:700; color:#FFFFFF; margin-bottom:12px; display:flex; align-items:center; gap:8px;">
           <span>🎯 Roadmap & สิ่งที่กำลังพัฒนา</span>
         </h4>
         <div style="display:flex; flex-direction:column; gap:12px; font-size:13px;">
-          <div style="padding:10px 12px; background:var(--color-surface-subtle); border-radius:var(--radius-sm); border-left:3px solid var(--color-secondary);">
+          <div style="padding:10px 12px; background:rgba(0,0,0,0.3); border-radius:8px; border-left:3px solid #10B981;">
             <div style="display:flex; justify-content:space-between; margin-bottom:2px;">
-              <strong style="color:var(--color-text-main);">Shopee Direct Import V7.10</strong>
+              <strong style="color:#FFFFFF;">Multi-Page Social Auto-Post</strong>
               <span class="chip chip-success mono" style="font-size:10px; padding:1px 6px;">RELEASED</span>
             </div>
-            <div style="color:var(--color-text-muted); font-size:12px;">รองรับการดึงสินค้า Shopee ผ่าน Paste Text และไฟล์ CSV</div>
+            <div style="color:#94A3B8; font-size:12px;">เชื่อมต่อได้หลายเพจ Facebook, TikTok, IG, X และ LINE OA</div>
           </div>
 
-          <div style="padding:10px 12px; background:var(--color-surface-subtle); border-radius:var(--radius-sm); border-left:3px solid var(--color-primary);">
+          <div style="padding:10px 12px; background:rgba(0,0,0,0.3); border-radius:8px; border-left:3px solid #3B82F6;">
             <div style="display:flex; justify-content:space-between; margin-bottom:2px;">
-              <strong style="color:var(--color-text-main);">Veo 3.1 9:16 Video Mockup</strong>
-              <span class="chip chip-primary mono" style="font-size:10px; padding:1px 6px;">BUILDING</span>
+              <strong style="color:#FFFFFF;">Veo 3.1 & Seedance Video</strong>
+              <span class="chip chip-primary mono" style="font-size:10px; padding:1px 6px;">ACTIVE</span>
             </div>
-            <div style="color:var(--color-text-muted); font-size:12px;">เรนเดอร์พรีวิววิดีโอ 9:16 บนมือถือเสมือนจริงแบบเรียลไทม์</div>
+            <div style="color:#94A3B8; font-size:12px;">เรนเดอร์พรีวิววิดีโอ 9:16 บนมือถือเสมือนจริงพร้อมต้นทุนเครดิต</div>
           </div>
 
-          <div style="padding:10px 12px; background:var(--color-surface-subtle); border-radius:var(--radius-sm); border-left:3px solid var(--color-tertiary);">
+          <div style="padding:10px 12px; background:rgba(0,0,0,0.3); border-radius:8px; border-left:3px solid #F59E0B;">
             <div style="display:flex; justify-content:space-between; margin-bottom:2px;">
-              <strong style="color:var(--color-text-main);">TikTok Direct Auto Post</strong>
-              <span class="chip chip-warning mono" style="font-size:10px; padding:1px 6px;">PLANNED</span>
+              <strong style="color:#FFFFFF;">Shopee Extra Comm Scraper</strong>
+              <span class="chip chip-warning mono" style="font-size:10px; padding:1px 6px;">INTEGRATED</span>
             </div>
-            <div style="color:var(--color-text-muted); font-size:12px;">เชื่อมต่อบัญชี TikTok สำหรับตั้งเวลาโพสต์คลิปอัตโนมัติ</div>
+            <div style="color:#94A3B8; font-size:12px;">ตรวจเช็กสินค้าค่าคอมมิชชันพิเศษ 15-30% อัตโนมัติ</div>
           </div>
         </div>
       </div>
 
       <!-- GUIDELINES CARD -->
-      <div class="mf-card" style="padding:22px; font-size:13px; color:var(--color-text-muted);">
-        <h4 style="font-size:14px; font-weight:700; color:var(--color-text-main); margin-bottom:8px;">💡 ข้อตกลงชุมชน</h4>
+      <div class="side-widget-card" style="font-size:13px; color:#94A3B8;">
+        <h4 style="font-size:14px; font-weight:700; color:#FFFFFF; margin-bottom:8px;">💡 ข้อตกลงชุมชน</h4>
         <ul style="padding-left:18px; line-height:1.6;">
           <li>เสนอความคิดเห็นอย่างสุภาพและสร้างสรรค์</li>
           <li>ห้ามแชร์ API Keys หรือข้อมูลลับลงในข้อเสนอ</li>
@@ -321,128 +566,158 @@
   </div>
 </main>
 
-<!-- FOOTER -->
-<footer style="margin-top:auto; padding:24px 20px; border-top:1px solid var(--color-border); background:var(--color-surface); font-size:13px; color:var(--color-text-muted);">
-  <div style="max-width:1200px; margin:0 auto; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
-    <span>Affiliate Auto Studio Beta V7.10 · ชุมชนนักสร้างคอนเทนต์ Affiliate</span>
-    <span>
-      <a href="/" style="color:var(--color-text-muted); text-decoration:none; margin-right:12px;">Dashboard</a>
-      <a href="/landing" style="color:var(--color-text-muted); text-decoration:none; margin-right:12px;">Landing Page</a>
-      <a href="/donate" style="color:var(--color-text-muted); text-decoration:none;">สนับสนุนระบบ</a>
-    </span>
+<!-- LANDING FOOTER -->
+<footer class="landing-footer">
+  <div class="landing-footer-inner">
+    <div>
+      <strong>Affiliate Auto Studio Beta V7.10</strong> · ขับเคลื่อนระบบอัตโนมัติด้วยชุมชนโอเพนซอร์ส
+    </div>
+    <div>
+      <a href="/">แดชบอร์ด</a>
+      <a href="/landing">หน้าแรก</a>
+      <a href="/community">ชุมชน</a>
+      <a href="/donate" class="support-link">สนับสนุนการพัฒนา</a>
+    </div>
   </div>
 </footer>
 
 <script>
-  // Theme Toggle
-  const themeToggle = document.getElementById('commThemeToggle');
-  themeToggle?.addEventListener('click', () => {
-    const current = document.documentElement.dataset.theme;
-    const next = current === 'dark' ? 'light' : 'dark';
-    document.documentElement.dataset.theme = next;
-    localStorage.setItem('aas_theme', next);
-  });
-
-  // State
+  let currentUser = null;
   let allIdeas = [];
   let currentFilter = 'all';
-  let currentUser = null;
 
   async function api(path, method = 'GET', data) {
     const headers = {};
     if (data !== undefined) headers['Content-Type'] = 'application/json';
     if (currentUser?.csrf && method !== 'GET') headers['X-CSRF-Token'] = currentUser.csrf;
-    const res = await fetch(path, {
+    const r = await fetch(path, {
       method,
       headers,
       credentials: 'same-origin',
-      body: data !== undefined ? JSON.stringify(data) : undefined
+      body: data === undefined ? undefined : JSON.stringify(data)
     });
-    const body = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      throw new Error(body.detail || 'HTTP Error ' + res.status);
+    const body = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      const err = new Error(typeof body.detail === 'string' ? body.detail : 'คำขอล้มเหลว: ' + r.status);
+      err.status = r.status;
+      throw err;
     }
     return body;
   }
 
   async function initAuth() {
     try {
-      const me = await api('/api/me');
-      currentUser = me;
-    } catch (e) {
+      currentUser = await api('/api/me');
+      const pill = document.getElementById('userPill');
+      const badge = document.getElementById('userNameBadge');
+      if (pill && badge) {
+        pill.style.display = 'flex';
+        badge.textContent = `👤 ${currentUser.username} (${(currentUser.role || 'MEMBER').toUpperCase()})`;
+      }
+    } catch {
       currentUser = null;
     }
   }
 
   async function loadCapacity() {
     try {
-      const cap = await api('/api/beta/capacity');
-      const text = document.getElementById('commCapacityText');
-      const bar = document.getElementById('commCapacityBar');
-      const sub = document.getElementById('commCapacitySub');
-      if (text) text.textContent = `${cap.registered} / ${cap.max} บัญชี`;
-      const pct = Math.min(100, Math.round((cap.registered / cap.max) * 100));
-      if (bar) bar.style.width = pct + '%';
-      if (sub) sub.textContent = `เหลือโควตาทดลองใช้ ${cap.available} ที่นั่ง`;
-    } catch (e) {
-      console.warn('Capacity err', e);
+      const cap = await api('/api/capacity');
+      const pct = Math.min(100, Math.round((cap.registered / cap.capacity) * 100));
+      document.getElementById('commCapacityText').textContent = `${cap.registered} / ${cap.capacity} ที่นั่ง`;
+      document.getElementById('commCapacityBar').style.width = `${pct}%`;
+      document.getElementById('commCapacitySub').textContent = `ว่างอีก ${cap.remaining} ที่นั่ง (เปิดรับสมัคร Beta อยู่)`;
+    } catch {
+      document.getElementById('commCapacityText').textContent = '1 / 100 ที่นั่ง';
+      document.getElementById('commCapacityBar').style.width = '1%';
     }
   }
 
   async function loadIdeas() {
+    const feed = document.getElementById('commFeed');
     try {
-      const sort = document.getElementById('commSortSelect')?.value || 'top';
-      const feed = document.getElementById('commFeed');
-      allIdeas = await api(`/api/ideas?order=${sort}`);
+      allIdeas = await api('/api/ideas');
       renderFeed();
     } catch (e) {
-      const feed = document.getElementById('commFeed');
-      if (feed) feed.innerHTML = `<div class="mf-card" style="text-align:center; padding:24px; color:var(--color-danger);">กรุณาเข้าสู่ระบบเพื่อดูและโหวตข้อเสนอในชุมชน (<a href="/" style="color:var(--color-primary); font-weight:700;">เข้าสู่ระบบที่นี่</a>)</div>`;
+      if (e.status === 401) {
+        feed.innerHTML = `
+          <div class="side-widget-card" style="text-align:center; padding:36px;">
+            <p style="color:#94A3B8; margin-bottom:14px; font-size:14px;">กรุณาเข้าสู่ระบบก่อนเพื่อดูและร่วมโหวตข้อเสนอชุมชน</p>
+            <a href="/" class="btn btn-primary" style="display:inline-flex;">เข้าสู่ระบบ Dashboard</a>
+          </div>
+        `;
+      } else {
+        feed.innerHTML = `<div class="side-widget-card" style="text-align:center; padding:36px; color:#F87171;">โหลดข้อมูลไม่สำเร็จ: ${escapeHtml(e.message)}</div>`;
+      }
     }
   }
 
   function renderFeed() {
     const feed = document.getElementById('commFeed');
-    if (!feed) return;
-
-    let items = allIdeas;
+    let filtered = allIdeas;
     if (currentFilter !== 'all') {
-      items = items.filter(x => x.kind === currentFilter);
+      filtered = allIdeas.filter(x => x.kind === currentFilter);
     }
 
-    if (!items.length) {
-      feed.innerHTML = `<div class="mf-card" style="text-align:center; padding:32px; color:var(--color-text-muted);">ยังไม่มีข้อเสนอในหมวดหมู่นี้ ร่วมเสนอเป็นคนแรกได้เลย</div>`;
+    const sortVal = document.getElementById('commSortSelect')?.value || 'top';
+    if (sortVal === 'top') {
+      filtered.sort((a, b) => (b.votes || 0) - (a.votes || 0));
+    } else {
+      filtered.sort((a, b) => b.id - a.id);
+    }
+
+    if (!filtered.length) {
+      feed.innerHTML = `
+        <div class="side-widget-card" style="text-align:center; padding:36px; color:#94A3B8;">
+          ยังไม่มีข้อเสนอในหมวดนี้ มาร่วมเป็นคนแรกที่เสนอไอเดียเลย!
+        </div>
+      `;
       return;
     }
 
-    feed.innerHTML = items.map(x => `
+    const kindBadges = {
+      feature: '<span class="chip chip-primary mono" style="font-size:11px;">🚀 Feature</span>',
+      bug: '<span class="chip chip-danger mono" style="font-size:11px;">🐛 Bug</span>',
+      feedback: '<span class="chip chip-warning mono" style="font-size:11px;">💡 Feedback</span>'
+    };
+
+    const statusBadges = {
+      open: '<span class="chip chip-muted mono" style="font-size:11px;">Open</span>',
+      planned: '<span class="chip chip-primary mono" style="font-size:11px;">Planned</span>',
+      in_progress: '<span class="chip chip-warning mono" style="font-size:11px;">Building</span>',
+      released: '<span class="chip chip-success mono" style="font-size:11px;">Released</span>'
+    };
+
+    feed.innerHTML = filtered.map(x => `
       <div class="idea-card">
-        <div class="vote-box" id="voteBox-${x.id}">
-          <button class="vote-btn" onclick="voteIdea(${x.id})" title="โหวตข้อเสนอนี้">▲</button>
-          <span class="vote-num" id="voteCount-${x.id}">${x.votes}</span>
-          <span style="font-size:10px; color:var(--color-text-muted);">โหวต</span>
+        <div class="vote-box ${x.voted ? 'has-voted' : ''}" id="voteBox-${x.id}">
+          <button class="vote-btn" onclick="voteIdea(${x.id})" title="โหวตไอเดียนี้">▲</button>
+          <span class="vote-num" id="voteCount-${x.id}">${x.votes || 0}</span>
+          <span style="font-size:10px; color:#94A3B8;">โหวต</span>
         </div>
+
         <div style="flex:1;">
           <div class="idea-meta">
-            <span class="chip chip-primary mono">${escapeHtml(x.kind)}</span>
-            <span class="chip chip-success mono">${escapeHtml(x.status)}</span>
-            <span style="font-size:12px; color:var(--color-text-muted);">โดย ${escapeHtml(x.author)} · ${(x.created_at || '').slice(0, 10)}</span>
+            ${kindBadges[x.kind] || ''}
+            ${statusBadges[x.status] || ''}
+            <span style="font-size:12px; color:#94A3B8;">โดย <strong>${escapeHtml(x.author || 'Member')}</strong></span>
+            <span style="font-size:12px; color:#64748B;">· ${(x.created_at || '').slice(0, 10)}</span>
           </div>
-          <h3 style="font-size:16px; font-weight:700; margin-bottom:6px; color:var(--color-text-main);">${escapeHtml(x.title)}</h3>
-          <p style="font-size:14px; color:var(--color-text-main); line-height:1.6; margin-bottom:12px;">${escapeHtml(x.body)}</p>
+
+          <h3 style="font-size:17px; font-weight:800; color:#FFFFFF; margin-bottom:8px; line-height:1.4;">${escapeHtml(x.title)}</h3>
+          <p style="font-size:14px; color:#94A3B8; line-height:1.6; margin-bottom:12px;">${escapeHtml(x.body)}</p>
 
           <div style="display:flex; justify-content:space-between; align-items:center;">
-            <button class="btn btn-ghost btn-sm" style="font-size:12px; padding:4px 8px;" onclick="toggleComments(${x.id})">
+            <button class="btn btn-ghost btn-xs" style="font-size:12px; padding:4px 10px; color:#60A5FA;" onclick="toggleComments(${x.id})">
               💬 ความคิดเห็น
             </button>
           </div>
 
           <div class="comments-tray" id="commentsTray-${x.id}" style="display:none;">
             <div id="commentsList-${x.id}" style="margin-bottom:10px;">
-              <span style="font-size:12px; color:var(--color-text-muted);">กำลังโหลดความคิดเห็น...</span>
+              <span style="font-size:12px; color:#94A3B8;">กำลังโหลดความคิดเห็น...</span>
             </div>
             <div style="display:flex; gap:8px;">
-              <input type="text" id="commentInput-${x.id}" class="form-input" style="font-size:12px; height:32px;" placeholder="เขียนความคิดเห็น...">
+              <input type="text" id="commentInput-${x.id}" class="form-input" style="font-size:12px; height:34px; background:rgba(0,0,0,0.3); color:#FFFFFF; border-color:rgba(255,255,255,0.15);" placeholder="เขียนความคิดเห็น...">
               <button class="btn btn-primary btn-sm" onclick="sendComment(${x.id})">ส่ง</button>
             </div>
           </div>
@@ -489,16 +764,16 @@
     try {
       const comments = await api(`/api/ideas/${id}/comments`);
       if (!comments.length) {
-        list.innerHTML = `<span style="font-size:12px; color:var(--color-text-muted);">ยังไม่มีความคิดเห็น มาร่วมเป็นคนแรกเลย!</span>`;
+        list.innerHTML = `<span style="font-size:12px; color:#94A3B8;">ยังไม่มีความคิดเห็น มาร่วมเป็นคนแรกเลย!</span>`;
         return;
       }
       list.innerHTML = comments.map(c => `
         <div class="comment-bubble">
-          <strong>${escapeHtml(c.author)}:</strong> ${escapeHtml(c.body)}
+          <strong style="color:#FFFFFF;">${escapeHtml(c.author)}:</strong> <span style="color:#CBD5E1;">${escapeHtml(c.body)}</span>
         </div>
       `).join('');
     } catch (e) {
-      list.innerHTML = `<span style="font-size:12px; color:var(--color-danger);">ไม่สามารถโหลดความคิดเห็นได้</span>`;
+      list.innerHTML = `<span style="font-size:12px; color:#F87171;">ไม่สามารถโหลดความคิดเห็นได้</span>`;
     }
   }
 
@@ -514,7 +789,6 @@
     }
   };
 
-  // Filter chips
   document.querySelectorAll('.chip-filter').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.chip-filter').forEach(b => b.classList.remove('active'));
@@ -524,10 +798,8 @@
     });
   });
 
-  // Sort change
   document.getElementById('commSortSelect')?.addEventListener('change', loadIdeas);
 
-  // Submit idea
   document.getElementById('commIdeaForm')?.addEventListener('submit', async e => {
     e.preventDefault();
     const form = e.target;
@@ -538,7 +810,7 @@
       form.reset();
       if (msg) {
         msg.textContent = '✅ ส่งข้อเสนอของคุณเข้าสู่ชุมชนเรียบร้อยแล้ว!';
-        msg.style.color = 'var(--color-secondary)';
+        msg.style.color = '#34D399';
         msg.style.display = 'block';
         setTimeout(() => msg.style.display = 'none', 3000);
       }
@@ -546,13 +818,12 @@
     } catch (err) {
       if (msg) {
         msg.textContent = '❌ ' + (err.message || 'ส่งข้อเสนอไม่สำเร็จ');
-        msg.style.color = 'var(--color-danger)';
+        msg.style.color = '#F87171';
         msg.style.display = 'block';
       }
     }
   });
 
-  // Init
   (async function() {
     await initAuth();
     await loadCapacity();

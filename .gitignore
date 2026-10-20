@@ -7,3 +7,10 @@ __pycache__/
 patches/
 .vercel
 .env*
+cookies*.txt
+community.db
+*.db
+*.sqlite3
+*.zip
+.DS_Store
+

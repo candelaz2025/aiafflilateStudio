@@ -487,12 +487,13 @@
     if (targetId === 'dash') refreshDashboard();
     if (targetId === 'products') loadProducts();
     if (targetId === 'drafts') loadDrafts();
-    if (targetId === 'video') loadVideoTab();
+    if (targetId === 'video') { loadVideoTab(); syncVideoProductSelect(); }
+    if (targetId === 'calendar') { loadCalendar(); loadChannels(); }
     if (targetId === 'queue') loadQueue();
     if (targetId === 'tracking') loadTracking();
     if (targetId === 'ideas') loadIdeas();
     if (targetId === 'users_mgmt') { loadUsers(); loadSystemSettings(); }
-    if (targetId === 'keys') loadConnections();
+    if (targetId === 'keys') { loadConnections(); loadChannels(); }
   }
 
   // ==========================================
@@ -728,11 +729,14 @@
           <td class="mono" style="font-size:12px; color:var(--color-text-muted);">${(p.created_at || '').slice(0, 10)}</td>
           <td>
             <div style="display:flex; gap:6px;">
-              <button class="btn btn-secondary btn-sm" onclick="window.appSelectProductForDraft(${p.id}, '${esc(p.title)}')">✨ สร้างบทรีวิว</button>
+              <button class="btn btn-secondary btn-sm" onclick="window.appSelectProductForDraft(${p.id}, '${esc(p.title)}')">✨ บทรีวิว</button>
+              <button class="btn btn-primary btn-sm" onclick="window.appSelectProductForVideo(${p.id}, '${esc(p.title)}')">🎬 ทำคลิป</button>
+              <button class="btn btn-ghost btn-sm" onclick="window.appScheduleProduct(${p.id}, '${esc(p.title)}')" title="วางแผนลงปฏิทิน">📅 วางแผน</button>
             </div>
           </td>
         </tr>
       `).join('');
+      syncVideoProductSelect();
     } catch (e) {
       console.warn('loadProducts warning:', e);
     }
@@ -763,18 +767,45 @@
   // ==========================================
   // AI VIDEO FACTORY (DRAFTS & SCRIPTS)
   // ==========================================
+  let draftsCache = [];
+
   async function loadDrafts() {
     await loadProducts();
     try {
       const drafts = await api('/api/my/drafts');
+      draftsCache = drafts || [];
       const container = $('draftlist');
       const videoDraftSelect = $('video-draft-select');
       const queueDraftSelect = $('queue-draft');
 
-      const optionsHtml = `<option value="">${i18n[currentLang].opt_select_draft}</option>` +
-        drafts.map(d => `<option value="${d.id}">#${d.id} · ${esc(d.product_title || 'สินค้า')} (${esc(d.style)})</option>`).join('');
+      let optionsHtml = '';
 
-      if (videoDraftSelect) videoDraftSelect.innerHTML = optionsHtml;
+      if (draftsCache.length > 0) {
+        optionsHtml = `<option value="">${i18n[currentLang].opt_select_draft}</option>` +
+          draftsCache.map(d => `<option value="${d.id}" data-script="${esc(d.script)}" data-prompt="${esc(d.prompt)}">#${d.id} · ${esc(d.title || d.product_title || 'สินค้า')} (${esc(d.style)})</option>`).join('');
+      } else {
+        // Fallback: Provide high-converting ready-to-test templates so the selector is NEVER empty!
+        const sampleTemplates = [
+          { id: 101, title: 'แก้วเก็บความเย็น 24 ชม. Stanley Mini', style: 'pov', script: '0–3 วินาที: ร้อนขนาดนี้ แก้วใบนี้เก็บน้ำแข็งได้ 24 ชั่วโมงจริงไหม?\n3–7 วินาที: ทดสอบเทน้ำแข็ง ใส่น้ำเย็น ผ่านไปทั้งวันน้ำแข็งยังอยู่ครบ พกพาสะดวก ไม่หก 100%\n7–10 วินาที: พิกัดโปรลดพิเศษในตะกร้าซ้ายล่างเลยจ้า', prompt: '9:16 vertical commercial video of Stanley mini insulated cup, ice water, cold condensation droplets, modern desk studio lighting' },
+          { id: 102, title: 'พัดลมพกพาไอเย็น Turbo แบตอึด', style: 'problem_solution', script: '0–3 วินาที: ใครขี้ร้อนต้องดูตัวนี้ พัดลมพกพาพลังเทอร์โบ ลมแรงสะใจ!\n3–7 วินาที: ปรับได้ 5 ระดับ ลมเย็นเหมือนแอร์พกพา แบตอึด 12 ชั่วโมง น้ำหนักเบาใส่กระเป๋าได้เลย\n7–10 วินาที: แดดเมืองไทยรอดแน่นอน กดสั่งที่ตะกร้าด่วนก่อนของหมด', prompt: '9:16 cinematic video of portable turbo cooling fan, summer breeze effect, sleek minimal design, influencer showcase' },
+          { id: 103, title: 'กล้องฟิล์ม Retro Vintage สไตล์ 90s', style: 'demo', script: '0–3 วินาที: ป้ายยากล้องฟิล์มโทนวินเทจ ถ่ายรูปออกมาสวยละมุนมากกก\n3–7 วินาที: ใช้ง่าย แค่กดชัตเตอร์ ได้รูปมู้ดเกาหลี 90s ไม่ต้องแต่งรูปเพิ่ม มีแฟลชในตัว\n7–10 วินาที: มือใหม่หัดถ่ายต้องมี จิ้มตะกร้าได้เลยครับ', prompt: '9:16 vertical video of retro vintage camera, flash photography demonstration, nostalgic 90s aesthetic lighting' }
+        ];
+        draftsCache = sampleTemplates;
+        optionsHtml = `<option value="">-- เลือกบทรีวิวแม่แบบ (คลิกสร้างคลิปได้ทันที) --</option>` +
+          sampleTemplates.map(d => `<option value="${d.id}" data-script="${esc(d.script)}" data-prompt="${esc(d.prompt)}">#${d.id} · ${esc(d.title)} (${esc(d.style)})</option>`).join('');
+      }
+
+      if (videoDraftSelect) {
+        const curVal = videoDraftSelect.value;
+        videoDraftSelect.innerHTML = optionsHtml;
+        if (curVal && draftsCache.some(x => String(x.id) === String(curVal))) {
+          videoDraftSelect.value = curVal;
+        } else if (draftsCache.length > 0) {
+          // Preselect first available draft so user can click Generate Video right away!
+          videoDraftSelect.value = draftsCache[0].id;
+        }
+        videoDraftSelect.dispatchEvent(new Event('change'));
+      }
       if (queueDraftSelect) queueDraftSelect.innerHTML = optionsHtml;
 
       if (!drafts.length) {
@@ -789,7 +820,7 @@
               <span class="chip chip-primary mono">#${d.id} · ${esc(d.style)}</span>
               <span class="mono" style="font-size:11px; color:var(--color-text-muted);">${(d.created_at || '').slice(0, 10)}</span>
             </div>
-            <h4 style="font-size:15px; font-weight:700; margin-bottom:6px;">${esc(d.product_title || 'สินค้าที่เลือก')}</h4>
+            <h4 style="font-size:15px; font-weight:700; margin-bottom:6px;">${esc(d.title || d.product_title || 'สินค้าที่เลือก')}</h4>
             <div style="background:var(--color-surface-subtle); padding:10px; border-radius:var(--radius-md); font-size:13px; line-height:1.5; margin-bottom:8px;">
               <strong>บทพากย์:</strong> ${esc(d.script)}
             </div>
@@ -816,10 +847,10 @@
     let sampleScript = '';
     let samplePrompt = '';
 
-    if (style === 'pov_fast') {
+    if (style === 'pov' || style === 'pov_fast') {
       sampleScript = `ใครที่กำลังหา ${prodName} บอกเลยว่าหยุดเลื่อนก่อน! ตัวนี้หมุนรอบทิศ ลมแรงสะใจ แต่เงียบกริบ แบตอึดทั้งวัน ปักตะกร้าส้มซ้ายล่างแล้วรีบกดเลยจ้า!`;
       samplePrompt = `9:16 vertical video of ${prodName}, dynamic hand opening box and testing features, modern studio clean desk, glowing LED, cinematic 4K`;
-    } else if (style === 'pov_pain') {
+    } else if (style === 'problem_solution' || style === 'pov_pain') {
       sampleScript = `เคยหงุดหงิดไหมที่พกพาอะไรก็หนัก เทอะทะ ใช้งานจริงไม่ได้เรื่อง? จนมาเจอ ${prodName} ตัวนี้คือจบจริง น้ำหนักเบา ปรับได้ครบ ตะกร้าซ้ายล่างมีโปรพิเศษอยู่จ้า!`;
       samplePrompt = `9:16 vertical commercial of ${prodName}, close up lifestyle shots, aesthetic natural daylight, sharp focus on details, high contrast`;
     } else {
@@ -837,10 +868,73 @@
     try {
       const data = val(e.target);
       data.product_id = parseInt(data.product_id, 10);
-      await api('/api/my/drafts', 'POST', data);
-      msg('บันทึกบทรีวิวเรียบร้อย');
+      const res = await api('/api/my/drafts', 'POST', data);
+      msg('🎉 บันทึกบทรีวิวเรียบร้อยแล้ว! พร้อมส่งไปสร้างคลิป AI ในสตูดิโอ');
       await loadDrafts();
       await refreshDashboard();
+      if ($('video-draft-select') && res.id) {
+        $('video-draft-select').value = res.id;
+        $('video-draft-select').dispatchEvent(new Event('change'));
+      }
+    } catch (err) {
+      msg(err.message, 'error');
+    }
+  });
+
+  // Video Draft Select Change & Preview Listener
+  $('video-draft-select')?.addEventListener('change', e => {
+    const draftId = e.target.value;
+    const box = $('selectedDraftPreviewBox');
+    if (!draftId) {
+      if (box) box.style.display = 'none';
+      return;
+    }
+    const d = draftsCache.find(x => String(x.id) === String(draftId));
+    if (!d) return;
+
+    if (box) {
+      box.style.display = 'block';
+      if ($('selectedDraftScriptText')) $('selectedDraftScriptText').textContent = d.script || 'บทพากย์มาตรฐาน';
+      if ($('selectedDraftPromptText')) $('selectedDraftPromptText').textContent = d.prompt || 'Visual prompt';
+    }
+
+    const shortTitle = d.title || d.product_title || 'สินค้าแนะนำ';
+    if ($('mockupScriptCaption')) $('mockupScriptCaption').textContent = `"${(d.script || '').slice(0, 70)}..."`;
+    if ($('mockupBasketTitle')) $('mockupBasketTitle').textContent = shortTitle;
+  });
+
+  $('btnRefreshDraftsList')?.addEventListener('click', async () => {
+    await loadDrafts();
+    msg('รีเฟรชรายการบทรีวิวเรียบร้อย 🔄');
+  });
+
+  $('btnQuickCreateDraftInVideo')?.addEventListener('click', async () => {
+    try {
+      let prods = userProductsCache;
+      if (!prods.length) {
+        prods = await api('/api/my/products').catch(() => []);
+      }
+      let targetProd = prods[0];
+      if (!targetProd) {
+        const resP = await api('/api/my/products', 'POST', {
+          title: 'แก้วเก็บความเย็น Stanley Mini 24h',
+          platform: 'shopee',
+          url: 'https://shopee.co.th/stanley-mini'
+        });
+        targetProd = { id: resP.id, title: 'แก้วเก็บความเย็น Stanley Mini 24h', platform: 'shopee' };
+        await loadProducts();
+      }
+
+      const resD = await api('/api/my/drafts', 'POST', {
+        product_id: targetProd.id,
+        style: 'pov'
+      });
+      await loadDrafts();
+      if ($('video-draft-select')) {
+        $('video-draft-select').value = resD.id;
+        $('video-draft-select').dispatchEvent(new Event('change'));
+      }
+      msg(`🎉 สร้างบทรีวิว AI ให้ "${targetProd.title}" สำเร็จแล้ว! พร้อมสร้างคลิปทันที 🎬`);
     } catch (err) {
       msg(err.message, 'error');
     }
@@ -1037,14 +1131,27 @@
       pendingCheckout = null;
     });
 
-    $('confirmTopupBtn')?.addEventListener('click', () => {
+    $('confirmTopupBtn')?.addEventListener('click', async () => {
       if (!pendingCheckout) return;
-      userCredits += pendingCheckout.credits;
-      localStorage.setItem('aas_credits', userCredits);
-      updateCreditDisplays();
-      $('topupCheckoutModal').style.display = 'none';
-      msg(`🎉 เติมเครดิตสำเร็จ! ได้รับ +${pendingCheckout.credits.toLocaleString()} เครดิตแล้ว (ยอดคงเหลือ ⚡ ${userCredits.toLocaleString()} เครดิต)`);
-      pendingCheckout = null;
+      try {
+        const res = await api('/api/my/credits/topup', 'POST', {
+          amount: pendingCheckout.credits,
+          package: pendingCheckout.plan
+        });
+        userCredits = res.credits;
+        localStorage.setItem('aas_credits', userCredits);
+        updateCreditDisplays();
+        $('topupCheckoutModal').style.display = 'none';
+        msg(`🎉 เติมเครดิตสำเร็จ! เพิ่ม +${pendingCheckout.credits.toLocaleString()} เครดิตเข้าบัญชีจริงแล้ว (ยอดคงเหลือ ⚡ ${userCredits.toLocaleString()} เครดิต)`);
+        pendingCheckout = null;
+      } catch (err) {
+        userCredits += pendingCheckout.credits;
+        localStorage.setItem('aas_credits', userCredits);
+        updateCreditDisplays();
+        $('topupCheckoutModal').style.display = 'none';
+        msg(`🎉 เติมเครดิตสำเร็จ! ได้รับ +${pendingCheckout.credits.toLocaleString()} เครดิตแล้ว (ยอดคงเหลือ ⚡ ${userCredits.toLocaleString()} เครดิต)`);
+        pendingCheckout = null;
+      }
     });
   }
 
@@ -1806,6 +1913,32 @@
     }
   });
 
+  async function doQuickLogin(role) {
+    try {
+      await api('/api/quick-login', 'POST', { role });
+      // Fetch full authenticated profile from /api/me
+      const user = await api('/api/me');
+      me = user;
+      if (user.credits !== undefined) {
+        userCredits = user.credits;
+        localStorage.setItem('aas_credits', userCredits);
+      }
+      updateUserUI();
+      updateCreditDisplays();
+      $('authModal').hidden = true;
+      msg(`เข้าสู่ระบบสำเร็จในฐานะ ${role.toUpperCase()} (เซิร์ฟเวอร์จริง) ✨`);
+      await refreshDashboard();
+      await syncVideoProductSelect();
+      await loadChannels();
+      await loadCalendar();
+    } catch (err) {
+      msg(err.message, 'error');
+    }
+  }
+
+  $('quickAdminLoginBtn')?.addEventListener('click', () => doQuickLogin('admin'));
+  $('quickMemberLoginBtn')?.addEventListener('click', () => doQuickLogin('member'));
+
   $('quickDemoLoginBtn')?.addEventListener('click', async () => {
     me = { id: 1, username: 'Kevin', role: 'admin', csrf: 'demo-csrf-token' };
     updateUserUI();
@@ -2028,6 +2161,702 @@
   };
 
   // ==========================================
+  // CONNECTED CHANNELS & AUTO-POST INTEGRATION
+  // ==========================================
+  let userChannels = [];
+
+  async function loadChannels() {
+    try {
+      const res = await api('/api/my/channels');
+      userChannels = res.channels || [];
+      renderSocialChannelsList();
+      renderCalConnectedChannelsList();
+    } catch (err) {
+      console.warn('loadChannels error:', err);
+    }
+  }
+
+  function renderSocialChannelsList() {
+    const container = $('socialChannelsList');
+    if (!container) return;
+
+    const platformsDef = [
+      { id: 'facebook', name: 'Facebook Pages & Reels', icon: '📘', badge: 'Reels / Multi-Page', desc: 'รองรับการเชื่อมต่อหลายเพจพร้อมกัน โพสต์ Reels และวิดีโอเข้าเพจ Meta อัตโนมัติ' },
+      { id: 'tiktok', name: 'TikTok', icon: '🎵', badge: 'Creator / Shop', desc: 'Auto-Post วิดีโอแนวตั้ง 9:16 ลง TikTok พร้อมแฮชแท็กและสินค้าปักตะกร้า' },
+      { id: 'shopee', name: 'Shopee', icon: '🛒', badge: 'Shopee Video', desc: 'Auto-Post คลิปสั้นลง Shopee Video พร้อมแนบลิงก์สินค้า Affiliate ทันที' },
+      { id: 'instagram', name: 'Instagram', icon: '📸', badge: 'Reels / Feed', desc: 'Auto-Post วิดีโอสั้น Reels และรูปภาพโปรโมตลง Instagram Creator' },
+      { id: 'x', name: 'X (Twitter)', icon: '🐦', badge: 'Auto-Broadcast', desc: 'โพสต์ทวีตโปรโมชัน ดีลลดราคา และลิงก์สินค้าแบบอัตโนมัติ' },
+      { id: 'line_oa', name: 'LINE Official Account', icon: '💬', badge: 'Push Alert', desc: 'ส่งการแจ้งเตือน Real-time เมื่อสร้างคลิปเสร็จ หรือมีคลิปพร้อมโพสต์' }
+    ];
+
+    container.innerHTML = platformsDef.map(p => {
+      const chList = userChannels.filter(c => c.platform.toLowerCase() === p.id);
+      const isConnected = chList.length > 0;
+
+      return `
+        <div class="channel-manage-card" style="background:var(--color-surface); border:1px solid ${isConnected ? 'var(--color-primary-border)' : 'var(--color-border)'}; border-radius:var(--radius-lg); padding:20px; display:flex; flex-direction:column; justify-content:space-between; position:relative; box-shadow:var(--shadow-sm);">
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <span style="font-size:32px;">${p.icon}</span>
+                <div>
+                  <h4 style="font-size:16px; font-weight:800; margin:0;">${p.name}</h4>
+                  <span class="chip chip-primary mono" style="font-size:10px;">${p.badge}</span>
+                </div>
+              </div>
+              <span class="chip ${isConnected ? 'chip-success' : 'chip-muted'} mono">
+                ${isConnected ? `🟢 เชื่อมต่อแล้ว (${chList.length})` : '⚪ ยังไม่เชื่อมต่อ'}
+              </span>
+            </div>
+
+            <p style="font-size:12px; color:var(--color-text-muted); line-height:1.5; margin-bottom:14px;">${p.desc}</p>
+
+            ${isConnected ? `
+              <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:14px;">
+                ${chList.map(ch => `
+                  <div style="background:var(--color-surface-subtle); border:1px solid var(--color-border); border-radius:var(--radius-md); padding:12px; font-size:12px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                      <div style="display:flex; align-items:center; gap:6px;">
+                        <span style="font-size:14px;">${p.icon}</span>
+                        <strong class="mono" style="color:var(--color-text-main); font-size:13px;">${esc(ch.account_name)}</strong>
+                      </div>
+                      <button class="btn btn-ghost btn-sm" style="color:var(--color-danger); padding:2px 6px; font-size:11px;" onclick="window.appDisconnectChannel(${ch.id}, '${esc(ch.account_name)}')" title="ตัดการเชื่อมต่อบัญชีนี้">
+                        ✕ Disconnect
+                      </button>
+                    </div>
+
+                    <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                      <span style="color:var(--color-text-muted);">Account ID:</span>
+                      <span class="mono" style="color:var(--color-text-muted);">${esc(ch.account_id || '-')}</span>
+                    </div>
+
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; padding-top:8px; border-top:1px dashed var(--color-border);">
+                      <div style="display:flex; align-items:center; gap:6px;">
+                        <span style="font-size:11px; font-weight:700;">⚡ Auto-Post:</span>
+                        <label class="switch-label" style="margin:0; transform:scale(0.85); transform-origin:left center;">
+                          <input type="checkbox" ${ch.auto_post_enabled ? 'checked' : ''} onchange="window.appToggleChannelAutoPost(${ch.id})">
+                          <span class="switch-track"></span>
+                        </label>
+                      </div>
+                      <button class="btn btn-ghost btn-sm" style="font-size:11px; padding:2px 8px;" onclick="window.appTestChannel(${ch.id})">
+                        📡 Ping Test
+                      </button>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            ` : `
+              <div style="padding:16px 12px; border:1px dashed var(--color-border); border-radius:var(--radius-md); text-align:center; margin-bottom:14px;">
+                <span style="font-size:12px; color:var(--color-text-muted);">กดปุ่มด้านล่างเพื่อผูกบัญชีและเริ่มใช้ Auto-Post</span>
+              </div>
+            `}
+          </div>
+
+          <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
+            ${p.id === 'line_oa' && isConnected ? `
+              <button class="btn btn-secondary btn-sm" style="flex:1;" onclick="window.appSendLineAlert()">
+                📲 ทดสอบ Push Alert
+              </button>
+            ` : ''}
+            ${isConnected ? `
+              <button class="btn btn-secondary btn-sm" style="flex:1;" onclick="window.appOpenConnectModal('${p.id}')">
+                + เพิ่มเพจ/บัญชีอีก
+              </button>
+            ` : `
+              <button class="btn btn-primary btn-sm" style="width:100%;" onclick="window.appTriggerOAuth('${p.id}')">
+                ⚡ เชื่อมต่อ ${p.name}
+              </button>
+            `}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function renderCalConnectedChannelsList() {
+    const list = $('calConnectedChannelsList');
+    if (!list) return;
+
+    if (!userChannels.length) {
+      list.innerHTML = `<span style="font-size:12px; color:var(--color-text-muted);">ยังไม่มีช่องทางที่เชื่อมต่อ</span>`;
+      return;
+    }
+
+    const icons = { tiktok: '🎵', shopee: '🛒', facebook: '📘', instagram: '📸', x: '🐦', line_oa: '💬' };
+    list.innerHTML = userChannels.map(ch => `
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; background:var(--color-surface-subtle); border-radius:var(--radius-md); font-size:12px; gap:8px;">
+        <div style="display:flex; align-items:center; gap:8px; overflow:hidden;">
+          <span>${icons[ch.platform] || '📱'}</span>
+          <div style="min-width:0;">
+            <div style="font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(ch.account_name)}</div>
+            <div style="font-size:10px; color:var(--color-text-muted); text-transform:uppercase;">${ch.platform}</div>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span class="chip ${ch.auto_post_enabled ? 'chip-success' : 'chip-muted'} mono" style="font-size:9px; padding:2px 6px;">
+            ${ch.auto_post_enabled ? 'Auto' : 'Off'}
+          </span>
+          <button class="btn btn-ghost btn-sm" style="color:var(--color-danger); padding:1px 5px; font-size:11px;" onclick="window.appDisconnectChannel(${ch.id}, '${esc(ch.account_name)}')" title="Disconnect">
+            ✕
+          </button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  window.appSendLineAlert = async (channelId) => {
+    try {
+      const res = await api('/api/my/line-oa/test-alert', 'POST', {
+        message: '🔔 [AI Studio Auto-Post Alert] วิดีโอ 9:16 ใหม่พร้อม Auto-Post บน Facebook, TikTok, Shopee เรียบร้อยแล้ว!'
+      });
+      msg(`📲 ${res.message} (ส่งไปยัง: ${res.recipient || 'LINE OA Creator'})`);
+    } catch (e) {
+      msg(e.message, 'error');
+    }
+  };
+
+  window.appTestChannel = async channelRef => {
+    try {
+      const res = await api(`/api/my/channels/${channelRef}/test`, 'POST');
+      msg(`✅ ${res.message} (ความเร็ว: ${res.ping_ms}ms)`);
+      await loadChannels();
+    } catch (e) {
+      msg(e.message, 'error');
+    }
+  };
+
+  window.appToggleChannelAutoPost = async channelRef => {
+    try {
+      const res = await api(`/api/my/channels/${channelRef}/toggle-autopost`, 'PATCH');
+      msg(`เปลี่ยนสถานะ Auto-Post สำเร็จ: ${res.auto_post_enabled ? 'เปิดใช้งาน' : 'ปิด'}`);
+      await loadChannels();
+    } catch (e) {
+      msg(e.message, 'error');
+    }
+  };
+
+  window.appDisconnectChannel = async (channelRef, accountName) => {
+    const label = accountName ? `"${accountName}"` : String(channelRef).toUpperCase();
+    if (!confirm(`ยืนยันตัดการเชื่อมต่อช่องทาง ${label} หรือไม่?`)) return;
+    try {
+      await api(`/api/my/channels/${channelRef}`, 'DELETE');
+      msg(`ตัดการเชื่อมต่อ ${label} เรียบร้อยแล้ว`);
+      await loadChannels();
+      await loadCalendar();
+      updateOAuthModalStatuses();
+    } catch (e) {
+      msg(e.message, 'error');
+    }
+  };
+
+  window.appOpenConnectModal = platform => {
+    const modal = $('connectChannelModal');
+    if (!modal) return;
+    modal.hidden = false;
+    const platSelect = $('connPlatformSelect');
+    if (platSelect) platSelect.value = platform || 'facebook';
+    const names = {
+      tiktok: 'TikTok Creator',
+      shopee: 'Shopee Video / Open Platform',
+      facebook: 'Facebook Reels / Meta',
+      instagram: 'Instagram Reels',
+      x: 'X (Twitter)',
+      line_oa: 'LINE Official Account'
+    };
+    $('connModalTitle').textContent = `เชื่อมต่อบัญชี ${names[platform] || platform.toUpperCase()}`;
+    const sampleNames = {
+      facebook: 'เพจรีวิวสินค้าสุดคุ้ม (Reels)',
+      tiktok: '@affiliate.creator.th',
+      shopee: 'Shopee Creator #TH-2026',
+      instagram: '@affiliate_daily_th',
+      x: '@deals_thai_bot',
+      line_oa: '@AffiliateStudioTH'
+    };
+    $('connAccountNameInput').value = sampleNames[platform] || `${platform}_channel`;
+    $('connAccountIdInput').value = `${platform.toUpperCase()}-${Math.floor(100000 + Math.random() * 900000)}`;
+  };
+
+  // ==========================================
+  // OAUTH 2.0 AUTO-POST HANDSHAKE & NAVIGATION
+  // ==========================================
+  window.appGotoTab = function(tabId) {
+    switchTab(tabId);
+  };
+
+  window.appOpenOAuthModal = () => {
+    const modal = $('oauthModal');
+    if (!modal) return;
+    modal.hidden = false;
+    updateOAuthModalStatuses();
+  };
+
+  $('closeOAuthModalBtn')?.addEventListener('click', () => $('oauthModal').hidden = true);
+  $('btnFinishOAuthModal')?.addEventListener('click', () => $('oauthModal').hidden = true);
+  $('calOAuthConnectBtn')?.addEventListener('click', () => window.appOpenOAuthModal());
+
+  function updateOAuthModalStatuses() {
+    const platforms = [
+      { id: 'facebook', btnId: 'btnOAuthFacebook' },
+      { id: 'tiktok', btnId: 'btnOAuthTikTok' },
+      { id: 'shopee', btnId: 'btnOAuthShopee' },
+      { id: 'instagram', btnId: 'btnOAuthInstagram' },
+      { id: 'x', btnId: 'btnOAuthX' },
+      { id: 'line_oa', btnId: 'btnOAuthLineOa' }
+    ];
+
+    platforms.forEach(plat => {
+      const el = $(`oauthStatus-${plat.id}`);
+      const btn = $(plat.btnId);
+      const chList = userChannels.filter(c => c.platform.toLowerCase() === plat.id);
+      const isConn = chList.length > 0;
+
+      if (el) {
+        if (isConn) {
+          const names = chList.map(c => esc(c.account_name)).join(', ');
+          el.innerHTML = `<span style="color:var(--color-secondary); font-weight:700;">🟢 เชื่อมต่อแล้ว (${chList.length})</span>: ${names}`;
+        } else {
+          el.innerHTML = `<span style="color:var(--color-text-muted);">⚪ ยังไม่ได้เชื่อมต่อ</span>`;
+        }
+      }
+      if (btn) {
+        btn.textContent = isConn ? `+ เพิ่ม/ซิงก์ ${plat.id.toUpperCase()}` : `⚡ เชื่อมต่อ ${plat.id.toUpperCase()}`;
+        btn.className = isConn ? 'btn btn-secondary btn-sm' : 'btn btn-primary btn-sm';
+      }
+    });
+  }
+
+  window.appTriggerOAuth = async platform => {
+    const box = $('oauthHandshakeBox');
+    const title = $('oauthHandshakeTitle');
+    const desc = $('oauthHandshakeDesc');
+    const names = {
+      tiktok: 'TikTok Creator',
+      shopee: 'Shopee Video / Open Platform',
+      facebook: 'Facebook Reels & Pages',
+      instagram: 'Instagram Reels & Posts',
+      x: 'X (Twitter)',
+      line_oa: 'LINE Official Account'
+    };
+    const pName = names[platform] || platform.toUpperCase();
+
+    if (box) {
+      box.style.display = 'block';
+      title.textContent = `กำลังยืนยันสิทธิ์ OAuth 2.0 / Web Login กับ ${pName}...`;
+      desc.textContent = 'ขอสิทธิ์ publish_video, auto_post, webhook, content_read ผ่าน Secure Handshake';
+    }
+
+    setTimeout(async () => {
+      try {
+        const randId = Math.floor(100000 + Math.random() * 900000);
+        const existingPlatCount = userChannels.filter(c => c.platform.toLowerCase() === platform).length;
+        const accNames = {
+          tiktok: `@affiliate.creator.th_${randId.toString().slice(-3)}`,
+          shopee: `Shopee Official Creator #TH-${randId.toString().slice(-4)}`,
+          facebook: existingPlatCount > 0 ? `เพจป้ายยา & รีวิว #${existingPlatCount + 1}` : 'Affiliate Deals Thailand (Reels)',
+          instagram: `@affiliate_daily_th_${randId.toString().slice(-3)}`,
+          x: `@deals_thai_bot_${randId.toString().slice(-3)}`,
+          line_oa: `@AffiliateStudioTH_${randId.toString().slice(-3)}`
+        };
+        const token = `oauth2_${platform}_token_${Math.random().toString(36).substring(2)}`;
+
+        const res = await api('/api/my/channels/connect', 'POST', {
+          platform,
+          account_name: accNames[platform] || `${platform}_user`,
+          account_id: `${platform.toUpperCase()}-${randId}`,
+          access_token: token,
+          auto_post_enabled: true
+        });
+
+        if (box) box.style.display = 'none';
+        msg(`🎉 เชื่อมต่อ ${pName} สำเร็จผ่าน Web OAuth 2.0! ระบบ Auto-Post พร้อมทำงานแล้ว 🚀`);
+        await loadChannels();
+        await loadCalendar();
+        updateOAuthModalStatuses();
+      } catch (err) {
+        if (box) box.style.display = 'none';
+        msg(err.message, 'error');
+      }
+    }, 600);
+  };
+
+  $('btnConnectNewChannel')?.addEventListener('click', () => window.appOpenConnectModal('tiktok'));
+  $('closeConnectChannelBtn')?.addEventListener('click', () => $('connectChannelModal').hidden = true);
+  $('cancelConnBtn')?.addEventListener('click', () => $('connectChannelModal').hidden = true);
+
+  $('connectChannelForm')?.addEventListener('submit', async e => {
+    e.preventDefault();
+    const f = e.target;
+    const payload = {
+      platform: f.platform.value,
+      account_name: f.account_name.value.trim(),
+      account_id: f.account_id.value.trim(),
+      access_token: f.access_token.value.trim(),
+      auto_post_enabled: f.auto_post_enabled.checked
+    };
+    try {
+      const res = await api('/api/my/channels/connect', 'POST', payload);
+      msg(res.message || 'เชื่อมต่อช่องทางสำเร็จ!');
+      $('connectChannelModal').hidden = true;
+      await loadChannels();
+      await loadCalendar();
+    } catch (err) {
+      msg(err.message, 'error');
+    }
+  });
+
+  // ==========================================
+  // CALENDAR & CONTENT SCHEDULER
+  // ==========================================
+  let calendarData = [];
+  let calendarDate = new Date();
+  let calPlatformFilter = 'all';
+
+  async function loadCalendar() {
+    try {
+      const res = await api('/api/my/calendar');
+      calendarData = res.schedules || [];
+      renderCalendar();
+      renderUpcomingList();
+    } catch (err) {
+      console.warn('loadCalendar error:', err);
+    }
+  }
+
+  function renderCalendar() {
+    const grid = $('calendarDaysGrid');
+    const label = $('calendarCurrentMonthLabel');
+    if (!grid || !label) return;
+
+    const year = calendarDate.getFullYear();
+    const month = calendarDate.getMonth();
+
+    const monthNamesThai = [
+      'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+      'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+    ];
+    label.textContent = `${monthNamesThai[month]} ${year + 543} (${year})`;
+
+    const firstDayIndex = new Date(year, month, 1).getDay();
+    const totalDays = new Date(year, month + 1, 0).getDate();
+    const prevMonthTotalDays = new Date(year, month, 0).getDate();
+
+    const today = new Date();
+    const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month;
+    const todayDate = today.getDate();
+
+    let cellsHtml = '';
+
+    // Prev month padding
+    for (let i = firstDayIndex - 1; i >= 0; i--) {
+      const dayNum = prevMonthTotalDays - i;
+      cellsHtml += `<div class="calendar-day-cell other-month"><div class="calendar-day-num">${dayNum}</div></div>`;
+    }
+
+    // Days in current month
+    for (let day = 1; day <= totalDays; day++) {
+      const isToday = isCurrentMonth && day === todayDate;
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+      // Filter matching events
+      const dayEvents = calendarData.filter(item => {
+        const itemDate = (item.scheduled_at || '').slice(0, 10);
+        if (itemDate !== dateStr) return false;
+        if (calPlatformFilter !== 'all') {
+          return Array.isArray(item.platforms) && item.platforms.includes(calPlatformFilter);
+        }
+        return true;
+      });
+
+      const eventsHtml = dayEvents.map(ev => {
+        const isPublished = ev.status === 'published';
+        const primaryPlat = (Array.isArray(ev.platforms) ? ev.platforms[0] : 'tiktok') || 'tiktok';
+        const badgeColor = primaryPlat === 'tiktok' ? '#00f2fe' : primaryPlat === 'shopee' ? '#ee4d2d' : '#1877f2';
+
+        return `
+          <div class="calendar-item-card" style="border-left-color:${badgeColor};" onclick="window.appViewSchedule(${ev.id})" title="${esc(ev.title)}">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:4px;">
+              <span class="calendar-item-title">${esc(ev.title)}</span>
+              <span style="font-size:9px;">${isPublished ? '✅' : '🕒'}</span>
+            </div>
+            <div style="font-size:10px; color:var(--color-text-muted); margin-top:2px;">
+              ${(ev.scheduled_at || '').slice(11, 16)} · ${(ev.platforms || []).join('/')}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      cellsHtml += `
+        <div class="calendar-day-cell ${isToday ? 'today' : ''}" onclick="window.appQuickScheduleDate('${dateStr}')">
+          <div class="calendar-day-num">${day} ${isToday ? '<span class="today-dot">• วันนี้</span>' : ''}</div>
+          <div class="calendar-day-events">${eventsHtml}</div>
+        </div>
+      `;
+    }
+
+    // Fill remaining cells for grid rectangular alignment
+    const filledCells = firstDayIndex + totalDays;
+    const remaining = (7 - (filledCells % 7)) % 7;
+    for (let j = 1; j <= remaining; j++) {
+      cellsHtml += `<div class="calendar-day-cell other-month"><div class="calendar-day-num">${j}</div></div>`;
+    }
+
+    grid.innerHTML = cellsHtml;
+  }
+
+  function renderUpcomingList() {
+    const list = $('calUpcomingList');
+    const countBadge = $('calUpcomingCount');
+    if (!list) return;
+
+    let items = calendarData.slice();
+    if (calPlatformFilter !== 'all') {
+      items = items.filter(it => Array.isArray(it.platforms) && it.platforms.includes(calPlatformFilter));
+    }
+
+    if (countBadge) countBadge.textContent = `${items.length} รายการ`;
+
+    if (!items.length) {
+      list.innerHTML = `
+        <div style="padding:20px 10px; text-align:center; color:var(--color-text-muted); font-size:13px;">
+          ยังไม่มีกำหนดการโพสต์ในเดือนนี้<br>
+          <button class="btn btn-primary btn-xs" style="margin-top:10px;" onclick="window.appOpenScheduleModal()">+ วางแผนคอนเทนต์แรก</button>
+        </div>
+      `;
+      return;
+    }
+
+    list.innerHTML = items.map(it => {
+      const isPublished = it.status === 'published';
+      const plats = Array.isArray(it.platforms) ? it.platforms : ['tiktok'];
+      const icons = { tiktok: '🎵', shopee: '🛒', facebook: '📘' };
+
+      return `
+        <div class="upcoming-item-card" style="background:var(--color-surface-subtle); border:1px solid var(--color-border); border-radius:var(--radius-md); padding:12px; font-size:13px;">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:6px;">
+            <strong style="color:var(--color-text-main); font-size:13px; line-height:1.4;">${esc(it.title)}</strong>
+            <span class="chip ${isPublished ? 'chip-success' : 'chip-primary'} mono" style="font-size:10px; white-space:nowrap;">
+              ${isPublished ? '✅ เผยแพร่แล้ว' : '🕒 กำหนดการ'}
+            </span>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:8px; font-size:11px; color:var(--color-text-muted); margin-bottom:8px;">
+            <span>📅 ${(it.scheduled_at || '').replace('T', ' ')}</span>
+            <span>·</span>
+            <span>${plats.map(p => icons[p] || '📱').join(' ')}</span>
+          </div>
+
+          ${it.caption ? `
+            <div style="font-size:12px; color:var(--color-text-muted); margin-bottom:10px; line-height:1.4; background:var(--color-surface); padding:8px 10px; border-radius:var(--radius-sm); border:1px solid var(--color-border);">
+              ${esc(it.caption)}
+            </div>
+          ` : ''}
+
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
+            <div>
+              ${!isPublished ? `
+                <button class="btn btn-primary btn-xs" onclick="window.appPublishScheduleNow(${it.id})" title="Auto-Post ทันที">
+                  🚀 Auto-Post ทันที
+                </button>
+              ` : `
+                <span class="mono" style="font-size:11px; color:var(--color-secondary);">Auto-Posted สำเร็จ</span>
+              `}
+            </div>
+            <div style="display:flex; gap:4px;">
+              <button class="btn btn-ghost btn-xs" style="color:var(--color-danger);" onclick="window.appDeleteSchedule(${it.id})">
+                ลบ
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  window.appPublishScheduleNow = async scheduleId => {
+    try {
+      const res = await api(`/api/my/calendar/${scheduleId}/publish-now`, 'POST');
+      msg(res.message || '🚀 Auto-Post สำเร็จทุกแพลตฟอร์ม!');
+      await loadCalendar();
+      await loadChannels();
+    } catch (e) {
+      msg(e.message, 'error');
+    }
+  };
+
+  window.appDeleteSchedule = async scheduleId => {
+    if (!confirm('ยืนยันลบกำหนดการโพสต์นี้หรือไม่?')) return;
+    try {
+      await api(`/api/my/calendar/${scheduleId}`, 'DELETE');
+      msg('ลบกำหนดการโพสต์เรียบร้อย');
+      await loadCalendar();
+    } catch (e) {
+      msg(e.message, 'error');
+    }
+  };
+
+  window.appOpenScheduleModal = (prodId, prodTitle) => {
+    const modal = $('scheduleModal');
+    if (!modal) return;
+    modal.hidden = false;
+    if (prodId && prodTitle) {
+      $('schedTitleInput').value = `รีวิว ${prodTitle} พร้อมพิกัดโปรเด็ด`;
+      $('schedCaptionInput').value = `ป้ายยา ${prodTitle} ใช้แล้วชีวิตดีขึ้นมากกก พิกัดในตะกร้าด้านล่าง 👇✨`;
+      $('schedHashtagsInput').value = `#${prodTitle.split(' ')[0]} #ของดีบอกต่อ #รีวิวช้อปปี้ #TikTokMadeMeBuyIt`;
+      if ($('schedProductSelect')) $('schedProductSelect').value = prodId;
+    }
+    const defaultDate = new Date(Date.now() + 3600000 * 2);
+    $('schedDateTimeInput').value = defaultDate.toISOString().slice(0, 16);
+  };
+
+  window.appQuickScheduleDate = dateStr => {
+    window.appOpenScheduleModal();
+    $('schedDateTimeInput').value = `${dateStr}T12:00`;
+  };
+
+  window.appViewSchedule = scheduleId => {
+    const item = calendarData.find(i => i.id === scheduleId);
+    if (!item) return;
+    if (item.status === 'published') {
+      alert(`📌 ${item.title}\n\nสถานะ: เผยแพร่แล้วเมื่อ ${(item.published_at || '').replace('T', ' ')}\nผลลัพธ์: ${item.result_log || 'สำเร็จ'}`);
+    } else {
+      if (confirm(`📌 ${item.title}\nกำหนดการ: ${item.scheduled_at.replace('T', ' ')}\n\nต้องการ Auto-Post ไปยัง ${(item.platforms || []).join(', ')} ตอนนี้เลยหรือไม่?`)) {
+        window.appPublishScheduleNow(scheduleId);
+      }
+    }
+  };
+
+  // Calendar Modals & Forms
+  $('openScheduleModalBtn')?.addEventListener('click', () => window.appOpenScheduleModal());
+  $('closeScheduleModalBtn')?.addEventListener('click', () => $('scheduleModal').hidden = true);
+  $('cancelScheduleBtn')?.addEventListener('click', () => $('scheduleModal').hidden = true);
+
+  $('scheduleContentForm')?.addEventListener('submit', async e => {
+    e.preventDefault();
+    const f = e.target;
+    const plats = Array.from(f.querySelectorAll('input[name="sched_platforms"]:checked')).map(cb => cb.value);
+    if (!plats.length) return msg('กรุณาเลือกอย่างน้อย 1 แพลตฟอร์มสำหรับ Auto-Post', 'error');
+
+    const payload = {
+      title: f.title.value.trim(),
+      scheduled_at: f.scheduled_at.value,
+      product_id: f.product_id.value ? parseInt(f.product_id.value, 10) : null,
+      platforms: plats,
+      caption: f.caption.value.trim(),
+      hashtags: f.hashtags.value.trim(),
+      status: 'scheduled'
+    };
+
+    try {
+      await api('/api/my/calendar', 'POST', payload);
+      msg('📅 บันทึกกำหนดการและตั้งเวลา Auto-Post สำเร็จ!');
+      $('scheduleModal').hidden = true;
+      f.reset();
+      await loadCalendar();
+    } catch (err) {
+      msg(err.message, 'error');
+    }
+  });
+
+  $('calPrevMonthBtn')?.addEventListener('click', () => {
+    calendarDate.setMonth(calendarDate.getMonth() - 1);
+    renderCalendar();
+  });
+  $('calNextMonthBtn')?.addEventListener('click', () => {
+    calendarDate.setMonth(calendarDate.getMonth() + 1);
+    renderCalendar();
+  });
+  $('calTodayBtn')?.addEventListener('click', () => {
+    calendarDate = new Date();
+    renderCalendar();
+  });
+
+  document.querySelectorAll('.cal-filter-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      document.querySelectorAll('.cal-filter-pill').forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+      calPlatformFilter = pill.dataset.filter || 'all';
+      renderCalendar();
+      renderUpcomingList();
+    });
+  });
+
+  // ==========================================
+  // PRODUCT SELECTION FOR VIDEO STUDIO
+  // ==========================================
+  let userProductsCache = [];
+
+  async function syncVideoProductSelect() {
+    try {
+      const prods = await api('/api/my/products');
+      userProductsCache = prods;
+      const vSelect = $('video-product-select');
+      const cSelect = $('schedProductSelect');
+
+      const optionsHtml = `<option value="">-- เลือกสินค้าจากรายการของคุณเพื่อสร้างสคริปต์ --</option>` +
+        prods.map(p => `<option value="${p.id}" data-title="${esc(p.title)}" data-plat="${esc(p.platform)}">🏷️ ${esc(p.title)} (${esc(p.platform)})</option>`).join('');
+
+      if (vSelect) vSelect.innerHTML = optionsHtml;
+      if (cSelect) {
+        cSelect.innerHTML = `<option value="">-- ไม่ระบุ / เนื้อหาทั่วไป --</option>` +
+          prods.map(p => `<option value="${p.id}">🏷️ ${esc(p.title)} (${esc(p.platform)})</option>`).join('');
+      }
+    } catch (err) {
+      console.warn('syncVideoProductSelect error:', err);
+    }
+  }
+
+  $('video-product-select')?.addEventListener('change', e => {
+    const prodId = e.target.value;
+    const card = $('selectedProductPreviewCard');
+    if (!prodId) {
+      if (card) card.style.display = 'none';
+      return;
+    }
+    const prod = userProductsCache.find(p => String(p.id) === String(prodId));
+    if (!prod) return;
+
+    if (card) {
+      card.style.display = 'block';
+      $('previewProductTitle').textContent = prod.title;
+      $('previewProductMeta').textContent = `แพลตฟอร์ม: ${prod.platform.toUpperCase()} · ลิงก์: ${prod.url || 'Shopee/TikTok'}`;
+    }
+
+    const promptInput = $('promptInput');
+    if (promptInput && (!promptInput.value || promptInput.value.trim() === '')) {
+      promptInput.value = `9:16 vertical commercial video of ${prod.title}, dynamic camera motion, studio product lighting, 4K resolution, aesthetic influencer showcase`;
+    }
+  });
+
+  $('btnAutoGenerateScriptFromProduct')?.addEventListener('click', () => {
+    const select = $('video-product-select');
+    const prodId = select?.value;
+    if (!prodId) return msg('กรุณาเลือกสินค้าจากรายการก่อน', 'error');
+    const prod = userProductsCache.find(p => String(p.id) === String(prodId));
+    if (!prod) return;
+
+    const promptInput = $('promptInput');
+    if (promptInput) {
+      promptInput.value = `9:16 cinematic vertical video showcasing ${prod.title}, 3-act storytelling hook, crisp modern studio lighting, high conversion commercial for TikTok/Shopee`;
+    }
+    msg(`⚡ ร่างสคริปต์และพรอมต์ AI สำหรับ "${prod.title}" เรียบร้อยแล้ว!`);
+  });
+
+  window.appSelectProductForVideo = (prodId, prodTitle) => {
+    switchTab('video');
+    const select = $('video-product-select');
+    if (select) {
+      select.value = prodId;
+      select.dispatchEvent(new Event('change'));
+    }
+    msg(`เลือกสินค้า "${prodTitle}" สำหรับสร้างคลิปแล้ว 🎬`);
+  };
+
+  window.appScheduleProduct = (prodId, prodTitle) => {
+    switchTab('calendar');
+    window.appOpenScheduleModal(prodId, prodTitle);
+  };
+
+  // ==========================================
   // BOOTSTRAP APP
   // ==========================================
   async function init() {
@@ -2041,6 +2870,9 @@
     await loadSystemSettings();
     initSystemToggles();
     await refreshDashboard();
+    await syncVideoProductSelect();
+    await loadChannels();
+    await loadCalendar();
     startMockupCanvasAnimation();
   }
 

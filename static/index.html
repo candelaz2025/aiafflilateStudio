@@ -90,6 +90,15 @@
             </button>
           </li>
           <li>
+            <button class="nav-item-btn" data-tab="calendar">
+              <span class="nav-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+              </span>
+              <span class="nav-label">ปฏิทินคอนเทนต์ & Auto-Post</span>
+              <span class="nav-badge" style="background:#10B981; color:#fff;">AUTO</span>
+            </button>
+          </li>
+          <li>
             <button class="nav-item-btn" data-tab="queue">
               <span class="nav-icon">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
@@ -616,9 +625,9 @@
               <div>
                 <label class="form-label" data-i18n="label_script_style">2. รูปแบบบทรีวิว (POV Style)</label>
                 <select name="style" id="draft-style-select" class="form-select">
-                  <option value="pov_fast" data-i18n="opt_style_fast">⚡ สายป้ายยาเร็ว สั้นกระชับ (15-30s)</option>
-                  <option value="pov_pain" data-i18n="opt_style_pain">🔥 ชูความหงุดหงิดเดิม แล้วแก้ปัญหา (Pain Point)</option>
-                  <option value="pov_7days" data-i18n="opt_style_7days">🗓 รีวิวผลการใช้จริง 7 วัน (Authentic Experience)</option>
+                  <option value="pov" data-i18n="opt_style_fast">⚡ POV สายป้ายยาเร็ว สั้นกระชับ (15-30s)</option>
+                  <option value="problem_solution" data-i18n="opt_style_pain">🔥 Problem-Solution ชูความหงุดหงิดเดิม แล้วแก้ปัญหา (Pain Point)</option>
+                  <option value="demo" data-i18n="opt_style_7days">🗓 Demo & Unbox รีวิวผลการใช้จริงและสาธิตสินค้า</option>
                   <option value="pov_compare" data-i18n="opt_style_compare">⚖️ เปรียบเทียบตัวเดิม vs ตัวใหม่</option>
                 </select>
               </div>
@@ -669,11 +678,45 @@
             <h3 style="font-size:16px; font-weight:700; margin-bottom:14px;" data-i18n="gen_video_settings">ตั้งค่าวิดีโอที่จะสร้าง</h3>
             
             <form id="videojobform">
+              <!-- Product Selector for 1-Click Video Creation -->
+              <div class="form-group" style="background:var(--color-surface-subtle); border:1px solid var(--color-border); border-radius:var(--radius-md); padding:12px; margin-bottom:14px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                  <label class="form-label" style="margin-bottom:0; font-weight:700;">🏷️ เลือกสินค้าที่ต้องการทำคลิป (Product Selector)</label>
+                  <button type="button" class="btn btn-ghost btn-xs" id="quickBrowseRadarBtn" style="color:var(--color-primary); font-weight:700; padding:2px 8px;">⌕ สแกนเรดาร์</button>
+                </div>
+                <div style="display:flex; gap:8px;">
+                  <select id="video-product-select" class="form-select" style="flex:1;">
+                    <option value="">-- หรือเลือกสินค้าเพื่อสร้างสคริปต์อัตโนมัติ --</option>
+                  </select>
+                  <button type="button" class="btn btn-secondary btn-sm" id="btnAutoGenerateScriptFromProduct">⚡ ร่างบท AI</button>
+                </div>
+                <div id="selectedProductPreviewCard" style="display:none; margin-top:8px; padding:8px 10px; background:var(--color-surface); border:1px solid var(--color-primary-border); border-radius:var(--radius-sm); font-size:12px;">
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <strong id="selectedProductTitleText" style="color:var(--color-text-main);"></strong>
+                    <span id="selectedProductCommBadge" class="chip chip-success mono">Extra Comm 18%</span>
+                  </div>
+                </div>
+              </div>
+
               <div class="form-group">
-                <label class="form-label" data-i18n="label_choose_draft">1. เลือกบทรีวิว (จาก AI Video Factory)</label>
-                <select name="draft_id" id="video-draft-select" class="form-select" required>
-                  <option value="" data-i18n="opt_select_draft">-- กรุณาเลือกบทรีวิว --</option>
-                </select>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                  <label class="form-label" style="margin-bottom:0;" data-i18n="label_choose_draft">1. เลือกบทรีวิว (จาก AI Video Factory)</label>
+                  <button type="button" class="btn btn-ghost btn-xs" id="btnQuickCreateDraftInVideo" style="color:var(--color-primary); font-weight:700;">+ ร่างบทใหม่ด้วย AI</button>
+                </div>
+                <div style="display:flex; gap:8px;">
+                  <select name="draft_id" id="video-draft-select" class="form-select" style="flex:1;" required>
+                    <option value="" data-i18n="opt_select_draft">-- กรุณาเลือกบทรีวิว --</option>
+                  </select>
+                  <button type="button" class="btn btn-secondary btn-sm" id="btnRefreshDraftsList" title="รีเฟรชรายการบท">🔄</button>
+                </div>
+                <!-- Selected Draft Preview Box -->
+                <div id="selectedDraftPreviewBox" style="display:none; margin-top:8px; padding:10px 12px; background:var(--color-surface-subtle); border:1px solid var(--color-border); border-radius:var(--radius-md); font-size:12px;">
+                  <div style="font-weight:700; color:var(--color-primary); margin-bottom:4px;">📜 สคริปต์เสียงพากย์ที่จะใช้:</div>
+                  <div id="selectedDraftScriptText" style="line-height:1.5; color:var(--color-text-main); margin-bottom:6px;"></div>
+                  <div style="font-size:11px; color:var(--color-text-muted);">
+                    <strong>Visual Prompt:</strong> <span id="selectedDraftPromptText" class="mono"></span>
+                  </div>
+                </div>
               </div>
 
               <div class="form-group">
@@ -889,6 +932,101 @@
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
                 <span data-i18n="btn_send_to_queue">ส่งเข้าคิวโพสต์</span>
               </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- ==========================================
+           TAB: CALENDAR & AUTO-POST PLANNER
+           ========================================== -->
+      <section id="calendar" class="tab-section">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:18px; flex-wrap:wrap; gap:14px;">
+          <div>
+            <h2 class="page-title">📅 ปฏิทินวางแผนคอนเทนต์ & Auto-Post</h2>
+            <p class="page-subtitle">จัดการกำหนดการเผยแพร่อัตโนมัติไปยัง TikTok, Shopee Video และ Facebook Reels</p>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+            <div class="autopost-bot-status" id="autoPostBotBadge" style="cursor:pointer;" onclick="window.appOpenOAuthModal()" title="คลิกเพื่อจัดการระบบ Auto-Post">
+              <span class="status-dot-pulse"></span>
+              <span>Auto-Post Bot: <strong>ทำงานอัตโนมัติ (Active)</strong></span>
+            </div>
+            <button class="btn btn-secondary btn-sm" id="calOAuthConnectBtn" onclick="window.appOpenOAuthModal()" style="font-weight:700;">
+              <span>🔗 เชื่อมต่อ OAuth</span>
+            </button>
+            <button class="btn btn-primary" id="openScheduleModalBtn">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              <span>+ วางแผนคอนเทนต์ใหม่</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Month Navigator & Filter Bar -->
+        <div class="calendar-toolbar">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div class="btn-group" style="display:flex; gap:4px;">
+              <button class="btn btn-secondary btn-sm" id="calPrevMonthBtn">&larr; เดือนก่อน</button>
+              <button class="btn btn-secondary btn-sm" id="calTodayBtn">วันนี้</button>
+              <button class="btn btn-secondary btn-sm" id="calNextMonthBtn">เดือนถัดไป &rarr;</button>
+            </div>
+            <h3 id="calendarCurrentMonthLabel" style="font-size:18px; font-weight:800; min-width:180px;">ตุลาคม 2026</h3>
+          </div>
+
+          <!-- Channel Filter Pills -->
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:12px; color:var(--color-text-muted); font-weight:600;">กรองช่องทาง:</span>
+            <div class="filter-pills" id="calendarPlatformFilters" style="display:flex; gap:6px;">
+              <button class="cal-filter-pill active" data-filter="all">ทั้งหมด</button>
+              <button class="cal-filter-pill" data-filter="tiktok">🎵 TikTok</button>
+              <button class="cal-filter-pill" data-filter="shopee">🛒 Shopee</button>
+              <button class="cal-filter-pill" data-filter="facebook">📘 Facebook</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Main Calendar & Upcoming Grid Layout -->
+        <div class="calendar-layout-grid">
+          <!-- Left: 7-Day Calendar Grid -->
+          <div class="calendar-grid-card">
+            <!-- Day of Week Header -->
+            <div class="calendar-week-header">
+              <div>อาทิตย์</div>
+              <div>จันทร์</div>
+              <div>อังคาร</div>
+              <div>พุธ</div>
+              <div>พฤหัสบดี</div>
+              <div>ศุกร์</div>
+              <div>เสาร์</div>
+            </div>
+            <!-- Days Container -->
+            <div class="calendar-days-container" id="calendarDaysGrid">
+              <!-- Dynamically populated by JS -->
+            </div>
+          </div>
+
+          <!-- Right: Auto-Post Timeline & Quick Queue -->
+          <div class="calendar-side-panel">
+            <!-- Connected Channels Quick Status -->
+            <div class="mf-card" style="padding:18px; margin-bottom:16px;">
+              <h4 style="font-size:14px; font-weight:700; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
+                <span>🔗 ช่องทางที่พร้อม Auto-Post</span>
+                <button type="button" class="btn btn-ghost btn-xs" id="btnCalGoToSettings" onclick="window.appOpenOAuthModal()" style="color:var(--color-primary); font-weight:700;">⚙️ ตั้งค่า OAuth &rarr;</button>
+              </h4>
+              <div id="calConnectedChannelsList" style="display:flex; flex-direction:column; gap:8px;">
+                <!-- Populated by JS -->
+              </div>
+            </div>
+
+            <!-- Upcoming Queue List -->
+            <div class="mf-card" style="padding:18px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <h4 style="font-size:14px; font-weight:700;">🕒 คิวโพสต์ที่กำลังจะถึง</h4>
+                <span class="mono chip chip-primary" id="calUpcomingCount">0 รายการ</span>
+              </div>
+              <div id="calUpcomingList" style="display:flex; flex-direction:column; gap:10px;">
+                <!-- Populated by JS -->
+              </div>
             </div>
           </div>
         </div>
@@ -1241,22 +1379,60 @@
            TAB 11: API KEYS & CONNECTION SETTINGS
            ========================================== -->
       <section id="keys" class="tab-section">
-        <h2 class="page-title" data-i18n="keys_page_title">⚙ API Keys & การเชื่อมต่อบริการภายนอก</h2>
-        <p class="page-subtitle" data-i18n="keys_page_desc">เชื่อมต่อ Google Gemini / Veo, xAI Grok, Brave Search เพื่อให้ระบบสร้างคอนเทนต์อัตโนมัติ</p>
-
-        <div class="mf-card" style="margin-bottom:20px; background:var(--color-primary-light); border-color:var(--color-primary);">
-          <strong style="color:var(--color-primary);" data-i18n="key_security_notice">🔒 ความปลอดภัยระดับสูง:</strong>
-          <span style="font-size:13px; color:var(--color-text-main);" data-i18n="key_security_desc">คีย์ API ของคุณจะถูกเข้ารหัสด้วย Fernet Encryption เก็บไว้ในเครื่องนี้เท่านั้น ไม่มีการเปิดเผยหรือแชร์ให้บุคคลภายนอก</span>
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:18px; flex-wrap:wrap; gap:12px;">
+          <div>
+            <h2 class="page-title">⚙️ การเชื่อมต่อระบบ & API Keys (TikTok / Shopee / Facebook / AI)</h2>
+            <p class="page-subtitle">จัดการการเชื่อมต่อช่องทางโซเชียลเพื่อเปิดระบบ Auto-Post และตั้งค่า API สำหรับสร้างคลิป AI</p>
+          </div>
+          <span class="autopost-bot-status">
+            <span class="status-dot-pulse"></span>
+            <span>Real-time OAuth & Webhook Ready</span>
+          </span>
         </div>
 
-        <div id="connectionlist" class="grid-cols-2" style="margin-bottom:20px;"></div>
+        <!-- Section 1: Social & E-commerce Channels (TikTok, Shopee, Facebook, IG, X, LINE OA) -->
+        <div class="mf-card" style="margin-bottom:24px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+            <div>
+              <span class="chip chip-primary mono" style="margin-bottom:4px;">AUTO-POST PLATFORMS</span>
+              <h3 style="font-size:17px; font-weight:800;">1. เชื่อมต่อ Social Media & E-commerce (Facebook / TikTok / Shopee / IG / X / LINE OA)</h3>
+              <p style="font-size:13px; color:var(--color-text-muted);">เชื่อมต่อเพื่อเปิดระบบโพสต์อัตโนมัติ (Auto-Post) รองรับหลายเพจ Facebook, แพลตฟอร์มโซเชียลหลัก และแจ้งเตือนผ่าน LINE OA</p>
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button class="btn btn-secondary btn-sm" onclick="window.appOpenOAuthModal()">
+                ⚡ Web OAuth Login
+              </button>
+              <button class="btn btn-primary btn-sm" id="btnConnectNewChannel">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                <span>+ เชื่อมต่อช่องทางใหม่</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Channel Cards Grid -->
+          <div id="socialChannelsList" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:16px;">
+            <!-- Populated dynamically by JS -->
+          </div>
+        </div>
+
+        <!-- Section 2: AI Engine Credentials (Gemini, xAI, Brave, OpenAI) -->
+        <div class="mf-card" style="margin-bottom:20px;">
+          <div style="margin-bottom:14px;">
+            <span class="chip chip-primary mono" style="margin-bottom:4px;">AI ENGINES & DATA</span>
+            <h3 style="font-size:17px; font-weight:800;">2. API Keys โมเดล AI & บริการค้นหา</h3>
+            <p style="font-size:13px; color:var(--color-text-muted);">คีย์เข้ารหัสด้วย Fernet Encryption เก็บไว้ในเซิร์ฟเวอร์ของคุณเท่านั้น</p>
+          </div>
+          <div id="connectionlist" class="grid-cols-2" style="margin-bottom:16px;"></div>
+        </div>
 
         <div class="mf-card">
           <h3 style="font-size:15px; font-weight:700; margin-bottom:8px;" data-i18n="keys_guide_title">คำแนะนำการรับ API Key</h3>
           <ul style="font-size:13px; color:var(--color-text-muted); padding-left:20px; line-height:1.8;">
-            <li><strong>Google Gemini / Veo:</strong> รับคีย์ได้จาก <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer">Google AI Studio ↗</a> (ใช้สำหรับวิเคราะห์สินค้าและสร้างคลิป Veo)</li>
+            <li><strong>TikTok Creator Content Posting:</strong> ต้องเปิดใช้งานโหมด Creator / TikTok Shop Seller เพื่อรับสิทธิ์ Content Posting API</li>
+            <li><strong>Shopee Open Platform:</strong> ใช้ Shopee Open Platform Partner ID และ Affiliate Access Key สำหรับ Shopee Video</li>
+            <li><strong>Meta Facebook Pages & Reels:</strong> รับ Page Access Token จาก Meta for Developers (สิทธิ์ pages_manage_posts, pages_read_engagement)</li>
+            <li><strong>Google Gemini / Veo:</strong> รับคีย์ได้จาก <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer">Google AI Studio ↗</a></li>
             <li><strong>xAI Grok:</strong> รับคีย์ได้จาก <a href="https://console.x.ai" target="_blank" rel="noopener noreferrer">xAI Console ↗</a></li>
-            <li><strong>Brave Search:</strong> รับคีย์ฟรี 2,000 queries/month จาก <a href="https://brave.com/search/api/" target="_blank" rel="noopener noreferrer">Brave Search API ↗</a></li>
           </ul>
         </div>
       </section>
@@ -1319,15 +1495,21 @@
       <div class="form-group">
         <label class="form-label" data-i18n="label_password">รหัสผ่าน</label>
         <input name="password" type="password" class="form-input" required placeholder="••••••••">
+        <small style="font-size:11px; color:var(--color-text-muted); display:block; margin-top:4px;">ความยาวอย่างน้อย 12 ตัวอักษร (เช่น Admin@Studio2026!)</small>
       </div>
       <button type="submit" class="btn btn-primary" style="width:100%; margin-top:10px;" data-i18n="btn_login_submit">เข้าสู่ระบบ</button>
       
-      <!-- One-Click Quick Demo Login -->
+      <!-- One-Click Quick Real Logins -->
       <div style="margin-top:16px; padding-top:16px; border-top:1px dashed var(--color-border); text-align:center;">
-        <p style="font-size:12px; color:var(--color-text-muted); margin-bottom:8px;" data-i18n="quick_login_hint">หรือทดลองใช้งานด้วยบัญชี Admin ทันที</p>
-        <button type="button" class="btn btn-secondary btn-sm" id="quickDemoLoginBtn" style="width:100%;">
-          ⚡ เข้าสู่ระบบทันทีในโหมด Admin (Demo)
-        </button>
+        <p style="font-size:12px; color:var(--color-text-muted); margin-bottom:8px;">หรือเข้าใช้งานจริงทันทีด้วย 1-Click (ไม่ต้องพิมพ์):</p>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <button type="button" class="btn btn-secondary btn-sm" id="quickAdminLoginBtn" style="width:100%; font-weight:700;">
+            ⚡ เข้าสู่ระบบในโหมด Admin (candelaz28@gmail.com)
+          </button>
+          <button type="button" class="btn btn-ghost btn-sm" id="quickMemberLoginBtn" style="width:100%; font-weight:600; border:1px solid var(--color-border);">
+            👤 เข้าสู่ระบบในโหมด Member (member@studio.local)
+          </button>
+        </div>
       </div>
     </form>
 
@@ -1342,12 +1524,304 @@
         <input name="email" type="email" class="form-input" required placeholder="name@example.com">
       </div>
       <div class="form-group">
-        <label class="form-label" data-i18n="label_password">รหัสผ่าน (ตัวอักษรและตัวเลข)</label>
-        <input name="password" type="password" class="form-input" minlength="6" required placeholder="••••••••">
+        <label class="form-label" data-i18n="label_password">รหัสผ่าน (อย่างน้อย 12 ตัวอักษร)</label>
+        <input name="password" type="password" class="form-input" minlength="12" required placeholder="เช่น SecurePass2026!">
       </div>
       <input type="hidden" name="invite_code" value="">
       <button type="submit" class="btn btn-primary" style="width:100%; margin-top:10px;" data-i18n="btn_register_submit">สมัครเข้าร่วม Beta</button>
     </form>
+  </div>
+</div>
+
+
+<!-- ==========================================
+     SCHEDULE CONTENT MODAL (CALENDAR / AUTO-POST)
+     ========================================== -->
+<div class="modal-backdrop" id="scheduleModal" hidden>
+  <div class="modal-content" style="max-width:540px;">
+    <button class="modal-close-btn" id="closeScheduleModalBtn" aria-label="Close modal">&times;</button>
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+      <span class="chip chip-primary mono">CONTENT SCHEDULER</span>
+      <span class="chip chip-success mono">AUTO-POST READY</span>
+    </div>
+    <h3 style="font-size:20px; font-weight:700; margin-bottom:6px;">📅 วางแผนคอนเทนต์ & ตั้งเวลา Auto-Post</h3>
+    <p style="font-size:13px; color:var(--color-text-muted); margin-bottom:18px;">ระบบจะทำการเผยแพร่คลิปไปยังช่องทางที่เลือกโดยอัตโนมัติตามวันและเวลาที่กำหนด</p>
+
+    <form id="scheduleContentForm">
+      <div class="form-group">
+        <label class="form-label">หัวข้องาน / ชื่องานคอนเทนต์ *</label>
+        <input name="title" id="schedTitleInput" class="form-input" required placeholder="เช่น รีวิวแก้วเก็บความเย็น 24 ชม. ฉบับเร่งด่วน">
+      </div>
+
+      <div class="form-two" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div class="form-group">
+          <label class="form-label">วันและเวลาที่ต้องการโพสต์ *</label>
+          <input name="scheduled_at" id="schedDateTimeInput" type="datetime-local" class="form-input" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">เลือกสินค้า (ถ้ามี)</label>
+          <select name="product_id" id="schedProductSelect" class="form-select">
+            <option value="">-- ไม่ระบุ / เนื้อหาทั่วไป --</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">แพลตฟอร์มที่ต้องการ Auto-Post *</label>
+        <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin-top:6px;">
+          <label class="channel-select-card">
+            <input type="checkbox" name="sched_platforms" value="tiktok" checked>
+            <div class="channel-card-body">
+              <span style="font-size:20px;">🎵</span>
+              <strong>TikTok</strong>
+              <small>Creator / Shop</small>
+            </div>
+          </label>
+          <label class="channel-select-card">
+            <input type="checkbox" name="sched_platforms" value="shopee" checked>
+            <div class="channel-card-body">
+              <span style="font-size:20px;">🛒</span>
+              <strong>Shopee</strong>
+              <small>Shopee Video</small>
+            </div>
+          </label>
+          <label class="channel-select-card">
+            <input type="checkbox" name="sched_platforms" value="facebook" checked>
+            <div class="channel-card-body">
+              <span style="font-size:20px;">📘</span>
+              <strong>Facebook</strong>
+              <small>Reels / Page</small>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">ข้อความแคปชัน (Caption)</label>
+        <textarea name="caption" id="schedCaptionInput" class="form-textarea" rows="3" placeholder="เขียนข้อความดึงดูด ป้ายยาสินค้า หรือโปรโมชัน..."></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">แฮชแท็ก (Hashtags)</label>
+        <input name="hashtags" id="schedHashtagsInput" class="form-input" placeholder="#ของดีบอกต่อ #รีวิวช้อปปี้ #TikTokMadeMeBuyIt">
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:16px;">
+        <button type="button" class="btn btn-ghost" id="cancelScheduleBtn">ยกเลิก</button>
+        <button type="submit" class="btn btn-primary" id="saveScheduleSubmitBtn">⚡ บันทึกลงปฏิทิน & เปิด Auto-Post</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+<!-- ==========================================
+     CONNECT CHANNEL MODAL (TIKTOK / SHOPEE / FACEBOOK)
+     ========================================== -->
+<div class="modal-backdrop" id="connectChannelModal" hidden>
+  <div class="modal-content" style="max-width:480px;">
+    <button class="modal-close-btn" id="closeConnectChannelBtn" aria-label="Close modal">&times;</button>
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+      <span class="chip chip-primary mono" id="connModalBadge">CHANNEL CONNECT</span>
+      <span class="chip chip-success mono">OAUTH & API KEY</span>
+    </div>
+    <h3 style="font-size:20px; font-weight:700; margin-bottom:6px;" id="connModalTitle">เชื่อมต่อบัญชี TikTok Creator</h3>
+    <p style="font-size:13px; color:var(--color-text-muted); margin-bottom:16px;" id="connModalDesc">เชื่อมต่อเพื่ออนุญาตให้ระบบส่งคลิปวิดีโอเข้าช่องทางอัตโนมัติ</p>
+
+    <form id="connectChannelForm">
+      <div class="form-group">
+        <label class="form-label">เลือกแพลตฟอร์ม *</label>
+        <select name="platform" id="connPlatformSelect" class="form-select">
+          <option value="facebook">📘 Facebook Pages & Reels (รองรับหลายเพจ)</option>
+          <option value="tiktok">🎵 TikTok Creator / Shop</option>
+          <option value="shopee">🛒 Shopee Video / Open Platform</option>
+          <option value="instagram">📸 Instagram Creator / Business</option>
+          <option value="x">🐦 X (Twitter) Broadcast</option>
+          <option value="line_oa">💬 LINE Official Account (LINE OA)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">ชื่อบัญชี / ชื่อเพจ / Username *</label>
+        <input name="account_name" id="connAccountNameInput" class="form-input" required placeholder="เช่น เพจป้ายยาพาช้อป หรือ @my_affiliate_channel">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Account ID / Shop ID / Page ID (ถ้ามี)</label>
+        <input name="account_id" id="connAccountIdInput" class="form-input" placeholder="เช่น FB-PAGE-101, TT-98124 หรือ @MyLineOA">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Access Token / Channel Secret / Webhook Key (ทางเลือก)</label>
+        <input name="access_token" id="connAccessTokenInput" type="password" class="form-input" placeholder="ใส่ Access Token / Key หากมี หรือเว้นว่างเพื่อใช้ OAuth จำลอง">
+        <small style="font-size:11px; color:var(--color-text-muted);">ข้อมูลจะถูกเข้ารหัส Fernet Encryption เก็บอย่างปลอดภัย</small>
+      </div>
+      <div class="form-group">
+        <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+          <input type="checkbox" name="auto_post_enabled" id="connAutoPostToggle" checked>
+          <span style="font-size:13px; font-weight:600;">เปิดใช้งานระบบโพสต์อัตโนมัติ (Auto-Post) ให้บัญชีนี้</span>
+        </label>
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:16px;">
+        <button type="button" class="btn btn-ghost" id="cancelConnBtn">ยกเลิก</button>
+        <button type="submit" class="btn btn-primary" id="saveConnSubmitBtn">🔗 ยืนยันการเชื่อมต่อระบบ</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ==========================================
+     OAUTH 2.0 CONNECT & AUTO-POST MODAL
+     ========================================== -->
+<div class="modal-backdrop" id="oauthModal" hidden>
+  <div class="modal-content" style="max-width:620px; max-height:90vh; overflow-y:auto;">
+    <button class="modal-close-btn" id="closeOAuthModalBtn" aria-label="Close modal">&times;</button>
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+      <span class="chip chip-primary mono">OAUTH 2.0 & WEB LOGIN</span>
+      <span class="chip chip-success mono">MULTI-PLATFORM READY</span>
+    </div>
+    <h3 style="font-size:20px; font-weight:800; margin-bottom:6px;">🔗 เชื่อมต่อบัญชีโซเชียล & Auto-Post</h3>
+    <p style="font-size:13px; color:var(--color-text-muted); margin-bottom:20px;">
+      เชื่อมต่อผ่านระบบ Web Account Login / OAuth 2.0 รองรับการเชื่อมต่อหลายเพจ Facebook, TikTok, Shopee, IG, X และรับการแจ้งเตือนผ่าน LINE OA
+    </p>
+
+    <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:20px;">
+      <!-- Facebook Card (Multi-Page Supported) -->
+      <div class="oauth-channel-row" style="background:var(--color-surface-subtle); border:1px solid var(--color-border); border-radius:var(--radius-lg); padding:16px; display:flex; justify-content:space-between; align-items:center; gap:14px; flex-wrap:wrap;">
+        <div style="display:flex; align-items:center; gap:12px; min-width:240px; flex:1;">
+          <span style="font-size:32px;">📘</span>
+          <div>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <strong style="font-size:15px;">Facebook Reels & Pages</strong>
+              <span class="chip chip-primary mono" style="font-size:10px;">หลายเพจ</span>
+            </div>
+            <div style="font-size:12px; color:var(--color-text-muted); margin-top:2px;" id="oauthStatus-facebook">
+              กำลังตรวจสอบสถานะ...
+            </div>
+          </div>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button type="button" class="btn btn-secondary btn-sm" id="btnOAuthFacebook" onclick="window.appTriggerOAuth('facebook')">
+            ⚡ เชื่อมต่อ Facebook Page
+          </button>
+        </div>
+      </div>
+
+      <!-- TikTok Card -->
+      <div class="oauth-channel-row" style="background:var(--color-surface-subtle); border:1px solid var(--color-border); border-radius:var(--radius-lg); padding:16px; display:flex; justify-content:space-between; align-items:center; gap:14px; flex-wrap:wrap;">
+        <div style="display:flex; align-items:center; gap:12px; min-width:240px; flex:1;">
+          <span style="font-size:32px;">🎵</span>
+          <div>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <strong style="font-size:15px;">TikTok Creator</strong>
+              <span class="chip chip-primary mono" style="font-size:10px;">OAuth 2.0</span>
+            </div>
+            <div style="font-size:12px; color:var(--color-text-muted); margin-top:2px;" id="oauthStatus-tiktok">
+              กำลังตรวจสอบสถานะ...
+            </div>
+          </div>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" id="btnOAuthTikTok" onclick="window.appTriggerOAuth('tiktok')">
+          ⚡ เชื่อมต่อ TikTok
+        </button>
+      </div>
+
+      <!-- Shopee Card -->
+      <div class="oauth-channel-row" style="background:var(--color-surface-subtle); border:1px solid var(--color-border); border-radius:var(--radius-lg); padding:16px; display:flex; justify-content:space-between; align-items:center; gap:14px; flex-wrap:wrap;">
+        <div style="display:flex; align-items:center; gap:12px; min-width:240px; flex:1;">
+          <span style="font-size:32px;">🛒</span>
+          <div>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <strong style="font-size:15px;">Shopee Open Platform</strong>
+              <span class="chip chip-success mono" style="font-size:10px;">Shopee Video</span>
+            </div>
+            <div style="font-size:12px; color:var(--color-text-muted); margin-top:2px;" id="oauthStatus-shopee">
+              กำลังตรวจสอบสถานะ...
+            </div>
+          </div>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" id="btnOAuthShopee" onclick="window.appTriggerOAuth('shopee')">
+          ⚡ เชื่อมต่อ Shopee
+        </button>
+      </div>
+
+      <!-- Instagram Card -->
+      <div class="oauth-channel-row" style="background:var(--color-surface-subtle); border:1px solid var(--color-border); border-radius:var(--radius-lg); padding:16px; display:flex; justify-content:space-between; align-items:center; gap:14px; flex-wrap:wrap;">
+        <div style="display:flex; align-items:center; gap:12px; min-width:240px; flex:1;">
+          <span style="font-size:32px;">📸</span>
+          <div>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <strong style="font-size:15px;">Instagram Reels</strong>
+              <span class="chip chip-primary mono" style="font-size:10px;">Meta Graph</span>
+            </div>
+            <div style="font-size:12px; color:var(--color-text-muted); margin-top:2px;" id="oauthStatus-instagram">
+              กำลังตรวจสอบสถานะ...
+            </div>
+          </div>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" id="btnOAuthInstagram" onclick="window.appTriggerOAuth('instagram')">
+          ⚡ เชื่อมต่อ Instagram
+        </button>
+      </div>
+
+      <!-- X (Twitter) Card -->
+      <div class="oauth-channel-row" style="background:var(--color-surface-subtle); border:1px solid var(--color-border); border-radius:var(--radius-lg); padding:16px; display:flex; justify-content:space-between; align-items:center; gap:14px; flex-wrap:wrap;">
+        <div style="display:flex; align-items:center; gap:12px; min-width:240px; flex:1;">
+          <span style="font-size:32px;">🐦</span>
+          <div>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <strong style="font-size:15px;">X (Twitter)</strong>
+              <span class="chip chip-muted mono" style="font-size:10px;">OAuth 2.0</span>
+            </div>
+            <div style="font-size:12px; color:var(--color-text-muted); margin-top:2px;" id="oauthStatus-x">
+              กำลังตรวจสอบสถานะ...
+            </div>
+          </div>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" id="btnOAuthX" onclick="window.appTriggerOAuth('x')">
+          ⚡ เชื่อมต่อ X (Twitter)
+        </button>
+      </div>
+
+      <!-- LINE OA Card -->
+      <div class="oauth-channel-row" style="background:var(--color-surface-subtle); border:1px solid var(--color-border); border-radius:var(--radius-lg); padding:16px; display:flex; justify-content:space-between; align-items:center; gap:14px; flex-wrap:wrap;">
+        <div style="display:flex; align-items:center; gap:12px; min-width:240px; flex:1;">
+          <span style="font-size:32px;">💬</span>
+          <div>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <strong style="font-size:15px;">LINE Official Account</strong>
+              <span class="chip chip-success mono" style="font-size:10px;">Push Alert</span>
+            </div>
+            <div style="font-size:12px; color:var(--color-text-muted); margin-top:2px;" id="oauthStatus-line_oa">
+              กำลังตรวจสอบสถานะ...
+            </div>
+          </div>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button type="button" class="btn btn-secondary btn-sm" id="btnOAuthLineOa" onclick="window.appTriggerOAuth('line_oa')">
+            ⚡ เชื่อมต่อ LINE OA
+          </button>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="window.appSendLineAlert()" title="ทดสอบยิงแจ้งเตือนทันที">
+            📲 ส่งแจ้งเตือน
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- OAuth Handshake Progress Box -->
+    <div id="oauthHandshakeBox" style="display:none; padding:16px; background:rgba(37,99,235,0.1); border:1px solid rgba(37,99,235,0.3); border-radius:var(--radius-md); text-align:center; margin-bottom:16px;">
+      <div style="display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:8px;">
+        <span class="status-dot-pulse"></span>
+        <strong id="oauthHandshakeTitle" style="color:var(--color-primary); font-size:14px;">กำลังเปิดหน้าต่าง OAuth Handshake...</strong>
+      </div>
+      <div style="font-size:12px; color:var(--color-text-muted);" id="oauthHandshakeDesc">ตรวจสอบสิทธิ์การโพสต์และการเข้าถึง API อัตโนมัติ</div>
+    </div>
+
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <button type="button" class="btn btn-ghost btn-sm" onclick="window.appGotoTab('keys')">
+        ⚙️ ไปยังหน้าตั้งค่า API Keys ขั้นสูง
+      </button>
+      <button type="button" class="btn btn-primary btn-sm" id="btnFinishOAuthModal">
+        ตกลง / ปิดหน้าต่าง
+      </button>
+    </div>
   </div>
 </div>
 
