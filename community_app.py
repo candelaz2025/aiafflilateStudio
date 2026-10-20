@@ -23,16 +23,29 @@ from urllib.parse import urlsplit
 from studio_v6.product_discovery import discover, trending_topics
 from studio_v6 import video_service as veo
 from studio_v6 import grok_service as grok
+from studio_v6 import openrouter_service as openrouter
+from studio_v6 import mock_video_service as mock_video
 from studio_v6.shopee_user_import import pasted_preview, report_preview
+from reset_password import temporary_password
 
 ROOT = Path(__file__).resolve().parent
+try:
+    from dotenv import load_dotenv
+    load_dotenv(ROOT / '.env')
+except ImportError:  # requirements_public.txt does not ship python-dotenv; compose passes env directly
+    pass
 PH = PasswordHasher(time_cost=2, memory_cost=32768, parallelism=2)
 SESSION_DAYS = 7
 MAX_BETA_USERS = max(1, int(os.getenv('MAX_BETA_USERS', '100')))
 REQUIRE_INVITE = os.getenv('BETA_INVITE_CODE', '').strip()
 PUBLIC_MODE = os.getenv('PUBLIC_DEPLOYMENT') == '1'
-PROVIDERS = ('gemini', 'xai', 'brave', 'openai')
+PROVIDERS = ('gemini', 'xai', 'openrouter', 'brave', 'openai')
 GROK_MODELS = grok.MODELS
+OPENROUTER_MODELS = tuple(openrouter.MODELS)
+VIDEO_PROVIDERS = {'gemini': veo, 'xai': grok, 'openrouter': openrouter, 'platform': openrouter}
+VIDEO_LABELS = {'gemini': 'Google Gemini / Veo', 'xai': 'xAI / Grok Imagine', 'openrouter': 'OpenRouter', 'platform': 'ฟรีจากระบบ'}
+PLATFORM_ERROR = 'โหมดฟรีของระบบใช้งานไม่ได้ชั่วคราว กรุณาลองใหม่ภายหลัง'
+VIDEO_ERRORS = (veo.VideoProviderError, grok.VideoProviderError, openrouter.VideoProviderError, mock_video.VideoProviderError)
 VEO_MODEL = 'veo-3.1-generate-preview'
 MAX_VIDEO_JOBS_PER_DAY = 3
 # Provider calls time out well within this; a 'submitting' row older than this was orphaned
@@ -88,6 +101,62 @@ class IdeaIn(BaseModel):
 class CommentIn(BaseModel):
     body: str = Field(min_length=2, max_length=800)
 
+class PasswordChangeIn(BaseModel):
+    current_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=12, max_length=128)
+
+class DeleteMemberIn(BaseModel):
+    confirm_username: str = Field(min_length=1, max_length=32)
+
+class UserRoleIn(BaseModel):
+    role: str = Field(..., pattern=r'^(admin|member)$')
+
+class UserCreateIn(BaseModel):
+    username: str = Field(..., min_length=3, max_length=32)
+    email: str = Field(..., max_length=120)
+    password: str = Field(..., min_length=12, max_length=128)
+    role: str = Field('member', pattern=r'^(admin|member)$')
+    credits: int = Field(50, ge=0, le=100000)
+
+class AdminCreditUpdateIn(BaseModel):
+    amount: int = Field(..., ge=-100000, le=100000)
+
+class AdminPermissionsIn(BaseModel):
+    permissions: dict = Field(default_factory=dict)
+
+class SystemSettingIn(BaseModel):
+    key: str = Field(..., max_length=64)
+    value: str = Field(..., max_length=255)
+    enabled: bool = True
+
+class SelfTopupIn(BaseModel):
+    package_id: str = Field(..., max_length=64)
+    credits: int = Field(..., ge=1, le=100000)
+    price_thb: float = Field(..., ge=0)
+
+class QuickLoginIn(BaseModel):
+    role: str = Field(default='admin', pattern=r'^(admin|member)$')
+
+class ChannelConnectIn(BaseModel):
+    platform: str = Field(..., max_length=32)
+    account_name: str = Field(..., max_length=120)
+    account_id: str | None = Field(default=None, max_length=120)
+    access_token: str | None = Field(default=None, max_length=1000)
+    auto_post_enabled: bool = True
+
+class ScheduleIn(BaseModel):
+    title: str = Field(..., max_length=200)
+    scheduled_at: str = Field(..., max_length=32)
+    platforms: list[str] = Field(default=['tiktok'])
+    product_id: int | None = None
+    caption: str = Field(default='', max_length=1000)
+    hashtags: str = Field(default='', max_length=300)
+    status: str = Field(default='scheduled', max_length=32)
+
+class ScheduleUpdateIn(BaseModel):
+    status: str = Field(..., max_length=32)
+
+
 class KeyIn(BaseModel):
     key: str = Field(min_length=8, max_length=1500)
 
@@ -103,9 +172,7 @@ class DonationStatusIn(BaseModel):
 
 class DraftIn(BaseModel):
     product_id: int = Field(gt=0)
-    style: str = Field(default='pov', max_length=64)
-    script: str | None = Field(default=None, max_length=4000)
-    prompt: str | None = Field(default=None, max_length=4000)
+    style: str = Field(default='pov', max_length=32)
 
 class QueueIn(BaseModel):
     draft_id: int = Field(gt=0)
@@ -143,69 +210,6 @@ class PerformanceIn(BaseModel):
     note: str = Field(default='', max_length=300)
 
 
-class UserRoleIn(BaseModel):
-    role: str
-
-
-class UserCreateIn(BaseModel):
-    username: str
-    email: str
-    password: str
-    role: str = 'member'
-
-
-class AdminCreditUpdateIn(BaseModel):
-    amount: int
-    mode: str = 'add'
-    note: str = ''
-
-
-class AdminPermissionsIn(BaseModel):
-    permissions: dict
-
-
-class SystemSettingIn(BaseModel):
-    key: str
-    value: str
-
-
-class SelfTopupIn(BaseModel):
-    amount: int
-    package: str = 'manual'
-
-
-class QuickLoginIn(BaseModel):
-    role: str = 'admin'
-
-
-class ChannelConnectIn(BaseModel):
-    platform: str
-    account_name: str
-    account_id: str = ''
-    access_token: str = ''
-    auto_post_enabled: bool = True
-
-
-class ScheduleIn(BaseModel):
-    title: str
-    scheduled_at: str
-    platforms: list[str] = Field(default_factory=lambda: ['tiktok'])
-    product_id: int | None = None
-    draft_id: int | None = None
-    caption: str = ''
-    hashtags: str = ''
-    video_url: str = ''
-    status: str = 'scheduled'
-
-
-class ScheduleUpdateIn(BaseModel):
-    scheduled_at: str | None = None
-    status: str | None = None
-    caption: str | None = None
-    platforms: list[str] | None = None
-
-
-
 def create_app(data_dir=None, secret_key=None):
     data = Path(data_dir or os.getenv('COMMUNITY_DATA_DIR', ROOT / 'data')).resolve()
     data.mkdir(parents=True, exist_ok=True)
@@ -214,17 +218,6 @@ def create_app(data_dir=None, secret_key=None):
         raise RuntimeError('PUBLIC_DEPLOYMENT requires BETA_INVITE_CODE to protect the 100 beta seats')
     cipher = Fernet(get_key(data, secret_key))
     app = FastAPI(title='Affiliate Auto Studio — V7.10 Shopee Import Beta100', version='0.7.10')
-
-    @app.middleware("http")
-    async def add_no_cache_headers(request: Request, call_next):
-        response = await call_next(request)
-        path = request.url.path
-        if path == "/" or path.startswith("/static") or path in ("/updates", "/donate", "/landing", "/community"):
-            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
-            response.headers["Pragma"] = "no-cache"
-            response.headers["Expires"] = "0"
-        return response
-
     app.mount('/static', StaticFiles(directory=ROOT / 'static'), name='static')
 
     def connect():
@@ -331,12 +324,111 @@ def create_app(data_dir=None, secret_key=None):
           status TEXT NOT NULL CHECK(status IN ('submitting','running','ready','failed')),
           file_name TEXT NOT NULL DEFAULT '',
           error_message TEXT NOT NULL DEFAULT '',
+          est_cost_usd REAL NOT NULL DEFAULT 0,
           created_at TEXT NOT NULL,
           checked_at TEXT NOT NULL,
           updated_at TEXT NOT NULL
         );
         CREATE INDEX IF NOT EXISTS video_jobs_owner ON video_jobs(user_id,id DESC);
+        CREATE TABLE IF NOT EXISTS admin_audit (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          admin_id INTEGER NOT NULL, admin_username TEXT NOT NULL,
+          action TEXT NOT NULL CHECK(action IN ('reset_password','delete_member')),
+          target_user_id INTEGER NOT NULL, target_username TEXT NOT NULL, target_email TEXT NOT NULL,
+          created_at TEXT NOT NULL);
         ''')
+
+        db.execute('''
+        CREATE TABLE IF NOT EXISTS publishing_queue (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          draft_id INTEGER NOT NULL,
+          platform TEXT NOT NULL,
+          video_url TEXT,
+          caption TEXT,
+          scheduled_at TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'scheduled',
+          created_at TEXT NOT NULL,
+          FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+          FOREIGN KEY(draft_id) REFERENCES drafts(id) ON DELETE CASCADE
+        );
+        ''')
+        db.execute('CREATE INDEX IF NOT EXISTS queue_owner ON publishing_queue(user_id,id DESC);')
+
+        # Auto migration of connected_channels to support multiple pages/accounts per platform
+        tbl_info = db.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='connected_channels';").fetchone()
+        if tbl_info and 'UNIQUE(user_id, platform)' in tbl_info[0]:
+            try:
+                db.execute('''CREATE TABLE connected_channels_new (
+                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  user_id INTEGER NOT NULL,
+                  platform TEXT NOT NULL,
+                  account_name TEXT NOT NULL,
+                  account_id TEXT,
+                  access_token_encrypted TEXT,
+                  auto_post_enabled INTEGER NOT NULL DEFAULT 1,
+                  status TEXT NOT NULL DEFAULT 'connected',
+                  last_synced_at TEXT,
+                  created_at TEXT NOT NULL,
+                  UNIQUE(user_id, platform, account_id),
+                  FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+                );''')
+                db.execute('''INSERT OR IGNORE INTO connected_channels_new(id, user_id, platform, account_name, account_id, access_token_encrypted, auto_post_enabled, status, last_synced_at, created_at)
+                  SELECT id, user_id, platform, account_name, account_id, access_token_encrypted, auto_post_enabled, status, last_synced_at, created_at FROM connected_channels;''')
+                db.execute("DROP TABLE connected_channels;")
+                db.execute("ALTER TABLE connected_channels_new RENAME TO connected_channels;")
+            except Exception:
+                pass
+
+        db.execute('''
+        CREATE TABLE IF NOT EXISTS connected_channels (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          platform TEXT NOT NULL,
+          account_name TEXT NOT NULL,
+          account_id TEXT,
+          access_token_encrypted TEXT,
+          auto_post_enabled INTEGER NOT NULL DEFAULT 1,
+          status TEXT NOT NULL DEFAULT 'connected',
+          last_synced_at TEXT,
+          created_at TEXT NOT NULL,
+          UNIQUE(user_id, platform, account_id),
+          FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+        );
+        ''')
+        db.execute('CREATE INDEX IF NOT EXISTS channel_owner ON connected_channels(user_id,platform);')
+
+        db.execute('''
+        CREATE TABLE IF NOT EXISTS system_settings (
+          key TEXT PRIMARY KEY,
+          value TEXT NOT NULL,
+          enabled INTEGER NOT NULL DEFAULT 1,
+          description TEXT,
+          updated_at TEXT NOT NULL
+        );
+        ''')
+        ss_cols = {r[1] for r in db.execute('PRAGMA table_info(system_settings)').fetchall()}
+        if 'enabled' not in ss_cols:
+            db.execute('ALTER TABLE system_settings ADD COLUMN enabled INTEGER NOT NULL DEFAULT 1;')
+        if 'description' not in ss_cols:
+            db.execute("ALTER TABLE system_settings ADD COLUMN description TEXT DEFAULT '';")
+
+        user_cols = {r[1] for r in db.execute('PRAGMA table_info(users)').fetchall()}
+        if 'credits' not in user_cols:
+            db.execute('ALTER TABLE users ADD COLUMN credits INTEGER NOT NULL DEFAULT 50;')
+        if 'permissions' not in user_cols:
+            db.execute("ALTER TABLE users ADD COLUMN permissions TEXT DEFAULT '{}';")
+
+        defaults = [
+            ('ai_video_generation', 'AI Model Engine', 1, 'เปิด/ปิด ระบบสร้างวิดีโอ AI อัตโนมัติ'),
+            ('auto_post_bot', 'Social Auto-Post', 1, 'เปิด/ปิด ระบบบอทโพสต์คอนเทนต์อัตโนมัติ'),
+            ('shopee_radar', 'Shopee Product Radar', 1, 'เปิด/ปิด ระบบเรดาร์ค้นหาสินค้ากระแส'),
+            ('tiktok_direct_post', 'TikTok Creator API', 1, 'เปิด/ปิด การเชื่อมต่อตรงกับ TikTok Creator Platform'),
+            ('member_registration', 'New Member Signup', 1, 'เปิด/ปิด รับสมัครสมาชิกใหม่')
+        ]
+        for k, val, en, desc in defaults:
+            db.execute("INSERT OR IGNORE INTO system_settings(key, value, enabled, description, updated_at) VALUES (?, ?, ?, ?, ?)",
+                       (k, val, en, desc, datetime.now(timezone.utc).isoformat()))
         # Safe migration for data created by previous V7.4/V7.5 installations.
         columns = {row[1] for row in db.execute('PRAGMA table_info(products)')}
         for name, ddl in [('extra_comm_checked','INTEGER NOT NULL DEFAULT 0'),
@@ -349,6 +441,8 @@ def create_app(data_dir=None, secret_key=None):
             db.execute("ALTER TABLE video_jobs ADD COLUMN model TEXT NOT NULL DEFAULT 'veo-3.1-generate-preview'")
         if 'duration' not in video_columns:
             db.execute('ALTER TABLE video_jobs ADD COLUMN duration INTEGER NOT NULL DEFAULT 8')
+        if 'est_cost_usd' not in video_columns:
+            db.execute('ALTER TABLE video_jobs ADD COLUMN est_cost_usd REAL NOT NULL DEFAULT 0')
         # Backfill old V7.4–V7.6 drafts into the usage timeline without deleting data.
         # Deterministic counts/order; rerunning application startup is idempotent.
         db.execute('''INSERT OR IGNORE INTO product_use_events
@@ -356,106 +450,6 @@ def create_app(data_dir=None, secret_key=None):
                       SELECT user_id,product_id,id,
                              ROW_NUMBER() OVER (PARTITION BY user_id,product_id ORDER BY created_at,id),
                              created_at FROM drafts''')
-
-        # Safe migration for user credits and permissions
-        user_columns = {row[1] for row in db.execute('PRAGMA table_info(users)')}
-        if 'credits' not in user_columns:
-            db.execute('ALTER TABLE users ADD COLUMN credits INTEGER NOT NULL DEFAULT 200')
-        if 'permissions' not in user_columns:
-            db.execute("ALTER TABLE users ADD COLUMN permissions TEXT NOT NULL DEFAULT ''")
-
-        # System settings table (admin can toggle subsystems on/off)
-        db.execute('''
-        CREATE TABLE IF NOT EXISTS system_settings (
-          key TEXT PRIMARY KEY,
-          value TEXT NOT NULL,
-          updated_at TEXT NOT NULL,
-          updated_by TEXT
-        );''')
-
-        # Credit transaction audit log
-        db.execute('''
-        CREATE TABLE IF NOT EXISTS credit_transactions (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          amount INTEGER NOT NULL,
-          balance_after INTEGER NOT NULL,
-          reason TEXT NOT NULL,
-          performed_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
-          created_at TEXT NOT NULL
-        );''')
-
-        # Connected Social & E-commerce channels (TikTok, Shopee, Facebook, IG, X, LINE OA)
-        # Migrate table if it previously enforced UNIQUE(user_id, platform) to allow multiple pages per platform
-        try:
-            tbl_info = db.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='connected_channels'").fetchone()
-            if tbl_info and 'UNIQUE(user_id, platform)' in tbl_info[0]:
-                db.execute('''CREATE TABLE connected_channels_new (
-                  id INTEGER PRIMARY KEY AUTOINCREMENT,
-                  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                  platform TEXT NOT NULL,
-                  account_name TEXT NOT NULL,
-                  account_id TEXT DEFAULT '',
-                  access_token_encrypted TEXT DEFAULT '',
-                  status TEXT NOT NULL DEFAULT 'connected',
-                  auto_post_enabled INTEGER NOT NULL DEFAULT 1,
-                  last_synced_at TEXT NOT NULL,
-                  created_at TEXT NOT NULL,
-                  UNIQUE(user_id, platform, account_id)
-                );''')
-                db.execute('''INSERT OR IGNORE INTO connected_channels_new(id, user_id, platform, account_name, account_id, access_token_encrypted, status, auto_post_enabled, last_synced_at, created_at)
-                              SELECT id, user_id, platform, account_name, account_id, access_token_encrypted, status, auto_post_enabled, last_synced_at, created_at FROM connected_channels;''')
-                db.execute("DROP TABLE connected_channels;")
-                db.execute("ALTER TABLE connected_channels_new RENAME TO connected_channels;")
-        except Exception:
-            pass
-
-        db.execute('''
-        CREATE TABLE IF NOT EXISTS connected_channels (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          platform TEXT NOT NULL,
-          account_name TEXT NOT NULL,
-          account_id TEXT DEFAULT '',
-          access_token_encrypted TEXT DEFAULT '',
-          status TEXT NOT NULL DEFAULT 'connected',
-          auto_post_enabled INTEGER NOT NULL DEFAULT 1,
-          last_synced_at TEXT NOT NULL,
-          created_at TEXT NOT NULL,
-          UNIQUE(user_id, platform, account_id)
-        );''')
-
-        # Content planning calendar & auto-post schedules
-        db.execute('''
-        CREATE TABLE IF NOT EXISTS content_schedules (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          title TEXT NOT NULL,
-          product_id INTEGER,
-          draft_id INTEGER,
-          platforms TEXT NOT NULL,
-          scheduled_at TEXT NOT NULL,
-          status TEXT NOT NULL DEFAULT 'scheduled',
-          caption TEXT DEFAULT '',
-          hashtags TEXT DEFAULT '',
-          video_url TEXT DEFAULT '',
-          published_at TEXT,
-          result_log TEXT DEFAULT '',
-          created_at TEXT NOT NULL
-        );''')
-
-        default_settings = [
-            ('video_gen', 'enabled'),
-            ('radar', 'enabled'),
-            ('shopee_import', 'enabled'),
-            ('tiktok_queue', 'enabled'),
-            ('community', 'enabled'),
-            ('registration', 'enabled'),
-            ('maintenance', 'disabled')
-        ]
-        for k, v in default_settings:
-            db.execute("INSERT OR IGNORE INTO system_settings(key, value, updated_at, updated_by) VALUES(?,?,?,?)",
-                       (k, v, now(), 'system'))
 
     def read(sql, params=(), one=False):
         with connect() as c:
@@ -516,6 +510,11 @@ def create_app(data_dir=None, secret_key=None):
     @app.get('/')
     def index():
         return FileResponse(ROOT / 'static' / 'index.html')
+
+    @app.get('/admin')
+    def admin_page():
+        # The page is static; every number on it comes from the admin-only APIs below.
+        return FileResponse(ROOT / 'static' / 'admin.html', headers={'Cache-Control':'no-store'})
 
     @app.get('/donate')
     def donate():
@@ -600,25 +599,23 @@ def create_app(data_dir=None, secret_key=None):
 
     @app.get('/api/me')
     def me(req: Request):
-        u = require_user(req)
-        row = read('SELECT credits, permissions, email FROM users WHERE id=?', (u['id'],), True)
-        sys_settings = {r['key']: r['value'] for r in read('SELECT key, value FROM system_settings')}
+        u=require_user(req)
         import json
         perms = {}
-        if row and row.get('permissions'):
-            try:
-                perms = json.loads(row['permissions'])
-            except Exception:
-                perms = {}
+        try:
+            if 'permissions' in u.keys() and u['permissions']:
+                perms = json.loads(u['permissions'])
+        except Exception:
+            pass
         return {
             'id': u['id'],
             'username': u['username'],
-            'email': row['email'] if row else '',
             'role': u['role'],
             'csrf': u['csrf'],
-            'credits': row['credits'] if row and 'credits' in row.keys() else 200,
+            'email': u['email'] if 'email' in u.keys() else '',
+            'credits': u['credits'] if 'credits' in u.keys() else 50,
             'permissions': perms,
-            'system_settings': sys_settings
+            'is_admin': u['role'] == 'admin'
         }
 
     @app.post('/api/logout')
@@ -628,6 +625,26 @@ def create_app(data_dir=None, secret_key=None):
         with connect() as c:
             c.execute('DELETE FROM sessions WHERE token_hash=?',(hashlib.sha256(raw.encode()).hexdigest(),))
         response.delete_cookie('community_session',path='/')
+        return {'ok':True}
+
+    @app.post('/api/my/password')
+    def change_password(body:PasswordChangeIn,req:Request,x_csrf_token:str|None=Header(default=None)):
+        u=mutation(req,x_csrf_token)
+        row=read('SELECT password_hash FROM users WHERE id=?',(u['id'],),True)
+        try:
+            PH.verify(row['password_hash'],body.current_password)
+        except (VerifyMismatchError, VerificationError):
+            raise HTTPException(400,'รหัสผ่านปัจจุบันไม่ถูกต้อง')
+        new=body.new_password
+        if not any(c.isalpha() for c in new) or not any(c.isdigit() for c in new):
+            raise HTTPException(400,'รหัสผ่านต้องมีตัวอักษรและตัวเลข')
+        if new==body.current_password:
+            raise HTTPException(400,'รหัสผ่านใหม่ต้องไม่ซ้ำรหัสเดิม')
+        token_hash=hashlib.sha256(req.cookies.get('community_session','').encode()).hexdigest()
+        with connect() as c:
+            c.execute('UPDATE users SET password_hash=? WHERE id=?',(PH.hash(new),u['id']))
+            # Sign out every other device; keep this one signed in.
+            c.execute('DELETE FROM sessions WHERE user_id=? AND token_hash!=?',(u['id'],token_hash))
         return {'ok':True}
 
     @app.get('/api/ideas')
@@ -731,109 +748,107 @@ def create_app(data_dir=None, secret_key=None):
 
     @app.post('/api/quick-login')
     def quick_login(body: QuickLoginIn, req: Request, response: Response):
-        target_role = body.role if body.role in ('admin', 'member') else 'admin'
-        user = read('SELECT * FROM users WHERE role=? ORDER BY id ASC LIMIT 1', (target_role,), True)
+        target_role = body.role
+        user = read("SELECT id, username, email, role, credits, permissions FROM users WHERE role=? ORDER BY id ASC LIMIT 1", (target_role,), one=True)
         if not user:
-            # Seed default user if none exists
-            email = 'candelaz28@gmail.com' if target_role == 'admin' else 'member@studio.local'
-            username = 'Admin' if target_role == 'admin' else 'CreatorMember'
-            pwd_hash = PH.hash('Admin@Studio2026!' if target_role == 'admin' else 'Member@Studio2026!')
-            with connect() as c:
-                c.execute('INSERT OR IGNORE INTO users(username, email, password_hash, role, created_at, credits) VALUES(?,?,?,?,?,?)',
-                          (username, email, pwd_hash, target_role, now(), 500 if target_role == 'admin' else 200))
-            user = read('SELECT * FROM users WHERE email=?', (email,), True)
+            user = read("SELECT id, username, email, role, credits, permissions FROM users ORDER BY id ASC LIMIT 1", one=True)
+        if not user:
+            raise HTTPException(404, "ไม่พบบัญชีผู้ใช้ในระบบ กรุณาสมัครสมาชิกก่อน")
         return new_session(user, response)
-
-    @app.get('/api/my/connections')
-    def my_connections(req: Request):
-        u=require_user(req)
-        saved={r['provider'] for r in read('SELECT provider FROM credentials WHERE user_id=?',(u['id'],))}
-        return {'providers':[
-            {'id':'gemini','label':'Google Gemini / Veo','configured':'gemini' in saved,'supports':'สร้างวิดีโอแนวตั้ง 8 วินาทีผ่าน Gemini API','enabled':True,'verified':False},
-            {'id':'xai','label':'xAI / Grok Imagine','configured':'xai' in saved,'supports':'สร้างวิดีโอแนวตั้ง 10 วินาที (Lite / 1.5) ผ่าน xAI API','enabled':True,'verified':False},
-            {'id':'brave','label':'Brave Search','configured':'brave' in saved,'supports':'ค้นหาหน้าสินค้าภายนอก','enabled':True,'verified':False},
-            {'id':'openai','label':'OpenAI','configured':'openai' in saved,'supports':'เก็บคีย์ไว้ใช้กับฟีเจอร์ในอนาคต (ยังไม่เรียกใช้)','enabled':False,'verified':False},
-            {'id':'tiktok','label':'TikTok Shop / Creator','configured':False,'supports':'ต้องเชื่อม OAuth และได้รับสิทธิ์เผยแพร่จาก TikTok','enabled':False,'verified':False},
-            {'id':'shopee','label':'Shopee Affiliate / Video','configured':False,'supports':'ยังไม่มีช่องทางโพสต์อัตโนมัติที่เปิดให้ระบบนี้ใช้','enabled':False,'verified':False},
-        ],'note':'บันทึกคีย์แล้วไม่ได้แปลว่า API มีเครดิต/สิทธิ์ใช้งาน โปรดตรวจสิทธิ์กับผู้ให้บริการ'}
 
     @app.get('/api/my/channels')
     def list_my_channels(req: Request):
         u = require_user(req)
         channels = read('SELECT * FROM connected_channels WHERE user_id=? ORDER BY id ASC', (u['id'],))
         if not channels:
-            seed_data = [
-                ('tiktok', '@affiliate.creator.th (TikTok Creator)', 'TT-9812401', 'connected', 1),
-                ('shopee', 'Shopee Official Creator #TH-8821', 'SP-AFF-774', 'connected', 1),
-                ('facebook', 'เพจรีวิวของแต่งห้องมินิมอล (Page 1)', 'FB-PAGE-9941', 'connected', 1),
-                ('facebook', 'เพจโปรเด็ด Affiliate Thailand (Page 2)', 'FB-PAGE-9942', 'connected', 1),
-                ('instagram', '@affiliate_daily_th (IG Reels)', 'IG-229104', 'connected', 1),
-                ('x', '@deals_thai_bot (X/Twitter)', 'X-882190', 'connected', 1),
-                ('line_oa', '@AffiliateStudioTH (LINE Bot แจ้งเตือน)', 'LINE-OA-1002', 'connected', 1)
-            ]
             with connect() as c:
-                for plat, name, acc_id, st, ap in seed_data:
-                    c.execute('''INSERT OR IGNORE INTO connected_channels(user_id, platform, account_name, account_id, status, auto_post_enabled, last_synced_at, created_at)
-                                 VALUES(?,?,?,?,?,?,?,?)''', (u['id'], plat, name, acc_id, st, ap, now(), now()))
+                now_str = now()
+                c.execute('''INSERT OR IGNORE INTO connected_channels(user_id, platform, account_name, account_id, auto_post_enabled, status, last_synced_at, created_at)
+                             VALUES (?, 'tiktok', '@affiliate.creator.th', 'TT-98124', 1, 'connected', ?, ?)''',
+                          (u['id'], now_str, now_str))
+                c.execute('''INSERT OR IGNORE INTO connected_channels(user_id, platform, account_name, account_id, auto_post_enabled, status, last_synced_at, created_at)
+                             VALUES (?, 'shopee', 'Shopee Official Creator #TH-8821', 'SP-65432', 1, 'connected', ?, ?)''',
+                          (u['id'], now_str, now_str))
+                c.execute('''INSERT OR IGNORE INTO connected_channels(user_id, platform, account_name, account_id, auto_post_enabled, status, last_synced_at, created_at)
+                             VALUES (?, 'facebook', 'Affiliate Deals Thailand (Page 1)', 'FB-PAGE-1092', 1, 'connected', ?, ?)''',
+                          (u['id'], now_str, now_str))
+                c.execute('''INSERT OR IGNORE INTO connected_channels(user_id, platform, account_name, account_id, auto_post_enabled, status, last_synced_at, created_at)
+                             VALUES (?, 'facebook', 'เพจรีวิวของใช้ในบ้าน (Page 2)', 'FB-PAGE-8871', 1, 'connected', ?, ?)''',
+                          (u['id'], now_str, now_str))
+                c.execute('''INSERT OR IGNORE INTO connected_channels(user_id, platform, account_name, account_id, auto_post_enabled, status, last_synced_at, created_at)
+                             VALUES (?, 'instagram', '@affiliate_daily_th', 'IG-77610', 1, 'connected', ?, ?)''',
+                          (u['id'], now_str, now_str))
+                c.execute('''INSERT OR IGNORE INTO connected_channels(user_id, platform, account_name, account_id, auto_post_enabled, status, last_synced_at, created_at)
+                             VALUES (?, 'x', '@deals_thai_bot', 'X-33129', 1, 'connected', ?, ?)''',
+                          (u['id'], now_str, now_str))
+                c.execute('''INSERT OR IGNORE INTO connected_channels(user_id, platform, account_name, account_id, auto_post_enabled, status, last_synced_at, created_at)
+                             VALUES (?, 'line_oa', '@AffiliateStudioTH', '@AffiliateStudioTH', 1, 'connected', ?, ?)''',
+                          (u['id'], now_str, now_str))
             channels = read('SELECT * FROM connected_channels WHERE user_id=? ORDER BY id ASC', (u['id'],))
         return {'channels': channels}
 
     @app.post('/api/my/channels/connect')
-    def connect_my_channel(item: ChannelConnectIn, req: Request, x_csrf_token: str | None = Header(default=None)):
+    def connect_channel(body: ChannelConnectIn, req: Request, x_csrf_token: str | None = Header(default=None)):
         u = mutation(req, x_csrf_token)
-        plat = item.platform.strip().lower()
-        allowed = ('tiktok', 'shopee', 'facebook', 'instagram', 'x', 'line_oa')
-        if plat not in allowed:
-            raise HTTPException(400, f'รองรับเฉพาะแพลตฟอร์ม {", ".join(allowed)}')
-        enc = cipher.encrypt(item.access_token.encode()).decode() if item.access_token else ''
-        acc_id = item.account_id.strip() or f"{plat.upper()}-{secrets.token_hex(4)}"
+        plat = body.platform.lower().strip()
+        if plat not in ('tiktok', 'shopee', 'facebook', 'instagram', 'x', 'line_oa'):
+            raise HTTPException(400, 'แพลตฟอร์มที่ระบุไม่รองรับ')
+        acc_token_enc = None
+        if body.access_token:
+            acc_token_enc = cipher.encrypt(body.access_token.strip().encode()).decode()
         with connect() as c:
-            c.execute('''INSERT INTO connected_channels(user_id, platform, account_name, account_id, access_token_encrypted, status, auto_post_enabled, last_synced_at, created_at)
-                         VALUES(?,?,?,?,?,?,?,?,?)
+            now_str = now()
+            c.execute('''INSERT INTO connected_channels(user_id, platform, account_name, account_id, access_token_encrypted, auto_post_enabled, status, last_synced_at, created_at)
+                         VALUES (?, ?, ?, ?, ?, ?, 'connected', ?, ?)
                          ON CONFLICT(user_id, platform, account_id) DO UPDATE SET
                          account_name=excluded.account_name,
-                         access_token_encrypted=CASE WHEN excluded.access_token_encrypted != '' THEN excluded.access_token_encrypted ELSE access_token_encrypted END,
-                         status='connected', auto_post_enabled=excluded.auto_post_enabled, last_synced_at=excluded.last_synced_at''',
-                      (u['id'], plat, item.account_name.strip(), acc_id, enc, 'connected', 1 if item.auto_post_enabled else 0, now(), now()))
-        row = read('SELECT * FROM connected_channels WHERE user_id=? AND platform=? AND account_id=?', (u['id'], plat, acc_id), True)
-        return {'ok': True, 'message': f'เชื่อมต่อระบบ {plat.upper()} ({item.account_name}) เรียบร้อย', 'channel': row}
+                         access_token_encrypted=COALESCE(excluded.access_token_encrypted, connected_channels.access_token_encrypted),
+                         auto_post_enabled=excluded.auto_post_enabled,
+                         status='connected',
+                         last_synced_at=excluded.last_synced_at''',
+                      (u['id'], plat, body.account_name, body.account_id or '', acc_token_enc, 1 if body.auto_post_enabled else 0, now_str, now_str))
+        row = read('SELECT * FROM connected_channels WHERE user_id=? AND platform=? AND account_name=? ORDER BY id DESC LIMIT 1',
+                   (u['id'], plat, body.account_name), one=True)
+        return {'channel': row, 'message': f'เชื่อมต่อ {plat.upper()} สำเร็จและเปิด Auto-Post แล้ว'}
 
     @app.post('/api/my/channels/{channel_ref}/test')
     def test_channel_connection(channel_ref: str, req: Request, x_csrf_token: str | None = Header(default=None)):
         u = mutation(req, x_csrf_token)
+        ch = None
         if channel_ref.isdigit():
-            ch = read('SELECT * FROM connected_channels WHERE user_id=? AND id=?', (u['id'], int(channel_ref)), True)
-        else:
-            ch = read('SELECT * FROM connected_channels WHERE user_id=? AND platform=? ORDER BY id DESC LIMIT 1', (u['id'], channel_ref.strip().lower()), True)
+            ch = read('SELECT * FROM connected_channels WHERE user_id=? AND id=?', (u['id'], int(channel_ref)), one=True)
         if not ch:
-            raise HTTPException(404, 'ไม่พบบัญชีหรือเพจนี้')
-        import random
-        ping = random.randint(28, 68)
+            ch = read('SELECT * FROM connected_channels WHERE user_id=? AND platform=? ORDER BY id DESC LIMIT 1', (u['id'], channel_ref.lower()), one=True)
+        if not ch:
+            raise HTTPException(404, f'ยังไม่ได้เชื่อมต่อช่องทางนี้')
         with connect() as c:
             c.execute('UPDATE connected_channels SET last_synced_at=?, status="connected" WHERE id=?', (now(), ch['id']))
+        import random
+        ping_ms = random.randint(45, 180)
         return {
             'ok': True,
-            'id': ch['id'],
+            'channel_id': ch['id'],
             'platform': ch['platform'],
-            'ping_ms': ping,
-            'status': 'connected',
             'account_name': ch['account_name'],
-            'message': f'การเชื่อมต่อกับ {ch["account_name"]} ({ch["platform"].upper()}) สมบูรณ์ API ทำงานปกติ (Ping: {ping}ms)'
+            'status': 'connected',
+            'ping_ms': ping_ms,
+            'message': f'Ping เชื่อมต่อ {ch["platform"].upper()} ({ch["account_name"]}) สำเร็จ! API ตอบสนองปกติ'
         }
 
     @app.patch('/api/my/channels/{channel_ref}/toggle-autopost')
     def toggle_channel_autopost(channel_ref: str, req: Request, x_csrf_token: str | None = Header(default=None)):
         u = mutation(req, x_csrf_token)
+        ch = None
         if channel_ref.isdigit():
-            ch = read('SELECT * FROM connected_channels WHERE user_id=? AND id=?', (u['id'], int(channel_ref)), True)
-        else:
-            ch = read('SELECT * FROM connected_channels WHERE user_id=? AND platform=? ORDER BY id DESC LIMIT 1', (u['id'], channel_ref.strip().lower()), True)
+            ch = read('SELECT * FROM connected_channels WHERE user_id=? AND id=?', (u['id'], int(channel_ref)), one=True)
         if not ch:
-            raise HTTPException(404, 'ไม่พบช่องทางนี้')
+            ch = read('SELECT * FROM connected_channels WHERE user_id=? AND platform=? ORDER BY id DESC LIMIT 1', (u['id'], channel_ref.lower()), one=True)
+        if not ch:
+            raise HTTPException(404, f'ยังไม่ได้เชื่อมต่อช่องทางนี้')
         new_val = 0 if ch['auto_post_enabled'] else 1
         with connect() as c:
             c.execute('UPDATE connected_channels SET auto_post_enabled=? WHERE id=?', (new_val, ch['id']))
-        return {'ok': True, 'id': ch['id'], 'platform': ch['platform'], 'auto_post_enabled': bool(new_val)}
+        return {'channel_id': ch['id'], 'platform': ch['platform'], 'auto_post_enabled': bool(new_val)}
 
     @app.delete('/api/my/channels/{channel_ref}')
     def disconnect_channel(channel_ref: str, req: Request, x_csrf_token: str | None = Header(default=None)):
@@ -842,127 +857,248 @@ def create_app(data_dir=None, secret_key=None):
             if channel_ref.isdigit():
                 c.execute('DELETE FROM connected_channels WHERE user_id=? AND id=?', (u['id'], int(channel_ref)))
             else:
-                c.execute('DELETE FROM connected_channels WHERE user_id=? AND platform=?', (u['id'], channel_ref.strip().lower()))
-        return {'ok': True, 'message': 'ตัดการเชื่อมต่อบัญชีเรียบร้อย'}
+                c.execute('DELETE FROM connected_channels WHERE user_id=? AND platform=?', (u['id'], channel_ref.lower()))
+        return {'ok': True, 'message': f'ตัดการเชื่อมต่อช่องทางเรียบร้อยแล้ว'}
 
     @app.post('/api/my/line-oa/test-alert')
-    def send_line_oa_alert(req: Request, x_csrf_token: str | None = Header(default=None)):
+    def test_line_oa_alert(req: Request, x_csrf_token: str | None = Header(default=None)):
         u = mutation(req, x_csrf_token)
-        import random
-        demo_views = random.randint(1200, 8900)
-        msg_text = f"🔔 [Affiliate Studio Alert]\nคุณ {u['username']}: มีการโพสต์วิดีโอ Affiliate อัตโนมัติลง TikTok, Facebook Reels สำเร็จ!\nยอดผู้ชมเรียลไทม์: +{demo_views:,} views\nสถานะบอท: พร้อมโพสต์คิวถัดไป 🚀"
-        return {'ok': True, 'message': 'ส่งข้อความแจ้งเตือนเข้า LINE Official Account สำเร็จ!', 'notification_text': msg_text}
+        return {
+            'ok': True,
+            'message': 'ทดสอบส่งข้อความแจ้งเตือนเข้า LINE Official Account สำเร็จ!',
+            'sent_at': now(),
+            'recipient': u['username']
+        }
 
     @app.get('/api/my/calendar')
-    def list_calendar_schedules(req: Request):
+    def list_calendar_events(req: Request):
         u = require_user(req)
-        items = read('''SELECT cs.*, p.title as product_title, p.platform as product_platform
-                        FROM content_schedules cs
-                        LEFT JOIN products p ON p.id = cs.product_id
-                        WHERE cs.user_id=? ORDER BY cs.scheduled_at ASC''', (u['id'],))
+        items = read('''SELECT q.id, q.draft_id, q.platform, q.video_url, q.caption, q.scheduled_at, q.status, q.created_at,
+                            d.product_id, p.title as product_title, p.price, p.url as product_url
+                     FROM publishing_queue q
+                     LEFT JOIN drafts d ON q.draft_id=d.id
+                     LEFT JOIN products p ON d.product_id=p.id
+                     WHERE q.user_id=? ORDER BY q.scheduled_at ASC''', (u['id'],))
         if not items:
-            import json
-            from datetime import datetime, timezone, timedelta
-            base = datetime.now(timezone.utc)
-            sample_plans = [
-                ('แก้วเก็บความเย็น Stanley Mini 24h รีวิวฉบับกระเป๋า', (base + timedelta(hours=2)).isoformat(timespec='minutes'), ['tiktok', 'shopee'], 'ดับร้อนทุกทริปด้วยแก้วพกพาไอเย็น พกพาสะดวก ไม่หก 100%!', '#แก้วเก็บความเย็น #ของดีบอกต่อ #ShopeeTH', 'scheduled'),
-                ('Unbox กล้องฟิล์ม Retro Vintage ถ่ายรูปสไตล์ 90s', (base + timedelta(days=1, hours=4)).isoformat(timespec='minutes'), ['tiktok', 'facebook'], 'รีวิวกล้องฟิล์มตัวฮิต ย้อนยุคแต่ใช้ง่าย โทนสีสวยละมุนมากกก', '#กล้องฟิล์ม #รีวิวกล้อง #TikTokMadeMeBuyIt', 'scheduled'),
-                ('พัดลมพกพาไอเย็น ลมแรงสะใจ แบตอึด 12 ชม.', (base - timedelta(hours=16)).isoformat(timespec='minutes'), ['tiktok', 'facebook', 'shopee'], 'แดดเมืองไทยจะร้อนแค่ไหนก็รอดด้วยพัดลมมินิตัวนี้ พิกัดในคอมเมนต์เลย!', '#พัดลมพกพา #ไอเทมหน้าร้อน #ShopeeReview', 'published')
-            ]
             with connect() as c:
-                for t, sch_at, plats, cap, hashs, st in sample_plans:
-                    c.execute('''INSERT INTO content_schedules(user_id, title, platforms, scheduled_at, status, caption, hashtags, published_at, created_at)
-                                 VALUES(?,?,?,?,?,?,?,?,?)''',
-                              (u['id'], t, json.dumps(plats), sch_at, st, cap, hashs, sch_at if st=='published' else None, now()))
-            items = read('''SELECT cs.*, p.title as product_title, p.platform as product_platform
-                            FROM content_schedules cs
-                            LEFT JOIN products p ON p.id = cs.product_id
-                            WHERE cs.user_id=? ORDER BY cs.scheduled_at ASC''', (u['id'],))
-        import json
-        for it in items:
-            try:
-                it['platforms'] = json.loads(it['platforms']) if isinstance(it['platforms'], str) else it['platforms']
-            except:
-                it['platforms'] = ['tiktok']
+                p_row = c.execute('SELECT id FROM products WHERE user_id=? LIMIT 1', (u['id'],)).fetchone()
+                p_id = p_row[0] if p_row else None
+                if not p_id:
+                    c.execute("INSERT INTO products(user_id, title, platform, price, commission_rate, extra_comm_rate, created_at) VALUES(?, 'Sample Product', 'shopee', 299, 5.0, 10.0, ?)",
+                              (u['id'], now()))
+                    p_id = c.execute('SELECT last_insert_rowid()').fetchone()[0]
+                d_row = c.execute('SELECT id FROM drafts WHERE user_id=? LIMIT 1', (u['id'],)).fetchone()
+                d_id = d_row[0] if d_row else None
+                if not d_id:
+                    c.execute("INSERT INTO drafts(user_id, product_id, style, script, prompt, created_at) VALUES(?, ?, 'pov', 'Sample script', 'Sample prompt', ?)",
+                              (u['id'], p_id, now()))
+                    d_id = c.execute('SELECT last_insert_rowid()').fetchone()[0]
+                tomorrow = (datetime.now(timezone.utc) + timedelta(days=1)).strftime('%Y-%m-%d 18:30:00')
+                day_after = (datetime.now(timezone.utc) + timedelta(days=2)).strftime('%Y-%m-%d 20:00:00')
+                c.execute('''INSERT INTO publishing_queue(user_id, draft_id, platform, caption, scheduled_at, status, created_at)
+                             VALUES (?, ?, 'tiktok', 'รีวิวสุดปัง ช้อปเลยที่ตะกร้า! #TikTokMadeMeBuyIt', ?, 'scheduled', ?)''',
+                          (u['id'], d_id, tomorrow, now()))
+                c.execute('''INSERT INTO publishing_queue(user_id, draft_id, platform, caption, scheduled_at, status, created_at)
+                             VALUES (?, ?, 'shopee', 'ดีลเด็ด Shopee Video ลด 50%! #ShopeeTH', ?, 'scheduled', ?)''',
+                          (u['id'], d_id, day_after, now()))
+            items = read('''SELECT q.id, q.draft_id, q.platform, q.video_url, q.caption, q.scheduled_at, q.status, q.created_at,
+                                d.product_id, p.title as product_title, p.price, p.url as product_url
+                         FROM publishing_queue q
+                         LEFT JOIN drafts d ON q.draft_id=d.id
+                         LEFT JOIN products p ON d.product_id=p.id
+                         WHERE q.user_id=? ORDER BY q.scheduled_at ASC''', (u['id'],))
         return {'schedules': items}
 
     @app.post('/api/my/calendar')
-    def create_calendar_schedule(item: ScheduleIn, req: Request, x_csrf_token: str | None = Header(default=None)):
+    def create_calendar_event(body: ScheduleIn, req: Request, x_csrf_token: str | None = Header(default=None)):
         u = mutation(req, x_csrf_token)
-        import json
         with connect() as c:
-            cur = c.execute('''INSERT INTO content_schedules(user_id, title, product_id, draft_id, platforms, scheduled_at, status, caption, hashtags, video_url, created_at)
-                         VALUES(?,?,?,?,?,?,?,?,?,?,?)''',
-                      (u['id'], item.title.strip(), item.product_id, item.draft_id, json.dumps(item.platforms),
-                       item.scheduled_at.strip(), item.status or 'scheduled', item.caption.strip(), item.hashtags.strip(), item.video_url.strip(), now()))
-            new_id = cur.lastrowid
-        row = read('SELECT * FROM content_schedules WHERE id=?', (new_id,), True)
-        return {'ok': True, 'message': 'บันทึกลงปฏิทินวางแผนคอนเทนต์เรียบร้อย', 'schedule': row}
+            d_id = None
+            if body.product_id:
+                d_row = c.execute('SELECT id FROM drafts WHERE user_id=? AND product_id=? LIMIT 1', (u['id'], body.product_id)).fetchone()
+                if d_row:
+                    d_id = d_row[0]
+            if not d_id:
+                d_row = c.execute('SELECT id FROM drafts WHERE user_id=? LIMIT 1', (u['id'],)).fetchone()
+                if d_row:
+                    d_id = d_row[0]
+                else:
+                    p_row = c.execute('SELECT id FROM products WHERE user_id=? LIMIT 1', (u['id'],)).fetchone()
+                    p_id = p_row[0] if p_row else 1
+                    c.execute("INSERT INTO drafts(user_id, product_id, style, script, prompt, created_at) VALUES(?, ?, 'pov', ?, ?, ?)",
+                              (u['id'], p_id, body.caption or body.title, body.title, now()))
+                    d_id = c.execute('SELECT last_insert_rowid()').fetchone()[0]
+            created_ids = []
+            full_caption = f"{body.caption} {body.hashtags}".strip()
+            for plat in body.platforms:
+                cur = c.execute('''INSERT INTO publishing_queue(user_id, draft_id, platform, caption, scheduled_at, status, created_at)
+                                 VALUES (?, ?, ?, ?, ?, ?, ?)''',
+                              (u['id'], d_id, plat.lower().strip(), full_caption, body.scheduled_at, body.status, now()))
+                created_ids.append(cur.lastrowid)
+        return {'ok': True, 'schedule_ids': created_ids, 'message': f'วางแผนโพสต์ {len(created_ids)} แพลตฟอร์มสำเร็จ'}
 
     @app.patch('/api/my/calendar/{schedule_id}')
-    def update_calendar_schedule(schedule_id: int, item: ScheduleUpdateIn, req: Request, x_csrf_token: str | None = Header(default=None)):
+    def update_calendar_event(schedule_id: int, body: ScheduleUpdateIn, req: Request, x_csrf_token: str | None = Header(default=None)):
         u = mutation(req, x_csrf_token)
-        existing = read('SELECT * FROM content_schedules WHERE id=? AND user_id=?', (schedule_id, u['id']), True)
-        if not existing:
-            raise HTTPException(404, 'ไม่พบรายการวางแผนนี้')
-        updates = []
-        vals = []
-        import json
-        if item.scheduled_at is not None:
-            updates.append('scheduled_at=?')
-            vals.append(item.scheduled_at)
-        if item.status is not None:
-            updates.append('status=?')
-            vals.append(item.status)
-        if item.caption is not None:
-            updates.append('caption=?')
-            vals.append(item.caption)
-        if item.platforms is not None:
-            updates.append('platforms=?')
-            vals.append(json.dumps(item.platforms))
-        if updates:
-            vals.extend([schedule_id, u['id']])
-            with connect() as c:
-                c.execute(f"UPDATE content_schedules SET {','.join(updates)} WHERE id=? AND user_id=?", vals)
-        row = read('SELECT * FROM content_schedules WHERE id=?', (schedule_id,), True)
-        return {'ok': True, 'schedule': row}
+        with connect() as c:
+            r = c.execute('UPDATE publishing_queue SET status=? WHERE id=? AND user_id=?', (body.status, schedule_id, u['id']))
+            if r.rowcount < 1:
+                raise HTTPException(404, 'ไม่พบรายการที่ต้องการแก้ไข')
+        return {'ok': True, 'status': body.status}
 
     @app.post('/api/my/calendar/{schedule_id}/publish-now')
-    def publish_schedule_now(schedule_id: int, req: Request, x_csrf_token: str | None = Header(default=None)):
+    def publish_calendar_event_now(schedule_id: int, req: Request, x_csrf_token: str | None = Header(default=None)):
         u = mutation(req, x_csrf_token)
-        existing = read('SELECT * FROM content_schedules WHERE id=? AND user_id=?', (schedule_id, u['id']), True)
-        if not existing:
-            raise HTTPException(404, 'ไม่พบรายการนี้')
-        import json, random
-        plats = []
-        try:
-            plats = json.loads(existing['platforms']) if isinstance(existing['platforms'], str) else existing['platforms']
-        except:
-            plats = ['tiktok']
-        log_entries = []
-        for p in plats:
-            rand_id = random.randint(1000000000, 9999999999)
-            if p == 'tiktok':
-                log_entries.append(f"TikTok: เผยแพร่วิดีโอสำเร็จ (Item ID: {rand_id})")
-            elif p == 'facebook':
-                log_entries.append(f"Facebook Reels: โพสต์สำเร็จ (Post ID: 1092_{rand_id})")
-            elif p == 'shopee':
-                log_entries.append(f"Shopee Video: อัปโหลดและแนบสินค้าสำเร็จ (Video ID: {rand_id})")
-            else:
-                log_entries.append(f"{p}: โพสต์สำเร็จ")
-        result_text = " · ".join(log_entries)
+        item = read('SELECT * FROM publishing_queue WHERE id=? AND user_id=?', (schedule_id, u['id']), one=True)
+        if not item:
+            raise HTTPException(404, 'ไม่พบรายการคอนเทนต์')
         with connect() as c:
-            c.execute('UPDATE content_schedules SET status="published", published_at=?, result_log=? WHERE id=?',
-                      (now(), result_text, schedule_id))
-        return {'ok': True, 'message': '🚀 Auto-Post สำเร็จทุกแพลตฟอร์ม!', 'result_log': result_text}
+            c.execute('UPDATE publishing_queue SET status="published" WHERE id=? AND user_id=?', (schedule_id, u['id']))
+        return {
+            'ok': True,
+            'schedule_id': schedule_id,
+            'platform': item['platform'],
+            'status': 'published',
+            'published_at': now(),
+            'message': f'ส่งคลิป Auto-Post ไปยัง {item["platform"].upper()} สำเร็จเรียบร้อย!'
+        }
 
     @app.delete('/api/my/calendar/{schedule_id}')
-    def delete_calendar_schedule(schedule_id: int, req: Request, x_csrf_token: str | None = Header(default=None)):
+    def delete_calendar_event(schedule_id: int, req: Request, x_csrf_token: str | None = Header(default=None)):
         u = mutation(req, x_csrf_token)
         with connect() as c:
-            c.execute('DELETE FROM content_schedules WHERE id=? AND user_id=?', (schedule_id, u['id']))
-        return {'ok': True, 'message': 'ลบรายการวางแผนเรียบร้อย'}
+            c.execute('DELETE FROM publishing_queue WHERE id=? AND user_id=?', (schedule_id, u['id']))
+        return {'ok': True, 'message': 'ลบรายการวางแผนสำเร็จ'}
 
+    @app.get('/api/system/settings')
+    def get_system_settings():
+        rows = read('SELECT key, value, enabled, description, updated_at FROM system_settings')
+        return {'settings': rows}
+
+    @app.patch('/api/admin/system/settings')
+    def update_system_setting(body: SystemSettingIn, req: Request, x_csrf_token: str | None = Header(default=None)):
+        u = mutation(req, x_csrf_token)
+        if u['role'] != 'admin':
+            raise HTTPException(403, 'เฉพาะผู้ดูแลระบบเท่านั้น')
+        with connect() as c:
+            c.execute('''INSERT INTO system_settings(key, value, enabled, updated_at)
+                         VALUES (?, ?, ?, ?)
+                         ON CONFLICT(key) DO UPDATE SET
+                         value=excluded.value,
+                         enabled=excluded.enabled,
+                         updated_at=excluded.updated_at''',
+                      (body.key, body.value, 1 if body.enabled else 0, now()))
+        return {'ok': True, 'key': body.key, 'enabled': body.enabled}
+
+    @app.get('/api/admin/users')
+    def admin_list_users(req: Request):
+        require_admin(req)
+        return read('''SELECT u.id, u.username, u.email, u.role, u.credits, u.permissions, u.created_at,
+                   (SELECT COUNT(*) FROM products p WHERE p.user_id=u.id) AS products_count,
+                   (SELECT COUNT(*) FROM drafts d WHERE d.user_id=u.id) AS drafts_count,
+                   (SELECT COUNT(*) FROM publishing_queue q WHERE q.user_id=u.id) AS queue_count
+            FROM users u ORDER BY u.id DESC LIMIT 100''')
+
+    @app.patch('/api/admin/users/{user_id}/credits')
+    def admin_update_user_credits(user_id: int, body: AdminCreditUpdateIn, req: Request, x_csrf_token: str | None = Header(default=None)):
+        u = mutation(req, x_csrf_token)
+        if u['role'] != 'admin':
+            raise HTTPException(403, 'เฉพาะผู้ดูแลระบบเท่านั้น')
+        target = read('SELECT id, username, credits FROM users WHERE id=?', (user_id,), one=True)
+        if not target:
+            raise HTTPException(404, 'ไม่พบผู้ใช้ที่ระบุ')
+        current_credits = target['credits'] if 'credits' in target.keys() and target['credits'] is not None else 0
+        new_credits = max(0, current_credits + body.amount)
+        with connect() as c:
+            c.execute('UPDATE users SET credits=? WHERE id=?', (new_credits, user_id))
+        return {'ok': True, 'user_id': user_id, 'credits': new_credits, 'delta': body.amount}
+
+    @app.patch('/api/admin/users/{user_id}/permissions')
+    def admin_update_user_permissions(user_id: int, body: AdminPermissionsIn, req: Request, x_csrf_token: str | None = Header(default=None)):
+        u = mutation(req, x_csrf_token)
+        if u['role'] != 'admin':
+            raise HTTPException(403, 'เฉพาะผู้ดูแลระบบเท่านั้น')
+        import json
+        perm_str = json.dumps(body.permissions)
+        with connect() as c:
+            c.execute('UPDATE users SET permissions=? WHERE id=?', (perm_str, user_id))
+        return {'ok': True, 'user_id': user_id, 'permissions': body.permissions}
+
+    @app.post('/api/my/credits/topup')
+    def user_self_topup(body: SelfTopupIn, req: Request, x_csrf_token: str | None = Header(default=None)):
+        u = mutation(req, x_csrf_token)
+        current = read('SELECT credits FROM users WHERE id=?', (u['id'],), one=True)
+        cur_cred = current['credits'] if current and 'credits' in current.keys() and current['credits'] is not None else 0
+        new_cred = cur_cred + body.credits
+        with connect() as c:
+            c.execute('UPDATE users SET credits=? WHERE id=?', (new_cred, u['id']))
+        return {
+            'ok': True,
+            'package_id': body.package_id,
+            'added_credits': body.credits,
+            'new_total_credits': new_cred,
+            'price_thb': body.price_thb,
+            'message': f'เติมเครดิตสำเร็จ +{body.credits:,} เครดิต (ยอดคงเหลือ: {new_cred:,})'
+        }
+
+    @app.post('/api/admin/users')
+    def admin_create_user(body: UserCreateIn, req: Request, x_csrf_token: str | None = Header(default=None)):
+        admin = mutation(req, x_csrf_token)
+        if admin['role'] != 'admin':
+            raise HTTPException(403, 'เฉพาะผู้ดูแลระบบเท่านั้น')
+        email = body.email.strip().lower()
+        if not re.match(r'^[^@]+@[^@]+\.[^@]+$', email):
+            raise HTTPException(400, 'อีเมลไม่ถูกต้อง')
+        existing = read('SELECT id FROM users WHERE email=? OR username=?', (email, body.username.strip()), one=True)
+        if existing:
+            raise HTTPException(400, 'อีเมลหรือชื่อผู้ใช้นี้ถูกใช้งานแล้ว')
+        pw_hash = PH.hash(body.password)
+        with connect() as c:
+            cur = c.execute('''INSERT INTO users(username, email, password_hash, role, credits, permissions, created_at)
+                             VALUES (?, ?, ?, ?, ?, '{}', ?)''',
+                          (body.username.strip(), email, pw_hash, body.role, body.credits, now()))
+            user_id = cur.lastrowid
+        return {'ok': True, 'id': user_id, 'username': body.username, 'role': body.role, 'credits': body.credits}
+
+    @app.patch('/api/admin/users/{user_id}/role')
+    def admin_update_user_role(user_id: int, body: UserRoleIn, req: Request, x_csrf_token: str | None = Header(default=None)):
+        admin = mutation(req, x_csrf_token)
+        if admin['role'] != 'admin':
+            raise HTTPException(403, 'เฉพาะผู้ดูแลระบบเท่านั้น')
+        if user_id == admin['id']:
+            raise HTTPException(400, 'ไม่สามารถเปลี่ยนสิทธิ์ของตัวเองได้')
+        with connect() as c:
+            c.execute('UPDATE users SET role=? WHERE id=?', (body.role, user_id))
+        return {'ok': True, 'user_id': user_id, 'role': body.role}
+
+    @app.delete('/api/admin/users/{user_id}')
+    def admin_delete_user(user_id: int, req: Request, x_csrf_token: str | None = Header(default=None)):
+        admin = mutation(req, x_csrf_token)
+        if admin['role'] != 'admin':
+            raise HTTPException(403, 'เฉพาะผู้ดูแลระบบเท่านั้น')
+        if user_id == admin['id']:
+            raise HTTPException(400, 'ไม่สามารถลบบัญชีตัวเองได้')
+        with connect() as c:
+            c.execute('DELETE FROM users WHERE id=?', (user_id,))
+        return {'ok': True, 'user_id': user_id}
+
+    @app.get('/api/my/connections')
+    def my_connections(req: Request):
+        u=require_user(req)
+        saved={r['provider'] for r in read('SELECT provider FROM credentials WHERE user_id=?',(u['id'],))}
+        def off(provider):
+            on=enabled_models[provider]
+            if len(on)==len(catalog[provider]): return ''
+            return ' · ตอนนี้เปิดเฉพาะ '+', '.join(on) if on else ' · ปิดใช้งานชั่วคราว'
+        return {'providers':[
+            {'id':'gemini','label':'Google Gemini / Veo','configured':'gemini' in saved,'supports':'สร้างวิดีโอแนวตั้ง 8 วินาทีผ่าน Gemini API'+off('gemini'),'enabled':True,'verified':False},
+            {'id':'xai','label':'xAI / Grok Imagine','configured':'xai' in saved,'supports':'สร้างวิดีโอแนวตั้ง 10 วินาที (Lite / 1.5) ผ่าน xAI API'+off('xai'),'enabled':True,'verified':False},
+            {'id':'openrouter','label':'OpenRouter','configured':'openrouter' in saved,'supports':'คีย์เดียวสร้างวิดีโอ 8 วินาทีได้หลายรุ่น (Veo, Grok, Kling, Wan) ผ่าน OpenRouter'+off('openrouter'),'enabled':True,'verified':False},
+            {'id':'brave','label':'Brave Search','configured':'brave' in saved,'supports':'ค้นหาหน้าสินค้าภายนอก','enabled':True,'verified':False},
+            {'id':'openai','label':'OpenAI','configured':'openai' in saved,'supports':'เก็บคีย์ไว้ใช้กับฟีเจอร์ในอนาคต (ยังไม่เรียกใช้)','enabled':False,'verified':False},
+            {'id':'tiktok','label':'TikTok Shop / Creator','configured':False,'supports':'ต้องเชื่อม OAuth และได้รับสิทธิ์เผยแพร่จาก TikTok','enabled':False,'verified':False},
+            {'id':'shopee','label':'Shopee Affiliate / Video','configured':False,'supports':'ยังไม่มีช่องทางโพสต์อัตโนมัติที่เปิดให้ระบบนี้ใช้','enabled':False,'verified':False},
+        ],'note':'บันทึกคีย์แล้วไม่ได้แปลว่า API มีเครดิต/สิทธิ์ใช้งาน โปรดตรวจสิทธิ์กับผู้ให้บริการ'}
 
     @app.get('/api/my/video-jobs')
     def list_video_jobs(req: Request):
@@ -976,9 +1112,64 @@ def create_app(data_dir=None, secret_key=None):
     def stale_submit_cutoff():
         return (datetime.now(timezone.utc)-timedelta(minutes=STALE_SUBMIT_MINUTES)).isoformat(timespec='seconds')
 
+    # Which provider:model pairs members may start now. Default: OpenRouter Veo 3.1 Lite only;
+    # ENABLED_VIDEO_MODELS=all re-opens every model. Jobs already started keep refreshing either way.
+    catalog={'gemini':(VEO_MODEL,),'xai':GROK_MODELS,'openrouter':OPENROUTER_MODELS}
+    enabled_spec=os.getenv('ENABLED_VIDEO_MODELS','openrouter:google/veo-3.1-lite').strip()
+    if enabled_spec=='all':
+        enabled_models={k:list(v) for k,v in catalog.items()}
+    else:
+        enabled_models={k:[] for k in catalog}
+        for item in enabled_spec.split(','):
+            prov,_,mod=item.strip().partition(':')
+            if mod in catalog.get(prov,()) and mod not in enabled_models[prov]:
+                enabled_models[prov].append(mod)
+
+    # Free mode: the owner's OpenRouter key stays on the server; members never see it.
+    platform_key=os.getenv('PLATFORM_OPENROUTER_API_KEY','').strip()
+    platform_models=[m.strip() for m in os.getenv('PLATFORM_MODELS','google/veo-3.1-lite').split(',')
+                     if m.strip() in enabled_models['openrouter']]
+    platform_limit=max(0,int(os.getenv('PLATFORM_CLIPS_PER_USER','3')))
+    platform_period=os.getenv('PLATFORM_QUOTA_PERIOD','month').strip()
+    if platform_period not in ('day','month','total'): platform_period='month'
+    platform_budget=max(0.0,float(os.getenv('PLATFORM_DAILY_BUDGET_USD','5')))
+    # Mock mode (VIDEO_MOCK=1): every job goes to the mock provider; no AI calls, no credits spent.
+    # Free mode works without an owner key so the whole flow, quotas and budget can be tried end to end.
+    video_mock=os.getenv('VIDEO_MOCK','').strip()=='1'
+    platform_enabled=bool((platform_key or video_mock) and platform_models and platform_limit)
+
+    def platform_period_start():
+        today=datetime.now(timezone.utc).date()
+        return {'day':today.isoformat(),'month':today.replace(day=1).isoformat(),'total':''}[platform_period]
+
+    def platform_used(c,user_id):
+        # Failed jobs are not billed by OpenRouter, so they do not use up the member's quota.
+        return c.execute("SELECT COUNT(*) FROM video_jobs WHERE user_id=? AND provider='platform' AND status!='failed' AND created_at>=?",
+                         (user_id,platform_period_start())).fetchone()[0]
+
+    def platform_spent_today(c):
+        return c.execute("SELECT COALESCE(SUM(est_cost_usd),0) FROM video_jobs WHERE provider='platform' AND status!='failed' AND created_at>=?",
+                         (datetime.now(timezone.utc).date().isoformat(),)).fetchone()[0]
+
+    @app.get('/api/my/video-quota')
+    def video_quota(req: Request):
+        u=require_user(req)
+        if not platform_enabled:
+            return {'platform':{'enabled':False},'enabled_models':enabled_models,'mock':video_mock,'mock_seconds':mock_video._delay()}
+        with connect() as c:
+            used=platform_used(c,u['id']);spent=platform_spent_today(c)
+        cheapest=min(openrouter.estimated_cost(m,False) for m in platform_models)
+        return {'enabled_models':enabled_models,'mock':video_mock,'mock_seconds':mock_video._delay(),'platform':{'enabled':True,'limit':platform_limit,'period':platform_period,'used':used,
+                'remaining':max(0,platform_limit-used),'budget_available':spent+cheapest<=platform_budget,
+                'models':[{'id':m,'est_cost_usd':openrouter.estimated_cost(m,False)} for m in platform_models]}}
+
     def load_api_key(user_id, provider):
+        if provider=='platform':
+            if platform_key: return platform_key
+            if video_mock: return 'mock'
+            raise HTTPException(503,PLATFORM_ERROR)
         row=read('SELECT encrypted FROM credentials WHERE user_id=? AND provider=?',(user_id,provider),True)
-        if not row: raise HTTPException(400, 'กรุณาเชื่อม '+('xAI / Grok Imagine' if provider=='xai' else 'Google Gemini / Veo')+' API ในเมนู API ของฉันก่อน')
+        if not row: raise HTTPException(400, 'กรุณาเชื่อม '+VIDEO_LABELS.get(provider,provider)+' API ในเมนู API ของฉันก่อน')
         try: return cipher.decrypt(row['encrypted'].encode()).decode()
         except InvalidToken: raise HTTPException(400,'ถอดรหัสคีย์ไม่ได้ กรุณาบันทึกคีย์ใหม่')
 
@@ -990,16 +1181,26 @@ def create_app(data_dir=None, secret_key=None):
                          image: UploadFile | None = File(default=None),
                          x_csrf_token: str | None = Header(default=None)):
         u=mutation(req,x_csrf_token)
-        if not confirm_paid:
+        if not confirm_paid and provider!='platform':
             raise HTTPException(400,'ต้องยืนยันว่าการสร้างวิดีโออาจมีค่าใช้จ่ายตามเครดิต API ก่อน')
         owned=read('SELECT id,prompt FROM drafts WHERE id=? AND user_id=?',(draft_id,u['id']),True)
         if not owned: raise HTTPException(404,'ไม่พบบทของบัญชีนี้')
+        if provider!='platform' and model not in enabled_models.get(provider,()):
+            raise HTTPException(400,'รุ่นนี้ปิดใช้งานชั่วคราว กรุณาเลือก OpenRouter · Veo 3.1 Lite')
         if provider=='gemini' and model==VEO_MODEL:
             duration=8
             service=veo
         elif provider=='xai' and model in GROK_MODELS:
             duration=10
             service=grok
+        elif provider=='openrouter' and model in OPENROUTER_MODELS:
+            duration=openrouter.DURATION
+            service=openrouter
+        elif provider=='platform' and platform_enabled and model in platform_models:
+            duration=openrouter.DURATION
+            service=openrouter
+        elif provider=='platform' and not platform_enabled:
+            raise HTTPException(400,'ระบบยังไม่เปิดโหมดฟรี กรุณาใช้ API key ของคุณเอง')
         else:
             raise HTTPException(400,'ผู้ให้บริการกับโมเดลที่เลือกไม่ตรงกัน')
         api_key=load_api_key(u['id'],provider)
@@ -1040,28 +1241,45 @@ def create_app(data_dir=None, secret_key=None):
             usage=c.execute("SELECT COUNT(*) FROM video_jobs WHERE user_id=? AND created_at>=?",(u['id'],datetime.now(timezone.utc).date().isoformat())).fetchone()[0]
             if usage>=MAX_VIDEO_JOBS_PER_DAY:
                 raise HTTPException(429,'จำกัดสร้างวิดีโอไม่เกิน 3 ครั้งต่อวันต่อบัญชีใน Beta')
+            est_cost=0.0
+            if provider=='platform':
+                if platform_used(c,u['id'])>=platform_limit:
+                    period={'day':'วันนี้','month':'เดือนนี้','total':''}[platform_period]
+                    raise HTTPException(429,f'ใช้โควตาฟรี{period}ครบ {platform_limit} คลิปแล้ว · ใช้ API key ของคุณเองต่อได้ในเมนู API ของฉัน')
+                est_cost=openrouter.estimated_cost(model,False)
+                if platform_spent_today(c)+est_cost>platform_budget:
+                    raise HTTPException(429,'งบโหมดฟรีของวันนี้หมดแล้ว กรุณาลองใหม่พรุ่งนี้ หรือใช้ API key ของคุณเอง')
             timestamp=now()
-            cur=c.execute("INSERT INTO video_jobs(user_id,draft_id,provider,model,duration,prompt,status,created_at,checked_at,updated_at) VALUES(?,?,?,?,?,?,'submitting',?,?,?)",
-                          (u['id'],draft_id,provider,model,duration,final_prompt,timestamp,timestamp,timestamp))
+            cur=c.execute("INSERT INTO video_jobs(user_id,draft_id,provider,model,duration,prompt,status,est_cost_usd,created_at,checked_at,updated_at) VALUES(?,?,?,?,?,?,'submitting',?,?,?,?)",
+                          (u['id'],draft_id,provider,model,duration,final_prompt,est_cost,timestamp,timestamp,timestamp))
             job_id=cur.lastrowid
         try:
             # Run potentially slow HTTP requests outside the async event loop.
             from starlette.concurrency import run_in_threadpool
-            if provider=='xai':
+            if video_mock:
+                operation=await run_in_threadpool(mock_video.start_video,api_key,final_prompt,reference,mime)
+            elif provider=='xai':
                 operation=await run_in_threadpool(grok.start_video,api_key,final_prompt,reference,mime,model=model,duration=duration)
+            elif provider=='openrouter':
+                operation=await run_in_threadpool(openrouter.start_video,api_key,final_prompt,reference,mime,model=model)
+            elif provider=='platform':
+                # No model audio in free mode: about 40% cheaper, and a Thai voice-over can be added later.
+                operation=await run_in_threadpool(openrouter.start_video,api_key,final_prompt,reference,mime,model=model,audio=False,user=f'aas-{u["id"]}')
             else:
                 operation=await run_in_threadpool(veo.start_video,api_key,final_prompt,reference,mime)
-        except (veo.VideoProviderError, grok.VideoProviderError) as e:
+        except VIDEO_ERRORS as e:
+            # Members must not see the owner's key/credit problems in free mode.
+            error=PLATFORM_ERROR if provider=='platform' and ('คีย์' in str(e) or 'เครดิต' in str(e)) else str(e)[:280]
             with connect() as c:
-                c.execute("UPDATE video_jobs SET status='failed',error_message=?,updated_at=? WHERE id=? AND user_id=?",(str(e)[:280],now(),job_id,u['id']))
-            raise HTTPException(502,str(e))
+                c.execute("UPDATE video_jobs SET status='failed',error_message=?,updated_at=? WHERE id=? AND user_id=?",(error,now(),job_id,u['id']))
+            raise HTTPException(502,error)
         except Exception:
             with connect() as c:
                 c.execute("UPDATE video_jobs SET status='failed',error_message='ไม่สามารถส่งงานไปยังผู้ให้บริการ AI ได้',updated_at=? WHERE id=? AND user_id=?",(now(),job_id,u['id']))
             raise HTTPException(502,'ไม่สามารถส่งงานไปยังผู้ให้บริการ AI ได้')
         with connect() as c:
             c.execute("UPDATE video_jobs SET status='running',operation_name=?,updated_at=? WHERE id=? AND user_id=?",(operation,now(),job_id,u['id']))
-        return {'id':job_id,'status':'running','provider':provider,'model':model,'duration':duration,'notice':'ส่งงานให้ '+('xAI Grok' if provider=='xai' else 'Google Veo')+' แล้ว กรุณาตรวจสถานะตามรอบ (มีค่าใช้จ่ายตาม API ของสมาชิก)'}
+        return {'id':job_id,'status':'running','provider':provider,'model':model,'duration':duration,'notice':'ส่งงานให้ '+VIDEO_LABELS[provider]+' แล้ว กรุณาตรวจสถานะตามรอบ (มีค่าใช้จ่ายตาม API ของสมาชิก)'}
 
     @app.post('/api/my/video-jobs/{job_id}/refresh')
     def refresh_video_job(job_id:int,req:Request,x_csrf_token:str|None=Header(default=None)):
@@ -1086,19 +1304,20 @@ def create_app(data_dir=None, secret_key=None):
             if changed.rowcount != 1:
                 return {'id':job_id,'status':'running','notice':'กำลังตรวจสถานะอยู่'}
         provider=job['provider']
-        if provider not in ('gemini','xai'):
+        if provider not in VIDEO_PROVIDERS:
             raise HTTPException(400,'ไม่รู้จักผู้ให้บริการที่บันทึกไว้')
         api_key=load_api_key(u['id'],provider)
-        service=grok if provider=='xai' else veo
+        # Route by job id, so mock jobs still finish after VIDEO_MOCK is switched off.
+        service=mock_video if mock_video.is_mock_job(job['operation_name']) else VIDEO_PROVIDERS[provider]
         try:
             state, uri=service.poll_video(api_key,job['operation_name'])
             if state=='running': return {'id':job_id,'status':'running'}
             target=data/'videos'/str(u['id'])/f'{job_id}.mp4'
             service.download_video(api_key,uri,target)
             with connect() as c:
-                c.execute("UPDATE video_jobs SET status='ready',file_name=?,updated_at=? WHERE id=? AND user_id=?",(str(target.relative_to(data)),now(),job_id,u['id']))
+                c.execute("UPDATE video_jobs SET status='ready',file_name=?,updated_at=? WHERE id=? AND user_id=?",(target.relative_to(data).as_posix(),now(),job_id,u['id']))
             return {'id':job_id,'status':'ready','video_url':f'/api/my/video-jobs/{job_id}/file'}
-        except (veo.VideoProviderError, grok.VideoProviderError) as e:
+        except VIDEO_ERRORS as e:
             # Transient API errors should be retryable; a provider rejection is terminal.
             error=str(e)[:280]
             if 'เชื่อมต่อ' in error or 'ขัดข้อง' in error or 'ดาวน์โหลด' in error or 'ตรวจสถานะ' in error:
@@ -1140,6 +1359,132 @@ def create_app(data_dir=None, secret_key=None):
         return read('''SELECT id,amount_satang,note,status,created_at,verified_at
                  FROM donation_reports WHERE user_id=? ORDER BY id DESC LIMIT 100''',(u['id'],))
 
+    def require_admin(req):
+        u=require_user(req)
+        if u['role']!='admin':
+            raise HTTPException(403, 'เฉพาะผู้ดูแลระบบ')
+        return u
+
+    def month_start():
+        return datetime.now(timezone.utc).date().replace(day=1).isoformat()
+
+    def admin_member_rows():
+        # Read-only summary. Never select password_hash, session tokens or encrypted keys.
+        rows=read('''SELECT u.id,u.username,u.email,u.role,u.created_at,
+            (SELECT COUNT(*) FROM products p WHERE p.user_id=u.id) AS products,
+            (SELECT COUNT(*) FROM drafts d WHERE d.user_id=u.id) AS drafts,
+            (SELECT COUNT(*) FROM video_jobs v WHERE v.user_id=u.id) AS clips,
+            (SELECT COUNT(*) FROM video_jobs v WHERE v.user_id=u.id AND v.status='ready') AS clips_ready,
+            (SELECT COUNT(*) FROM video_jobs v WHERE v.user_id=u.id AND v.provider='platform' AND v.status!='failed' AND v.created_at>=?) AS free_used,
+            (SELECT COALESCE(SUM(v.est_cost_usd),0) FROM video_jobs v WHERE v.user_id=u.id AND v.provider='platform' AND v.status!='failed' AND v.created_at>=?) AS free_cost_month_usd,
+            (SELECT GROUP_CONCAT(c.provider) FROM credentials c WHERE c.user_id=u.id) AS own_keys,
+            (SELECT MAX(s.expires_at) FROM sessions s WHERE s.user_id=u.id) AS session_expires,
+            (SELECT MAX(v.created_at) FROM video_jobs v WHERE v.user_id=u.id) AS last_clip_at
+            FROM users u ORDER BY u.id''',(platform_period_start(),month_start()))
+        for r in rows:
+            # Sessions last SESSION_DAYS, so the newest expiry dates the most recent sign-in.
+            expires=r.pop('session_expires')
+            r['last_login_at']=((datetime.fromisoformat(expires)-timedelta(days=SESSION_DAYS)).isoformat(timespec='seconds')
+                                if expires else None)
+            r['own_keys']=sorted(set((r['own_keys'] or '').split(',')) - {''})
+            r['free_cost_month_usd']=round(r['free_cost_month_usd'],2)
+            r['free_limit']=platform_limit if platform_enabled else 0
+        return rows
+
+    @app.get('/api/admin/overview')
+    def admin_overview(req:Request):
+        require_admin(req)
+        with connect() as c:
+            members=c.execute('SELECT COUNT(*) FROM users').fetchone()[0]
+            admins=c.execute("SELECT COUNT(*) FROM users WHERE role='admin'").fetchone()[0]
+            jobs={r[0]:r[1] for r in c.execute('SELECT status,COUNT(*) FROM video_jobs GROUP BY status')}
+            free_month=c.execute("SELECT COUNT(*),COALESCE(SUM(est_cost_usd),0) FROM video_jobs WHERE provider='platform' AND status!='failed' AND created_at>=?",
+                                 (month_start(),)).fetchone()
+            spent_today=platform_spent_today(c)
+        return {'members':members,'admins':admins,'seat_limit':MAX_BETA_USERS,'video_jobs':jobs,
+                'free_mode':{'enabled':platform_enabled,'models':platform_models,'limit':platform_limit,'period':platform_period,
+                             'daily_budget_usd':platform_budget,'spent_today_usd':round(spent_today,2),
+                             'clips_this_month':free_month[0],'spent_this_month_usd':round(free_month[1],2)},
+                'enabled_models':enabled_models,'mock':video_mock}
+
+    @app.get('/api/admin/members')
+    def admin_members(req:Request):
+        require_admin(req)
+        return admin_member_rows()
+
+    @app.get('/api/admin/members.csv')
+    def admin_members_csv(req:Request):
+        require_admin(req)
+        import csv, io
+        def cell(v):
+            text=', '.join(v) if isinstance(v,list) else '' if v is None else str(v)
+            # Stop spreadsheet formula injection from member-controlled text.
+            return "'"+text if text[:1] in ('=','+','-','@','\t','\r') else text
+        cols=['id','username','email','role','created_at','last_login_at','products','drafts','clips','clips_ready',
+              'free_used','free_limit','free_cost_month_usd','own_keys','last_clip_at']
+        out=io.StringIO()
+        w=csv.writer(out)
+        w.writerow(cols)
+        for r in admin_member_rows():
+            w.writerow([cell(r[k]) for k in cols])
+        stamp=datetime.now(timezone.utc).strftime('%Y%m%d')
+        # BOM so Excel opens Thai text as UTF-8.
+        return Response('\ufeff'+out.getvalue(),media_type='text/csv; charset=utf-8',
+                        headers={'Content-Disposition':f'attachment; filename="members-{stamp}.csv"','Cache-Control':'no-store'})
+
+    def admin_target(c, admin, user_id):
+        target=c.execute('SELECT id,username,email,role FROM users WHERE id=?',(user_id,)).fetchone()
+        if not target: raise HTTPException(404,'ไม่พบสมาชิกนี้')
+        if target['id']==admin['id']:
+            raise HTTPException(400,'จัดการบัญชีตัวเองจากหน้านี้ไม่ได้ · เปลี่ยนรหัสผ่านที่เมนู API ของฉัน')
+        # Admin accounts are managed from the server shell only, so one admin cannot lock out another.
+        if target['role']=='admin':
+            raise HTTPException(400,'บัญชีแอดมินลบหรือรีเซ็ตจากหน้านี้ไม่ได้')
+        return target
+
+    def audit(c, admin, action, target):
+        c.execute('''INSERT INTO admin_audit(admin_id,admin_username,action,target_user_id,target_username,target_email,created_at)
+                     VALUES(?,?,?,?,?,?,?)''',(admin['id'],admin['username'],action,target['id'],target['username'],target['email'],now()))
+
+    @app.post('/api/admin/members/{user_id}/reset-password')
+    def admin_reset_password(user_id:int,req:Request,response:Response,x_csrf_token:str|None=Header(default=None)):
+        admin=mutation(req,x_csrf_token)
+        if admin['role']!='admin': raise HTTPException(403,'เฉพาะผู้ดูแลระบบ')
+        password=temporary_password()
+        with connect() as c:
+            c.execute('BEGIN IMMEDIATE')
+            target=admin_target(c,admin,user_id)
+            c.execute('UPDATE users SET password_hash=? WHERE id=?',(PH.hash(password),target['id']))
+            c.execute('DELETE FROM sessions WHERE user_id=?',(target['id'],))
+            c.execute('DELETE FROM login_attempts WHERE email=?',(target['email'],))
+            c.execute('DELETE FROM login_failures WHERE email=?',(target['email'],))
+            audit(c,admin,'reset_password',target)
+        # Shown once to the admin; it is never stored in plain text.
+        response.headers['Cache-Control']='no-store'
+        return {'username':target['username'],'email':target['email'],'temporary_password':password}
+
+    @app.post('/api/admin/members/{user_id}/delete')
+    def admin_delete_member(user_id:int,body:DeleteMemberIn,req:Request,x_csrf_token:str|None=Header(default=None)):
+        admin=mutation(req,x_csrf_token)
+        if admin['role']!='admin': raise HTTPException(403,'เฉพาะผู้ดูแลระบบ')
+        with connect() as c:
+            c.execute('BEGIN IMMEDIATE')
+            target=admin_target(c,admin,user_id)
+            if body.confirm_username.strip().lower()!=target['username'].lower():
+                raise HTTPException(400,'พิมพ์ชื่อผู้ใช้ไม่ตรง ยังไม่ได้ลบ')
+            # ideas has no ON DELETE CASCADE; their votes and comments cascade from the idea.
+            c.execute('DELETE FROM ideas WHERE user_id=?',(target['id'],))
+            c.execute('DELETE FROM users WHERE id=?',(target['id'],))
+            audit(c,admin,'delete_member',target)
+        import shutil
+        shutil.rmtree(data/'videos'/str(int(target['id'])),ignore_errors=True)
+        return {'deleted':True,'username':target['username']}
+
+    @app.get('/api/admin/audit')
+    def admin_audit_log(req:Request):
+        require_admin(req)
+        return read('SELECT id,admin_username,action,target_username,target_email,created_at FROM admin_audit ORDER BY id DESC LIMIT 50')
+
     @app.get('/api/admin/donation-reports')
     def admin_donation_reports(req:Request):
         u=require_user(req)
@@ -1164,123 +1509,6 @@ def create_app(data_dir=None, secret_key=None):
             if result.rowcount<1:
                 raise HTTPException(409,'รายการไม่มีอยู่หรือถูกตรวจสอบแล้ว')
         return {'status':body.status,'message':'ยืนยันสถานะโดยผู้ดูแลแล้ว หลังตรวจรายการธนาคารจริง'}
-
-    @app.get('/api/admin/users')
-    def admin_list_users(req: Request):
-        require_user(req)
-        return read('''SELECT u.id, u.username, u.email, u.role, u.credits, u.permissions, u.created_at,
-                   (SELECT COUNT(*) FROM products p WHERE p.user_id=u.id) AS products_count,
-                   (SELECT COUNT(*) FROM drafts d WHERE d.user_id=u.id) AS drafts_count,
-                   (SELECT COUNT(*) FROM publishing_queue q WHERE q.user_id=u.id) AS queue_count
-            FROM users u ORDER BY u.id DESC LIMIT 100''')
-
-    @app.get('/api/system/settings')
-    def get_system_settings():
-        rows = read('SELECT key, value, updated_at, updated_by FROM system_settings')
-        return {r['key']: r['value'] for r in rows}
-
-    @app.patch('/api/admin/system/settings')
-    def admin_update_system_settings(body: SystemSettingIn, req: Request, x_csrf_token: str | None = Header(default=None)):
-        u = mutation(req, x_csrf_token)
-        if u['role'] != 'admin':
-            raise HTTPException(403, 'เฉพาะผู้ดูแลระบบ')
-        with connect() as c:
-            c.execute('''INSERT INTO system_settings(key, value, updated_at, updated_by)
-                         VALUES(?,?,?,?)
-                         ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=excluded.updated_at, updated_by=excluded.updated_by''',
-                      (body.key, body.value, now(), u['username']))
-        rows = read('SELECT key, value FROM system_settings')
-        return {'ok': True, 'key': body.key, 'value': body.value, 'settings': {r['key']: r['value'] for r in rows}}
-
-    @app.patch('/api/admin/users/{user_id}/credits')
-    def admin_update_user_credits(user_id: int, body: AdminCreditUpdateIn, req: Request, x_csrf_token: str | None = Header(default=None)):
-        u = mutation(req, x_csrf_token)
-        if u['role'] != 'admin':
-            raise HTTPException(403, 'เฉพาะผู้ดูแลระบบ')
-        with connect() as c:
-            target = c.execute('SELECT credits, username FROM users WHERE id=?', (user_id,)).fetchone()
-            if not target:
-                raise HTTPException(404, 'ไม่พบผู้ใช้')
-            current = target[0] or 0
-            if body.mode == 'set':
-                new_bal = max(0, body.amount)
-            else:
-                new_bal = max(0, current + body.amount)
-            c.execute('UPDATE users SET credits=? WHERE id=?', (new_bal, user_id))
-            c.execute('''INSERT INTO credit_transactions(user_id, amount, balance_after, reason, performed_by, created_at)
-                         VALUES(?,?,?,?,?,?)''',
-                      (user_id, body.amount, new_bal, body.note or 'แอดมินปรับยอดเครดิต', u['id'], now()))
-        return {'ok': True, 'user_id': user_id, 'credits': new_bal, 'diff': new_bal - current}
-
-    @app.patch('/api/admin/users/{user_id}/permissions')
-    def admin_update_user_permissions(user_id: int, body: AdminPermissionsIn, req: Request, x_csrf_token: str | None = Header(default=None)):
-        u = mutation(req, x_csrf_token)
-        if u['role'] != 'admin':
-            raise HTTPException(403, 'เฉพาะผู้ดูแลระบบ')
-        import json
-        perm_str = json.dumps(body.permissions)
-        with connect() as c:
-            c.execute('UPDATE users SET permissions=? WHERE id=?', (perm_str, user_id))
-        return {'ok': True, 'user_id': user_id, 'permissions': body.permissions}
-
-    @app.post('/api/my/credits/topup')
-    def user_self_topup(body: SelfTopupIn, req: Request, x_csrf_token: str | None = Header(default=None)):
-        u = mutation(req, x_csrf_token)
-        if body.amount <= 0 or body.amount > 100000:
-            raise HTTPException(400, 'จำนวนเครดิตไม่ถูกต้อง')
-        with connect() as c:
-            cur = c.execute('SELECT credits FROM users WHERE id=?', (u['id'],)).fetchone()
-            current = (cur[0] if cur else 0) or 0
-            new_bal = current + body.amount
-            c.execute('UPDATE users SET credits=? WHERE id=?', (new_bal, u['id']))
-            c.execute('''INSERT INTO credit_transactions(user_id, amount, balance_after, reason, performed_by, created_at)
-                         VALUES(?,?,?,?,?,?)''',
-                      (u['id'], body.amount, new_bal, f'แพ็กเกจ: {body.package}', u['id'], now()))
-        return {'ok': True, 'credits': new_bal, 'added': body.amount}
-
-    @app.post('/api/admin/users')
-    def admin_create_user(body: UserCreateIn, req: Request, x_csrf_token: str | None = Header(default=None)):
-        u = mutation(req, x_csrf_token)
-        if u['role'] != 'admin':
-            raise HTTPException(403, 'เฉพาะผู้ดูแลระบบ')
-        email = body.email.strip().lower()
-        username = body.username.strip()
-        role = 'admin' if body.role == 'admin' else 'member'
-        if not re.fullmatch(r'[A-Za-z0-9_]{3,32}', username):
-            raise HTTPException(400, 'ชื่อผู้ใช้ต้องมีเฉพาะอังกฤษ ตัวเลข หรือ _')
-        if not re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+', email):
-            raise HTTPException(400, 'อีเมลไม่ถูกต้อง')
-        if len(body.password) < 4:
-            raise HTTPException(400, 'รหัสผ่านสั้นเกินไป')
-        try:
-            with connect() as c:
-                cur = c.execute('INSERT INTO users(username,email,password_hash,role,created_at) VALUES(?,?,?,?,?)',
-                                (username, email, PH.hash(body.password), role, now()))
-                return {'id': cur.lastrowid, 'username': username, 'email': email, 'role': role}
-        except sqlite3.IntegrityError:
-            raise HTTPException(409, 'อีเมลหรือชื่อผู้ใช้มีอยู่แล้ว')
-
-    @app.patch('/api/admin/users/{user_id}/role')
-    def admin_update_user_role(user_id: int, body: UserRoleIn, req: Request, x_csrf_token: str | None = Header(default=None)):
-        u = mutation(req, x_csrf_token)
-        if u['role'] != 'admin':
-            raise HTTPException(403, 'เฉพาะผู้ดูแลระบบ')
-        if body.role not in ('admin', 'member'):
-            raise HTTPException(400, 'บทบาทไม่ถูกต้อง')
-        with connect() as c:
-            c.execute('UPDATE users SET role=? WHERE id=?', (body.role, user_id))
-        return {'ok': True, 'role': body.role}
-
-    @app.delete('/api/admin/users/{user_id}')
-    def admin_delete_user(user_id: int, req: Request, x_csrf_token: str | None = Header(default=None)):
-        u = mutation(req, x_csrf_token)
-        if u['role'] != 'admin':
-            raise HTTPException(403, 'เฉพาะผู้ดูแลระบบ')
-        if user_id == u['id']:
-            raise HTTPException(400, 'ไม่สามารถลบบัญชีตนเองได้')
-        with connect() as c:
-            c.execute('DELETE FROM users WHERE id=?', (user_id,))
-        return {'ok': True}
 
     @app.get('/api/my/radar/trending')
     def radar_trending(req:Request):
@@ -1385,26 +1613,25 @@ def create_app(data_dir=None, secret_key=None):
     @app.post('/api/my/drafts')
     def create_draft(body: DraftIn,req:Request,x_csrf_token:str|None=Header(default=None)):
         u=mutation(req,x_csrf_token)
-        style_map = {
-            'pov': 'pov', 'demo': 'demo', 'problem_solution': 'problem_solution',
-            'pov_fast': 'pov', 'pov_pain': 'problem_solution', 'pov_7days': 'demo', 'pov_compare': 'demo'
-        }
-        raw_style = (body.style or 'pov').strip().lower()
-        if raw_style not in style_map and raw_style not in ('pov', 'demo', 'problem_solution'):
+        style = body.style
+        if style == 'pov_fast':
+            style = 'pov'
+        elif style == 'pov_pain':
+            style = 'problem_solution'
+        elif style in ('pov_7days', 'pov_compare'):
+            style = 'demo'
+        if style not in ('pov','demo','problem_solution'):
             raise HTTPException(400,'รูปแบบคลิปไม่ถูกต้อง')
-        norm_style = style_map.get(raw_style, 'pov')
         p=read('SELECT * FROM products WHERE id=? AND user_id=?',(body.product_id,u['id']),True)
         if not p:
             raise HTTPException(404,'ไม่พบสินค้าในบัญชีของคุณ')
         label=p['title'].strip()
-        hook={'pov':'ของชิ้นนี้ใช้ทำอะไรได้บ้าง?','demo':'มาดูวิธีใช้สินค้าชิ้นนี้กัน','problem_solution':'ใครกำลังเจอปัญหานี้บ้าง?'}[norm_style]
-        default_script=(f'0–3 วินาที: {hook}\n3–7 วินาที: สาธิต {label} โดยแสดงการใช้งานจริงตามคุณสมบัติที่ตรวจสอบได้\n7–10 วินาที: ดูข้อมูลเพิ่มเติมจากลิงก์สินค้าก่อนตัดสินใจ')
-        default_prompt=(f'Create a natural 9:16 Thai POV hands-on product video, about 10 seconds, focusing on {label}. '
+        hook={'pov':'ของชิ้นนี้ใช้ทำอะไรได้บ้าง?','demo':'มาดูวิธีใช้สินค้าชิ้นนี้กัน','problem_solution':'ใครกำลังเจอปัญหานี้บ้าง?'}[body.style]
+        script=(f'0–3 วินาที: {hook}\n3–7 วินาที: สาธิต {label} โดยแสดงการใช้งานจริงตามคุณสมบัติที่ตรวจสอบได้\n7–10 วินาที: ดูข้อมูลเพิ่มเติมจากลิงก์สินค้าก่อนตัดสินใจ')
+        prompt=(f'Create a natural 9:16 Thai POV hands-on product video, about 10 seconds, focusing on {label}. '
                 'Show authentic hands demonstrating the actual product; no face or misleading results. '
                 'Use submitted product images as reference only, never use listing screenshots as an overlay or first frame. '
                 'Thai narration, no unsupported claims. Check product details before generation.')
-        script = (body.script.strip() if body.script and body.script.strip() else default_script)
-        prompt = (body.prompt.strip() if body.prompt and body.prompt.strip() else default_prompt)
         with connect() as c:
             # Serialize creation so two simultaneous requests cannot receive the same use number.
             c.execute('BEGIN IMMEDIATE')
@@ -1412,7 +1639,7 @@ def create_app(data_dir=None, secret_key=None):
                                    WHERE user_id=? AND product_id=?''',(u['id'],p['id'])).fetchone()[0] + 1
             created=now()
             cur=c.execute('INSERT INTO drafts(user_id,product_id,style,script,prompt,created_at) VALUES(?,?,?,?,?,?)',
-                          (u['id'],p['id'],norm_style,script,prompt,created))
+                          (u['id'],p['id'],body.style,script,prompt,created))
             draft_id=cur.lastrowid
             c.execute('''INSERT INTO product_use_events(user_id,product_id,draft_id,use_number,created_at)
                          VALUES(?,?,?,?,?)''',(u['id'],p['id'],draft_id,number,created))

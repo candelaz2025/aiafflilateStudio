@@ -29,7 +29,7 @@ def test_connection_cards_and_no_key_leaks(tmp_path):
     app=create_app(tmp_path,secret_key=KEY)
     c=TestClient(app);h=signup(c,1)
     connections=c.get('/api/my/connections').json()['providers']
-    assert [x['id'] for x in connections] == ['gemini','xai','brave','openai','tiktok','shopee']
+    assert [x['id'] for x in connections] == ['gemini','xai','openrouter','brave','openai','tiktok','shopee']
     assert not any(x['configured'] for x in connections)
     assert not any(x['enabled'] for x in connections[4:])
     assert c.put('/api/my/keys/gemini',json={'key':'API_KEY_FAKE_NOT_FOR_GOOGLE_12345'},headers=h).status_code==200
