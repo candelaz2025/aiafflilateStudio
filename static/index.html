@@ -1047,15 +1047,133 @@
 
 
       <!-- ==========================================
-           TAB 10: ระบบจัดการผู้ใช้ (USER MANAGEMENT - ADMIN)
+           TAB 10: ระบบจัดการผู้ใช้ สิทธิ์ และควบคุมระบบ (ADMIN CENTER)
            ========================================== -->
       <section id="users_mgmt" class="tab-section">
         <div class="section-header-row">
           <div>
-            <h2 class="page-title" data-i18n="users_page_title">👤 ระบบจัดการผู้ใช้ (User Management)</h2>
-            <p class="page-subtitle" data-i18n="users_page_desc">ดูข้อมูลสมาชิก สถิติการใช้งาน เปลี่ยนระดับสิทธิ์ และจัดการบัญชีผู้ใช้ในระบบ</p>
+            <h2 class="page-title" data-i18n="users_page_title">⚙️ ศูนย์ควบคุมระบบ สิทธิ์ และจัดการผู้ใช้ (Admin Center)</h2>
+            <p class="page-subtitle" data-i18n="users_page_desc">เปิด-ปิดระบบย่อย กำหนดสิทธิ์รายประเภทผู้ใช้ เติมเครดิต และจัดการบัญชีสมาชิกทั้งหมด</p>
           </div>
           <button class="btn btn-primary" id="openAddUserModalBtn" data-i18n="btn_add_user">+ เพิ่มผู้ใช้งานใหม่</button>
+        </div>
+
+        <!-- 1. System Master Switches (เปิด-ปิดระบบทุกระบบ) -->
+        <div class="system-toggles-container">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <div>
+              <strong style="font-size:15px; color:var(--color-text-main);">🎛️ สวิตช์เปิด-ปิดระบบหลัก (System Master Switches)</strong>
+              <p style="font-size:12px; color:var(--color-text-muted); margin-top:2px;">ผู้ดูแลระบบสามารถเปิดหรือปิดฟังก์ชันการทำงานส่วนใดส่วนหนึ่งได้แบบเรียลไทม์</p>
+            </div>
+            <span class="chip chip-primary mono" id="systemSettingsSyncTime">🟢 ซิงก์ระบบแล้ว</span>
+          </div>
+
+          <div class="system-toggles-grid">
+            <!-- Toggle: Video Gen -->
+            <div class="system-toggle-card">
+              <div class="system-toggle-info">
+                <span class="system-toggle-icon">🎬</span>
+                <div>
+                  <div class="system-toggle-name">สร้างคลิปวิดีโอ AI</div>
+                  <div class="system-toggle-status" id="status-video_gen">เปิดใช้งานปกติ</div>
+                </div>
+              </div>
+              <label class="switch-label">
+                <input type="checkbox" id="sys-toggle-video_gen" data-syskey="video_gen" checked>
+                <span class="switch-track"></span>
+              </label>
+            </div>
+
+            <!-- Toggle: Product Radar -->
+            <div class="system-toggle-card">
+              <div class="system-toggle-info">
+                <span class="system-toggle-icon">📡</span>
+                <div>
+                  <div class="system-toggle-name">Product Radar สินค้าติดเทรนด์</div>
+                  <div class="system-toggle-status" id="status-radar">เปิดใช้งานปกติ</div>
+                </div>
+              </div>
+              <label class="switch-label">
+                <input type="checkbox" id="sys-toggle-radar" data-syskey="radar" checked>
+                <span class="switch-track"></span>
+              </label>
+            </div>
+
+            <!-- Toggle: Shopee Import -->
+            <div class="system-toggle-card">
+              <div class="system-toggle-info">
+                <span class="system-toggle-icon">🛍️</span>
+                <div>
+                  <div class="system-toggle-name">นำเข้าสินค้า Shopee</div>
+                  <div class="system-toggle-status" id="status-shopee_import">เปิดใช้งานปกติ</div>
+                </div>
+              </div>
+              <label class="switch-label">
+                <input type="checkbox" id="sys-toggle-shopee_import" data-syskey="shopee_import" checked>
+                <span class="switch-track"></span>
+              </label>
+            </div>
+
+            <!-- Toggle: TikTok Queue -->
+            <div class="system-toggle-card">
+              <div class="system-toggle-info">
+                <span class="system-toggle-icon">📱</span>
+                <div>
+                  <div class="system-toggle-name">คิวโพสต์ TikTok</div>
+                  <div class="system-toggle-status" id="status-tiktok_queue">เปิดใช้งานปกติ</div>
+                </div>
+              </div>
+              <label class="switch-label">
+                <input type="checkbox" id="sys-toggle-tiktok_queue" data-syskey="tiktok_queue" checked>
+                <span class="switch-track"></span>
+              </label>
+            </div>
+
+            <!-- Toggle: Community Lab -->
+            <div class="system-toggle-card">
+              <div class="system-toggle-info">
+                <span class="system-toggle-icon">👥</span>
+                <div>
+                  <div class="system-toggle-name">ชุมชน & โหวตไอเดีย</div>
+                  <div class="system-toggle-status" id="status-community">เปิดใช้งานปกติ</div>
+                </div>
+              </div>
+              <label class="switch-label">
+                <input type="checkbox" id="sys-toggle-community" data-syskey="community" checked>
+                <span class="switch-track"></span>
+              </label>
+            </div>
+
+            <!-- Toggle: Registration -->
+            <div class="system-toggle-card">
+              <div class="system-toggle-info">
+                <span class="system-toggle-icon">📝</span>
+                <div>
+                  <div class="system-toggle-name">รับสมัครสมาชิก Beta</div>
+                  <div class="system-toggle-status" id="status-registration">เปิดใช้งานปกติ</div>
+                </div>
+              </div>
+              <label class="switch-label">
+                <input type="checkbox" id="sys-toggle-registration" data-syskey="registration" checked>
+                <span class="switch-track"></span>
+              </label>
+            </div>
+
+            <!-- Toggle: Maintenance Mode -->
+            <div class="system-toggle-card" style="border-color:rgba(239,68,68,0.3);">
+              <div class="system-toggle-info">
+                <span class="system-toggle-icon">🚧</span>
+                <div>
+                  <div class="system-toggle-name" style="color:var(--color-danger);">โหมดปิดปรับปรุงระบบ</div>
+                  <div class="system-toggle-status" id="status-maintenance">ปิดอยู่ (ทุกคนเข้าได้)</div>
+                </div>
+              </div>
+              <label class="switch-label danger-switch">
+                <input type="checkbox" id="sys-toggle-maintenance" data-syskey="maintenance">
+                <span class="switch-track"></span>
+              </label>
+            </div>
+          </div>
         </div>
 
         <!-- Metric Summary Cards -->
@@ -1077,7 +1195,7 @@
           </div>
         </div>
 
-        <!-- Users Table -->
+        <!-- Users Table with Live Credits & Permissions -->
         <div class="data-table-container">
           <table class="data-table">
             <thead>
@@ -1086,6 +1204,8 @@
                 <th data-i18n="col_user">ผู้ใช้</th>
                 <th data-i18n="col_email">อีเมล</th>
                 <th data-i18n="col_role">บทบาท (Role)</th>
+                <th>เครดิตคงเหลือ</th>
+                <th>สิทธิ์การใช้งาน (Permissions)</th>
                 <th data-i18n="col_stats">สินค้า / บท / คิว</th>
                 <th data-i18n="col_registered">วันที่สมัคร</th>
                 <th data-i18n="col_actions">การจัดการ</th>
@@ -1093,7 +1213,7 @@
             </thead>
             <tbody id="userManagementTbody">
               <tr>
-                <td colspan="7" style="text-align:center; padding:24px; color:var(--color-text-muted);" data-i18n="loading_users">กำลังโหลดรายชื่อผู้ใช้...</td>
+                <td colspan="9" style="text-align:center; padding:24px; color:var(--color-text-muted);" data-i18n="loading_users">กำลังโหลดรายชื่อผู้ใช้...</td>
               </tr>
             </tbody>
           </table>
@@ -1246,6 +1366,116 @@
       <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
         <button type="button" class="btn btn-ghost" id="cancelAddUserBtn" data-i18n="btn_cancel">ยกเลิก</button>
         <button type="submit" class="btn btn-primary" data-i18n="btn_create_user">สร้างผู้ใช้</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ==========================================
+     ADMIN CREDIT MANAGEMENT MODAL
+     ========================================== -->
+<div class="modal-overlay" id="adminCreditModal" style="display:none;">
+  <div class="modal-box" style="max-width:440px;">
+    <div class="modal-header">
+      <h3 class="modal-title">⚡ จัดการเครดิตสมาชิก (Credit Management)</h3>
+      <button class="modal-close" id="closeAdminCreditModalBtn">✕</button>
+    </div>
+    <form id="adminCreditForm">
+      <input type="hidden" id="adminCreditUserId" name="user_id">
+      
+      <div style="background:var(--color-surface-subtle); padding:12px; border-radius:var(--radius-md); margin-bottom:14px; font-size:13px;">
+        <div><strong>ผู้ใช้:</strong> <span id="adminCreditUsername">—</span> (<span id="adminCreditEmail">—</span>)</div>
+        <div style="margin-top:4px;"><strong>เครดิตปัจจุบัน:</strong> <span class="mono" style="color:var(--color-primary); font-weight:700;" id="adminCreditCurrent">—</span></div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">โหมดการปรับยอด</label>
+        <select name="mode" id="adminCreditMode" class="form-select">
+          <option value="add">➕ เติมเครดิตเพิ่ม (Add Credits)</option>
+          <option value="deduct">➖ หักเครดิตออก (Deduct Credits)</option>
+          <option value="set">🟰 กำหนดยอดคงเหลือใหม่ (Set Fixed)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">จำนวนเครดิต</label>
+        <input name="amount" id="adminCreditAmount" type="number" class="form-input" min="1" max="1000000" required placeholder="เช่น 500">
+        <div style="display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;">
+          <button type="button" class="btn btn-ghost btn-sm" onclick="window.setQuickCredit(100)">+100</button>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="window.setQuickCredit(500)">+500</button>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="window.setQuickCredit(1000)">+1,000</button>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="window.setQuickCredit(3000)">+3,000</button>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="window.setQuickCredit(10000)">+10,000</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">บันทึกเหตุผล / หมายเหตุ (Audit Note)</label>
+        <input name="note" id="adminCreditNote" type="text" class="form-input" placeholder="เช่น แอดมินเติมโควต้า, สนับสนุน Ultra">
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:18px;">
+        <button type="button" class="btn btn-ghost" id="cancelAdminCreditBtn">ยกเลิก</button>
+        <button type="submit" class="btn btn-primary">✓ บันทึกการปรับเครดิต</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ==========================================
+     ADMIN PERMISSION & ROLE MODAL
+     ========================================== -->
+<div class="modal-overlay" id="adminPermissionModal" style="display:none;">
+  <div class="modal-box" style="max-width:480px;">
+    <div class="modal-header">
+      <h3 class="modal-title">🛡️ จัดการสิทธิ์การใช้งาน (Permissions & Role)</h3>
+      <button class="modal-close" id="closeAdminPermModalBtn">✕</button>
+    </div>
+    <form id="adminPermForm">
+      <input type="hidden" id="adminPermUserId" name="user_id">
+
+      <div style="background:var(--color-surface-subtle); padding:12px; border-radius:var(--radius-md); margin-bottom:14px; font-size:13px;">
+        <div><strong>ผู้ใช้:</strong> <span id="adminPermUsername">—</span> (<span id="adminPermEmail">—</span>)</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">ระดับบทบาทสมาชิก (Role Tier)</label>
+        <select name="role" id="adminPermRoleSelect" class="form-select">
+          <option value="member">Member (สมาชิกทั่วไป)</option>
+          <option value="pro">Pro Creator (สมาชิกระดับโปร)</option>
+          <option value="admin">Admin (ผู้ดูแลระบบสูงสุด)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">สิทธิ์การเข้าถึงฟังก์ชันรายบุคคล (Granular Permissions)</label>
+        <div style="display:flex; flex-direction:column; gap:8px; margin-top:8px; font-size:13px;">
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <input type="checkbox" id="perm_can_video" name="can_video" checked>
+            <span>🎬 สร้างคลิปวิดีโอ AI (AI Video Generator)</span>
+          </label>
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <input type="checkbox" id="perm_can_radar" name="can_radar" checked>
+            <span>📡 ค้นหาสินค้าติดเทรนด์ (Product Radar)</span>
+          </label>
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <input type="checkbox" id="perm_can_shopee" name="can_shopee" checked>
+            <span>🛍️ นำเข้าสินค้า Shopee (Shopee Import)</span>
+          </label>
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <input type="checkbox" id="perm_can_queue" name="can_queue" checked>
+            <span>📱 คิวโพสต์ TikTok (TikTok Publish Queue)</span>
+          </label>
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <input type="checkbox" id="perm_can_community" name="can_community" checked>
+            <span>👥 เสนอไอเดียและโหวต (Community Lab)</span>
+          </label>
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:18px;">
+        <button type="button" class="btn btn-ghost" id="cancelAdminPermBtn">ยกเลิก</button>
+        <button type="submit" class="btn btn-primary">✓ บันทึกสิทธิ์</button>
       </div>
     </form>
   </div>

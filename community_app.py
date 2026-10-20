@@ -152,6 +152,26 @@ class UserCreateIn(BaseModel):
     role: str = 'member'
 
 
+class AdminCreditUpdateIn(BaseModel):
+    amount: int
+    mode: str = 'add'
+    note: str = ''
+
+
+class AdminPermissionsIn(BaseModel):
+    permissions: dict
+
+
+class SystemSettingIn(BaseModel):
+    key: str
+    value: str
+
+
+class SelfTopupIn(BaseModel):
+    amount: int
+    package: str = 'manual'
+
+
 def create_app(data_dir=None, secret_key=None):
     data = Path(data_dir or os.getenv('COMMUNITY_DATA_DIR', ROOT / 'data')).resolve()
     data.mkdir(parents=True, exist_ok=True)
@@ -303,6 +323,47 @@ def create_app(data_dir=None, secret_key=None):
                              ROW_NUMBER() OVER (PARTITION BY user_id,product_id ORDER BY created_at,id),
                              created_at FROM drafts''')
 
+        # Safe migration for user credits and permissions
+        user_columns = {row[1] for row in db.execute('PRAGMA table_info(users)')}
+        if 'credits' not in user_columns:
+            db.execute('ALTER TABLE users ADD COLUMN credits INTEGER NOT NULL DEFAULT 200')
+        if 'permissions' not in user_columns:
+            db.execute("ALTER TABLE users ADD COLUMN permissions TEXT NOT NULL DEFAULT ''")
+
+        # System settings table (admin can toggle subsystems on/off)
+        db.execute('''
+        CREATE TABLE IF NOT EXISTS system_settings (
+          key TEXT PRIMARY KEY,
+          value TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          updated_by TEXT
+        );''')
+
+        # Credit transaction audit log
+        db.execute('''
+        CREATE TABLE IF NOT EXISTS credit_transactions (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          amount INTEGER NOT NULL,
+          balance_after INTEGER NOT NULL,
+          reason TEXT NOT NULL,
+          performed_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+          created_at TEXT NOT NULL
+        );''')
+
+        default_settings = [
+            ('video_gen', 'enabled'),
+            ('radar', 'enabled'),
+            ('shopee_import', 'enabled'),
+            ('tiktok_queue', 'enabled'),
+            ('community', 'enabled'),
+            ('registration', 'enabled'),
+            ('maintenance', 'disabled')
+        ]
+        for k, v in default_settings:
+            db.execute("INSERT OR IGNORE INTO system_settings(key, value, updated_at, updated_by) VALUES(?,?,?,?)",
+                       (k, v, now(), 'system'))
+
     def read(sql, params=(), one=False):
         with connect() as c:
             rs = c.execute(sql, params)
@@ -446,8 +507,26 @@ def create_app(data_dir=None, secret_key=None):
 
     @app.get('/api/me')
     def me(req: Request):
-        u=require_user(req)
-        return {'id':u['id'],'username':u['username'],'role':u['role'],'csrf':u['csrf']}
+        u = require_user(req)
+        row = read('SELECT credits, permissions, email FROM users WHERE id=?', (u['id'],), True)
+        sys_settings = {r['key']: r['value'] for r in read('SELECT key, value FROM system_settings')}
+        import json
+        perms = {}
+        if row and row.get('permissions'):
+            try:
+                perms = json.loads(row['permissions'])
+            except Exception:
+                perms = {}
+        return {
+            'id': u['id'],
+            'username': u['username'],
+            'email': row['email'] if row else '',
+            'role': u['role'],
+            'csrf': u['csrf'],
+            'credits': row['credits'] if row and 'credits' in row.keys() else 200,
+            'permissions': perms,
+            'system_settings': sys_settings
+        }
 
     @app.post('/api/logout')
     def logout(req: Request, response: Response, x_csrf_token: str | None = Header(default=None)):
@@ -774,11 +853,75 @@ def create_app(data_dir=None, secret_key=None):
     @app.get('/api/admin/users')
     def admin_list_users(req: Request):
         require_user(req)
-        return read('''SELECT u.id, u.username, u.email, u.role, u.created_at,
+        return read('''SELECT u.id, u.username, u.email, u.role, u.credits, u.permissions, u.created_at,
                    (SELECT COUNT(*) FROM products p WHERE p.user_id=u.id) AS products_count,
                    (SELECT COUNT(*) FROM drafts d WHERE d.user_id=u.id) AS drafts_count,
                    (SELECT COUNT(*) FROM publishing_queue q WHERE q.user_id=u.id) AS queue_count
             FROM users u ORDER BY u.id DESC LIMIT 100''')
+
+    @app.get('/api/system/settings')
+    def get_system_settings():
+        rows = read('SELECT key, value, updated_at, updated_by FROM system_settings')
+        return {r['key']: r['value'] for r in rows}
+
+    @app.patch('/api/admin/system/settings')
+    def admin_update_system_settings(body: SystemSettingIn, req: Request, x_csrf_token: str | None = Header(default=None)):
+        u = mutation(req, x_csrf_token)
+        if u['role'] != 'admin':
+            raise HTTPException(403, 'เฉพาะผู้ดูแลระบบ')
+        with connect() as c:
+            c.execute('''INSERT INTO system_settings(key, value, updated_at, updated_by)
+                         VALUES(?,?,?,?)
+                         ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=excluded.updated_at, updated_by=excluded.updated_by''',
+                      (body.key, body.value, now(), u['username']))
+        rows = read('SELECT key, value FROM system_settings')
+        return {'ok': True, 'key': body.key, 'value': body.value, 'settings': {r['key']: r['value'] for r in rows}}
+
+    @app.patch('/api/admin/users/{user_id}/credits')
+    def admin_update_user_credits(user_id: int, body: AdminCreditUpdateIn, req: Request, x_csrf_token: str | None = Header(default=None)):
+        u = mutation(req, x_csrf_token)
+        if u['role'] != 'admin':
+            raise HTTPException(403, 'เฉพาะผู้ดูแลระบบ')
+        with connect() as c:
+            target = c.execute('SELECT credits, username FROM users WHERE id=?', (user_id,)).fetchone()
+            if not target:
+                raise HTTPException(404, 'ไม่พบผู้ใช้')
+            current = target[0] or 0
+            if body.mode == 'set':
+                new_bal = max(0, body.amount)
+            else:
+                new_bal = max(0, current + body.amount)
+            c.execute('UPDATE users SET credits=? WHERE id=?', (new_bal, user_id))
+            c.execute('''INSERT INTO credit_transactions(user_id, amount, balance_after, reason, performed_by, created_at)
+                         VALUES(?,?,?,?,?,?)''',
+                      (user_id, body.amount, new_bal, body.note or 'แอดมินปรับยอดเครดิต', u['id'], now()))
+        return {'ok': True, 'user_id': user_id, 'credits': new_bal, 'diff': new_bal - current}
+
+    @app.patch('/api/admin/users/{user_id}/permissions')
+    def admin_update_user_permissions(user_id: int, body: AdminPermissionsIn, req: Request, x_csrf_token: str | None = Header(default=None)):
+        u = mutation(req, x_csrf_token)
+        if u['role'] != 'admin':
+            raise HTTPException(403, 'เฉพาะผู้ดูแลระบบ')
+        import json
+        perm_str = json.dumps(body.permissions)
+        with connect() as c:
+            c.execute('UPDATE users SET permissions=? WHERE id=?', (perm_str, user_id))
+        return {'ok': True, 'user_id': user_id, 'permissions': body.permissions}
+
+    @app.post('/api/my/credits/topup')
+    def user_self_topup(body: SelfTopupIn, req: Request, x_csrf_token: str | None = Header(default=None)):
+        u = mutation(req, x_csrf_token)
+        if body.amount <= 0 or body.amount > 100000:
+            raise HTTPException(400, 'จำนวนเครดิตไม่ถูกต้อง')
+        with connect() as c:
+            cur = c.execute('SELECT credits FROM users WHERE id=?', (u['id'],)).fetchone()
+            current = (cur[0] if cur else 0) or 0
+            new_bal = current + body.amount
+            c.execute('UPDATE users SET credits=? WHERE id=?', (new_bal, u['id']))
+            c.execute('''INSERT INTO credit_transactions(user_id, amount, balance_after, reason, performed_by, created_at)
+                         VALUES(?,?,?,?,?,?)''',
+                      (u['id'], body.amount, new_bal, f'แพ็กเกจ: {body.package}', u['id'], now()))
+        return {'ok': True, 'credits': new_bal, 'added': body.amount}
 
     @app.post('/api/admin/users')
     def admin_create_user(body: UserCreateIn, req: Request, x_csrf_token: str | None = Header(default=None)):

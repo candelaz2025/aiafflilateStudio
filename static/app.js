@@ -491,7 +491,7 @@
     if (targetId === 'queue') loadQueue();
     if (targetId === 'tracking') loadTracking();
     if (targetId === 'ideas') loadIdeas();
-    if (targetId === 'users_mgmt') loadUsers();
+    if (targetId === 'users_mgmt') { loadUsers(); loadSystemSettings(); }
     if (targetId === 'keys') loadConnections();
   }
 
@@ -502,11 +502,16 @@
     try {
       const user = await api('/api/me');
       me = user;
+      if (user.credits !== undefined) {
+        userCredits = user.credits;
+        localStorage.setItem('aas_credits', userCredits);
+      }
     } catch {
       // Default to demo admin user so prototype is 100% testable out of the box
       me = { id: 1, username: 'Kevin', role: 'admin', csrf: 'demo-csrf-token' };
     }
     updateUserUI();
+    updateCreditDisplays();
   }
 
   function updateUserUI() {
@@ -1396,8 +1401,52 @@
   });
 
   // ==========================================
-  // USER MANAGEMENT (ADMIN)
+  // SYSTEM MASTER SWITCHES & USER MANAGEMENT (ADMIN)
   // ==========================================
+  async function loadSystemSettings() {
+    try {
+      const settings = await api('/api/system/settings');
+      const keys = ['video_gen', 'radar', 'shopee_import', 'tiktok_queue', 'community', 'registration', 'maintenance'];
+      keys.forEach(k => {
+        const toggle = $(`sys-toggle-${k}`);
+        const statusEl = $(`status-${k}`);
+        const isEnabled = settings[k] === 'enabled';
+        if (toggle) toggle.checked = isEnabled;
+        if (statusEl) {
+          if (k === 'maintenance') {
+            statusEl.textContent = isEnabled ? '⚠️ ปิดปรับปรุงอยู่ (เฉพาะแอดมิน)' : 'ปิดอยู่ (ทุกคนเข้าได้)';
+            statusEl.style.color = isEnabled ? 'var(--color-danger)' : 'var(--color-text-muted)';
+          } else {
+            statusEl.textContent = isEnabled ? 'เปิดใช้งานปกติ' : '🔴 ปิดการทำงาน';
+            statusEl.style.color = isEnabled ? 'var(--color-secondary)' : 'var(--color-danger)';
+          }
+        }
+      });
+      const syncEl = $('systemSettingsSyncTime');
+      if (syncEl) syncEl.textContent = '🟢 ซิงก์ระบบแล้ว (' + new Date().toLocaleTimeString('th-TH') + ')';
+    } catch (e) {
+      console.warn('loadSystemSettings err', e);
+    }
+  }
+
+  function initSystemToggles() {
+    const keys = ['video_gen', 'radar', 'shopee_import', 'tiktok_queue', 'community', 'registration', 'maintenance'];
+    keys.forEach(k => {
+      const toggle = $(`sys-toggle-${k}`);
+      toggle?.addEventListener('change', async () => {
+        const value = toggle.checked ? 'enabled' : 'disabled';
+        try {
+          await api('/api/admin/system/settings', 'PATCH', { key: k, value });
+          msg(`อัปเดตระบบ ${k}: ${value === 'enabled' ? 'เปิดใช้งาน' : 'ปิดการทำงาน'} สำเร็จ ✨`);
+          await loadSystemSettings();
+        } catch (err) {
+          msg(err.message, 'error');
+          toggle.checked = !toggle.checked;
+        }
+      });
+    });
+  }
+
   async function loadUsers() {
     try {
       const users = await api('/api/admin/users');
@@ -1406,7 +1455,23 @@
       $('adminUsersCount').textContent = users.filter(u => u.role === 'admin').length;
       $('remainingBetaSeats').textContent = Math.max(0, 100 - users.length);
 
-      tbody.innerHTML = users.map(u => `
+      tbody.innerHTML = users.map(u => {
+        let perms = {};
+        try {
+          if (u.permissions) perms = JSON.parse(u.permissions);
+        } catch {}
+
+        const permChips = [
+          `<span class="perm-chip ${perms.can_video !== false ? 'active' : ''}">🎬 Video</span>`,
+          `<span class="perm-chip ${perms.can_radar !== false ? 'active' : ''}">📡 Radar</span>`,
+          `<span class="perm-chip ${perms.can_shopee !== false ? 'active' : ''}">🛍️ Shopee</span>`,
+          `<span class="perm-chip ${perms.can_queue !== false ? 'active' : ''}">📱 Queue</span>`,
+          `<span class="perm-chip ${perms.can_community !== false ? 'active' : ''}">👥 Comm</span>`
+        ].join('');
+
+        const roleColor = u.role === 'admin' ? 'chip-primary' : (u.role === 'pro' ? 'chip-warning' : 'chip-success');
+
+        return `
         <tr>
           <td class="mono" style="font-weight:600;">#${u.id}</td>
           <td>
@@ -1417,20 +1482,35 @@
           </td>
           <td class="mono" style="font-size:13px;">${esc(u.email)}</td>
           <td>
-            <span class="chip ${u.role === 'admin' ? 'chip-primary' : 'chip-success'} mono">${esc(u.role).toUpperCase()}</span>
+            <span class="chip ${roleColor} mono">${esc(u.role).toUpperCase()}</span>
+          </td>
+          <td>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <strong class="mono" style="color:var(--color-primary); font-size:14px;">⚡ ${(u.credits || 200).toLocaleString()}</strong>
+              <button class="btn btn-ghost btn-sm" style="padding:2px 6px; font-size:11px;" onclick="window.appOpenCreditModal(${u.id}, '${esc(u.username)}', '${esc(u.email)}', ${u.credits || 200})">+ เติม</button>
+            </div>
+          </td>
+          <td>
+            <div style="display:flex; flex-wrap:wrap; max-width:210px;">
+              ${permChips}
+            </div>
           </td>
           <td class="mono">${u.products_count || 0} / ${u.drafts_count || 0} / ${u.queue_count || 0}</td>
           <td class="mono" style="font-size:12px; color:var(--color-text-muted);">${(u.created_at || '').slice(0, 10)}</td>
           <td>
-            <div style="display:flex; gap:6px;">
-              <button class="btn btn-ghost btn-sm" onclick="window.appToggleUserRole(${u.id}, '${u.role === 'admin' ? 'member' : 'admin'}')">
-                ${u.role === 'admin' ? 'ลดเป็น Member' : 'เลื่อนเป็น Admin'}
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              <button class="btn btn-primary btn-sm" onclick="window.appOpenCreditModal(${u.id}, '${esc(u.username)}', '${esc(u.email)}', ${u.credits || 200})">
+                ⚡ เติมเครดิต
+              </button>
+              <button class="btn btn-ghost btn-sm" onclick="window.appOpenPermModal(${u.id}, '${esc(u.username)}', '${esc(u.email)}', '${u.role}', '${encodeURIComponent(u.permissions || '')}')">
+                🛡️ สิทธิ์
               </button>
               ${u.id !== me.id ? `<button class="btn btn-ghost btn-sm" style="color:var(--color-danger);" onclick="window.appDeleteUser(${u.id})">ลบ</button>` : ''}
             </div>
           </td>
         </tr>
-      `).join('');
+      `;
+      }).join('');
     } catch {
       // Fallback display if not logged in as admin yet
       const tbody = $('userManagementTbody');
@@ -1445,6 +1525,8 @@
           </td>
           <td class="mono" style="font-size:13px;">candelaz28@gmail.com</td>
           <td><span class="chip chip-primary mono">ADMIN</span></td>
+          <td><strong class="mono" style="color:var(--color-primary);">⚡ 1,200</strong></td>
+          <td><span class="perm-chip active">All Access</span></td>
           <td class="mono">3 / 4 / 2</td>
           <td class="mono" style="font-size:12px; color:var(--color-text-muted);">2026-10-20</td>
           <td><span class="chip chip-success mono">ACTIVE</span></td>
@@ -1452,6 +1534,95 @@
       `;
     }
   }
+
+  // Admin Credit Modal handlers
+  window.appOpenCreditModal = (userId, username, email, currentCredits) => {
+    $('adminCreditUserId').value = userId;
+    $('adminCreditUsername').textContent = username;
+    $('adminCreditEmail').textContent = email;
+    $('adminCreditCurrent').textContent = `⚡ ${Number(currentCredits || 0).toLocaleString()} เครดิต`;
+    $('adminCreditAmount').value = '500';
+    $('adminCreditNote').value = 'แอดมินเติมเครดิตให้สมาชิก';
+    $('adminCreditMode').value = 'add';
+    $('adminCreditModal').style.display = 'flex';
+  };
+
+  $('closeAdminCreditModalBtn')?.addEventListener('click', () => { $('adminCreditModal').style.display = 'none'; });
+  $('cancelAdminCreditBtn')?.addEventListener('click', () => { $('adminCreditModal').style.display = 'none'; });
+
+  window.setQuickCredit = (amt) => {
+    const inp = $('adminCreditAmount');
+    if (inp) inp.value = amt;
+  };
+
+  $('adminCreditForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const userId = $('adminCreditUserId').value;
+    const amount = parseInt($('adminCreditAmount').value, 10);
+    const mode = $('adminCreditMode').value;
+    const note = $('adminCreditNote').value.trim();
+
+    try {
+      const res = await api(`/api/admin/users/${userId}/credits`, 'PATCH', { amount, mode, note });
+      msg(`บันทึกเครดิตสำเร็จ! ยอดคงเหลือใหม่: ⚡ ${Number(res.credits).toLocaleString()} เครดิต`);
+      $('adminCreditModal').style.display = 'none';
+      await loadUsers();
+      if (me && me.id === parseInt(userId, 10)) {
+        userCredits = res.credits;
+        localStorage.setItem('aas_credits', userCredits);
+        updateCreditDisplays();
+      }
+    } catch (err) {
+      msg(err.message, 'error');
+    }
+  });
+
+  // Admin Permission & Role Modal handlers
+  window.appOpenPermModal = (userId, username, email, role, permsEncoded) => {
+    $('adminPermUserId').value = userId;
+    $('adminPermUsername').textContent = username;
+    $('adminPermEmail').textContent = email;
+    $('adminPermRoleSelect').value = role || 'member';
+
+    let perms = {};
+    try {
+      if (permsEncoded) perms = JSON.parse(decodeURIComponent(permsEncoded));
+    } catch {}
+
+    $('perm_can_video').checked = perms.can_video !== false;
+    $('perm_can_radar').checked = perms.can_radar !== false;
+    $('perm_can_shopee').checked = perms.can_shopee !== false;
+    $('perm_can_queue').checked = perms.can_queue !== false;
+    $('perm_can_community').checked = perms.can_community !== false;
+
+    $('adminPermissionModal').style.display = 'flex';
+  };
+
+  $('closeAdminPermModalBtn')?.addEventListener('click', () => { $('adminPermissionModal').style.display = 'none'; });
+  $('cancelAdminPermBtn')?.addEventListener('click', () => { $('adminPermissionModal').style.display = 'none'; });
+
+  $('adminPermForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const userId = $('adminPermUserId').value;
+    const role = $('adminPermRoleSelect').value;
+    const perms = {
+      can_video: $('perm_can_video').checked,
+      can_radar: $('perm_can_radar').checked,
+      can_shopee: $('perm_can_shopee').checked,
+      can_queue: $('perm_can_queue').checked,
+      can_community: $('perm_can_community').checked
+    };
+
+    try {
+      await api(`/api/admin/users/${userId}/role`, 'PATCH', { role });
+      await api(`/api/admin/users/${userId}/permissions`, 'PATCH', { permissions: perms });
+      msg('บันทึกสิทธิ์และระดับบทบาทสมาชิกเรียบร้อย');
+      $('adminPermissionModal').style.display = 'none';
+      await loadUsers();
+    } catch (err) {
+      msg(err.message, 'error');
+    }
+  });
 
   $('openAddUserModalBtn')?.addEventListener('click', () => {
     $('addUserModal').hidden = false;
@@ -1867,6 +2038,8 @@
     updateCreditDisplays();
     initPillSelectors();
     initTopupModal();
+    await loadSystemSettings();
+    initSystemToggles();
     await refreshDashboard();
     startMockupCanvasAnimation();
   }

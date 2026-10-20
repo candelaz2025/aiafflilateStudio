@@ -2172,6 +2172,137 @@ button, input, select, textarea {
   box-shadow: 0 10px 20px rgba(0,0,0,0.4);
 }
 
+/* ==========================================================================
+   ADMIN SYSTEM MASTER TOGGLES & PERMISSION CONTROLS
+   ========================================================================== */
+.system-toggles-container {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow-sm);
+}
+
+.system-toggles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.system-toggle-card {
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  transition: all 150ms ease;
+}
+
+.system-toggle-card:hover {
+  border-color: var(--color-border-hover);
+}
+
+.system-toggle-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.system-toggle-icon {
+  font-size: 20px;
+}
+
+.system-toggle-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-main);
+  line-height: 1.2;
+}
+
+.system-toggle-status {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+/* Switch Toggle UI */
+.switch-label {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.switch-label input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.switch-track {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background-color: #CBD5E1;
+  transition: 200ms ease;
+  border-radius: 9999px;
+}
+
+[data-theme="dark"] .switch-track {
+  background-color: #334155;
+}
+
+.switch-track::before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 200ms ease;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.switch-label input:checked + .switch-track {
+  background-color: #10B981;
+}
+
+.switch-label input:checked + .switch-track::before {
+  transform: translateX(20px);
+}
+
+.switch-label.danger-switch input:checked + .switch-track {
+  background-color: #EF4444;
+}
+
+/* Perm chips */
+.perm-chip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  margin-right: 3px;
+  margin-bottom: 2px;
+}
+
+.perm-chip.active {
+  background: var(--color-primary-subtle);
+  border-color: var(--color-primary-border);
+  color: var(--color-primary);
+}
+
 @media (max-width: 1200px) {
   .pricing-grid-4 {
     grid-template-columns: repeat(2, 1fr);
