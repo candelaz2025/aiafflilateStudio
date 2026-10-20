@@ -1,3 +1,107 @@
-<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Update Center — Affiliate Auto Studio</title><link rel="stylesheet" href="/static/styles.css"></head>
-<body><header><div class="wrap header"><div class="brand"><span class="mark">A</span><div><strong>Affiliate Auto Studio</strong><small>Community Lab · Update Center V7.4</small></div></div><nav><a class="support-link" href="/">← Community</a> · <a class="support-link" href="/donate">Donate</a></nav></div></header>
-<main class="wrap"><aside class="banner">Update Center เป็นเครื่องมือสำหรับโปรแกรมบนคอมเท่านั้น ไม่ใช่การอัปเดตบัญชี TikTok/Shopee และยังไม่ได้เชื่อมบริการแจ้งเตือนเวอร์ชันออนไลน์</aside><section class="panel" style="max-width:820px;margin:24px auto;padding:25px"><h1>⬆ ศูนย์อัปเดตระบบ</h1><p>เวอร์ชันที่ติดตั้ง: <strong id="version">กำลังตรวจสอบ...</strong></p><p>การอัปเดตจะสำรองข้อมูลบัญชี/คีย์และเก็บไฟล์เดิมไว้ในโฟลเดอร์ <code>updates/backups</code> ก่อนเปลี่ยนโค้ด แต่ไม่แทนที่ข้อมูลสมาชิกเดิม</p><h2>อัปเดตบน Windows</h2><ol><li>ดาวน์โหลดไฟล์แพตช์ ZIP จากช่องทางที่เชื่อถือได้</li><li>ปิดหน้าต่าง CMD ที่เปิดโปรแกรมนี้อยู่</li><li>นำไฟล์ ZIP ไปใส่โฟลเดอร์ <code>updates/inbox</code> (ใส่ครั้งละ 1 ไฟล์)</li><li>ดับเบิลคลิก <code>update_windows.bat</code> แล้วเปิด <code>run_windows.bat</code> อีกครั้ง</li></ol><p><strong>สำคัญ:</strong> V7.4 เพิ่ม Studio ส่วนตัวของสมาชิกและจำกัด Beta 100 บัญชี แต่ยังไม่รองรับการโพสต์และสร้างวิดีโออัตโนมัติในบัญชีสมาชิก การเปิดเว็บออนไลน์ต้องทดสอบความปลอดภัยและใช้ HTTPS ก่อน</p><p><a href="/">กลับหน้าหลัก</a></p></section></main><script>fetch('/api/system/version').then(r=>r.json()).then(x=>{document.getElementById('version').textContent=x.version}).catch(()=>{document.getElementById('version').textContent='ไม่สามารถตรวจสอบได้'})</script></body></html>
+<!doctype html>
+<html lang="th" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>ศูนย์อัปเดตระบบ (Update Center) | Affiliate Auto Studio</title>
+  <link rel="stylesheet" href="/static/styles.css?v=20261020-003">
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('aas_theme') || 'light';
+      document.documentElement.dataset.theme = savedTheme;
+    })();
+  </script>
+</head>
+<body style="min-height:100vh; display:flex; flex-direction:column; background:var(--color-bg); color:var(--color-text-main);">
+
+<!-- TOP NAVIGATION BAR -->
+<header style="position:sticky; top:0; z-index:100; border-bottom:1px solid var(--color-border); background:var(--color-surface); backdrop-filter:blur(8px);">
+  <div style="max-width:1100px; margin:0 auto; padding:0 20px; height:64px; display:flex; align-items:center; justify-content:space-between;">
+    <a href="/" style="display:flex; align-items:center; gap:12px; text-decoration:none; color:var(--color-text-main);">
+      <div class="brand-icon" style="width:36px; height:36px; background:linear-gradient(135deg, #2563EB, #1D4ED8); color:#fff; font-weight:800; border-radius:10px; display:flex; align-items:center; justify-content:center;">A</div>
+      <div>
+        <strong style="font-size:15px; display:block; line-height:1.2;">Affiliate Auto Studio</strong>
+        <span style="font-size:11px; color:var(--color-text-muted); font-family:var(--font-mono);">UPDATE CENTER · V7.10</span>
+      </div>
+    </a>
+
+    <div style="display:flex; align-items:center; gap:10px;">
+      <a href="/landing" class="btn btn-ghost btn-sm" style="font-weight:600;">หน้าแรก</a>
+      <a href="/community" class="btn btn-ghost btn-sm" style="font-weight:600;">ชุมชน</a>
+      <a href="/donate" class="support-link btn btn-ghost btn-sm" style="font-weight:600;">สนับสนุน</a>
+      <a href="/" class="btn btn-primary btn-sm" style="font-weight:600;">กลับ Dashboard</a>
+      <button id="updateThemeBtn" class="btn btn-ghost btn-icon" title="สลับโหมดสว่าง/มืด" aria-label="Toggle Theme">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main style="max-width:960px; margin:0 auto; padding:36px 20px 60px; flex:1; width:100%;">
+  <div style="padding:14px 20px; background:var(--color-primary-subtle); border:1px solid var(--color-primary-border); border-radius:var(--radius-md); font-size:13px; color:var(--color-primary); margin-bottom:24px; display:flex; align-items:center; gap:10px;">
+    <span>ℹ️</span>
+    <span>Update Center สำหรับการติดตั้งแพตช์โปรแกรมบนเครื่องคอมพิวเตอร์ของคุณ ข้อมูลบัญชีและ API Keys จะได้รับการสำรองอัตโนมัติก่อนเปลี่ยนโค้ด</span>
+  </div>
+
+  <div class="mf-card" style="padding:32px; margin-bottom:24px;">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px; flex-wrap:wrap; gap:14px;">
+      <div>
+        <span class="chip chip-primary mono" style="margin-bottom:8px;">SYSTEM UPGRADE</span>
+        <h1 style="font-size:26px; font-weight:800; margin-bottom:6px;">⬆ ศูนย์อัปเดตระบบ (Update Center)</h1>
+        <p style="font-size:14px; color:var(--color-text-muted);">จัดการเวอร์ชันและตรวจสอบความพร้อมของแพ็กเกจระบบ</p>
+      </div>
+
+      <div style="background:var(--color-surface-subtle); border:1px solid var(--color-border); border-radius:var(--radius-md); padding:12px 18px; text-align:right;">
+        <div style="font-size:11px; color:var(--color-text-muted); text-transform:uppercase; font-weight:700;">เวอร์ชันที่ติดตั้ง</div>
+        <strong id="version" class="mono" style="font-size:20px; color:var(--color-primary);">กำลังตรวจสอบ...</strong>
+      </div>
+    </div>
+
+    <h2 style="font-size:18px; font-weight:700; margin-top:24px; margin-bottom:14px;">ขั้นตอนการอัปเดตบน Windows</h2>
+    <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:24px;">
+      <div style="display:flex; gap:14px; align-items:flex-start; padding:14px; background:var(--color-surface-subtle); border-radius:var(--radius-md);">
+        <div style="width:28px; height:28px; border-radius:50%; background:var(--color-primary); color:#fff; font-weight:800; font-size:13px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">1</div>
+        <div style="font-size:14px;">ดาวน์โหลดไฟล์แพตช์ ZIP เวอร์ชันใหม่จากช่องทางทางการที่เชื่อถือได้</div>
+      </div>
+      <div style="display:flex; gap:14px; align-items:flex-start; padding:14px; background:var(--color-surface-subtle); border-radius:var(--radius-md);">
+        <div style="width:28px; height:28px; border-radius:50%; background:var(--color-primary); color:#fff; font-weight:800; font-size:13px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">2</div>
+        <div style="font-size:14px;">ปิดหน้าต่าง Command Prompt / Terminal ที่กำลังรันระบบอยู่</div>
+      </div>
+      <div style="display:flex; gap:14px; align-items:flex-start; padding:14px; background:var(--color-surface-subtle); border-radius:var(--radius-md);">
+        <div style="width:28px; height:28px; border-radius:50%; background:var(--color-primary); color:#fff; font-weight:800; font-size:13px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">3</div>
+        <div style="font-size:14px;">นำไฟล์ ZIP ไปวางในโฟลเดอร์ <code class="mono" style="background:var(--color-surface); padding:2px 6px; border-radius:4px; border:1px solid var(--color-border);">updates/inbox</code> (ใส่ครั้งละ 1 ไฟล์)</div>
+      </div>
+      <div style="display:flex; gap:14px; align-items:flex-start; padding:14px; background:var(--color-surface-subtle); border-radius:var(--radius-md);">
+        <div style="width:28px; height:28px; border-radius:50%; background:var(--color-primary); color:#fff; font-weight:800; font-size:13px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">4</div>
+        <div style="font-size:14px;">ดับเบิลคลิกไฟล์ <code class="mono" style="background:var(--color-surface); padding:2px 6px; border-radius:4px; border:1px solid var(--color-border);">update_windows.bat</code> แล้วเปิด <code class="mono" style="background:var(--color-surface); padding:2px 6px; border-radius:4px; border:1px solid var(--color-border);">run_windows.bat</code> อีกครั้ง</div>
+      </div>
+    </div>
+
+    <div style="border-top:1px solid var(--color-border); padding-top:18px; font-size:13px; color:var(--color-text-muted);">
+      <p><strong>ข้อควรระวัง:</strong> ข้อมูลสมาชิกรวมถึงฐานข้อมูล <code>data/community.db</code> จะไม่ถูกเขียนทับ แต่เพื่อความปลอดภัยควรสำรองข้อมูลสม่ำเสมอ</p>
+    </div>
+  </div>
+</main>
+
+<footer style="padding:20px; text-align:center; border-top:1px solid var(--color-border); background:var(--color-surface); font-size:13px; color:var(--color-text-muted);">
+  Affiliate Auto Studio Beta V7.10 · <a href="/" style="color:var(--color-primary); text-decoration:none;">กลับหน้า Dashboard</a>
+</footer>
+
+<script>
+  fetch('/api/system/version')
+    .then(r => r.json())
+    .then(x => { document.getElementById('version').textContent = x.version || '0.7.10'; })
+    .catch(() => { document.getElementById('version').textContent = 'ไม่สามารถตรวจสอบได้'; });
+
+  document.getElementById('updateThemeBtn')?.addEventListener('click', () => {
+    const cur = document.documentElement.dataset.theme;
+    const next = cur === 'dark' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = next;
+    localStorage.setItem('aas_theme', next);
+  });
+</script>
+</body>
+</html>

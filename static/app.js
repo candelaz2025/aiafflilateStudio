@@ -842,10 +842,210 @@
   });
 
   // ==========================================
-  // AI VIDEO GENERATOR & 9:16 MOCKUP PLAYER
+  // AI VIDEO GENERATOR, MODEL COSTS & SMARTPHONE MOCKUP
   // ==========================================
+  const MODEL_COSTS = {
+    'seedance_25': { name: 'Seedance 2.5 Video', credits: 15, baht: '5.25', tag: '🎬 คุณภาพสตูดิโอ' },
+    'nano_banana_pro': { name: 'Nano Banana Pro', credits: 2, baht: '0.70', tag: '⚡ เร็วพิเศษ' },
+    'google_veo': { name: 'Google Veo 3.1 Preview', credits: 10, baht: '3.50', tag: '🎥 Gemini High-Motion' },
+    'kling_30': { name: 'Kling 3.0 Ultra', credits: 8, baht: '2.80', tag: '🚀 Cinematic Motion' },
+    'seedream_50': { name: 'Seedream 5.0 Pro', credits: 6, baht: '2.10', tag: '✨ Photorealistic' },
+    'mockup_instant': { name: 'Instant AI Mockup', credits: 0, baht: '0.00', tag: '🆓 ฟรี' }
+  };
+
+  let userCredits = parseInt(localStorage.getItem('aas_credits'), 10);
+  if (isNaN(userCredits)) userCredits = 200;
+
+  function updateCreditDisplays() {
+    const energyEl = $('topbarEnergy');
+    if (energyEl) energyEl.textContent = `⚡ ${userCredits.toLocaleString()} เครดิต`;
+
+    const summaryBal = $('summaryBalance');
+    if (summaryBal) summaryBal.textContent = `⚡ ${userCredits.toLocaleString()} เครดิต`;
+
+    updateModelCostCard();
+  }
+
+  function updateModelCostCard() {
+    const sel = $('video-engine-select');
+    if (!sel) return;
+    const modelKey = sel.value || 'seedance_25';
+    const info = MODEL_COSTS[modelKey] || { name: modelKey, credits: 5, baht: '1.75' };
+
+    const modelNameEl = $('summaryModelName');
+    if (modelNameEl) modelNameEl.textContent = info.name;
+
+    const costEl = $('summaryCostCredits');
+    if (costEl) {
+      if (info.credits > 0) {
+        costEl.textContent = `⚡ ${info.credits} เครดิต (~฿${info.baht})`;
+      } else {
+        costEl.textContent = `🆓 0 เครดิต (ฟรี)`;
+      }
+    }
+
+    const runsEl = $('summaryRunsLeft');
+    if (runsEl) {
+      if (info.credits > 0) {
+        const runs = Math.floor(userCredits / info.credits);
+        runsEl.textContent = `สามารถสร้างได้อีก ~${runs.toLocaleString()} คลิป จากเครดิตปัจจุบัน`;
+      } else {
+        runsEl.textContent = `สร้างได้ไม่จำกัด (โหมดพรีวิวฟรี)`;
+      }
+    }
+  }
+
+  $('video-engine-select')?.addEventListener('change', updateModelCostCard);
+
+  // Aspect Ratio & Duration Selectors
+  const RATIO_MAP = {
+    '9-16': { cls: 'ratio-9-16', w: 320, h: 580, label: '9:16 Social story' },
+    '16-9': { cls: 'ratio-16-9', w: 520, h: 292, label: '16:9 Widescreen' },
+    '1-1': { cls: 'ratio-1-1', w: 380, h: 380, label: '1:1 Square' },
+    '4-5': { cls: 'ratio-4-5', w: 340, h: 425, label: '4:5 Portrait' },
+    '4-3': { cls: 'ratio-4-3', w: 400, h: 300, label: '4:3 Classic' },
+    '21-9': { cls: 'ratio-21-9', w: 560, h: 240, label: '21:9 Ultrawide' },
+    '9-21': { cls: 'ratio-9-21', w: 280, h: 620, label: '9:21 Vertical ultrawide' },
+    '3-4': { cls: 'ratio-3-4', w: 320, h: 426, label: '3:4 Traditional' },
+  };
+
+  function initPillSelectors() {
+    const durationBtn = $('durationPillBtn');
+    const durationMenu = $('durationDropdownMenu');
+    const ratioBtn = $('ratioPillBtn');
+    const ratioMenu = $('ratioDropdownMenu');
+    const audioBtn = $('audioPillBtn');
+
+    durationBtn?.addEventListener('click', e => {
+      e.stopPropagation();
+      durationMenu?.classList.toggle('show');
+      ratioMenu?.classList.remove('show');
+    });
+
+    document.querySelectorAll('#durationDropdownMenu .pill-opt-item').forEach(item => {
+      item.addEventListener('click', () => {
+        document.querySelectorAll('#durationDropdownMenu .pill-opt-item').forEach(x => x.classList.remove('selected'));
+        item.classList.add('selected');
+        const label = item.textContent.trim();
+        $('durationPillLabel').textContent = label;
+        $('hiddenDurationInput').value = item.dataset.duration;
+        $('summaryDuration').textContent = label;
+        durationMenu?.classList.remove('show');
+      });
+    });
+
+    ratioBtn?.addEventListener('click', e => {
+      e.stopPropagation();
+      ratioMenu?.classList.toggle('show');
+      durationMenu?.classList.remove('show');
+    });
+
+    document.querySelectorAll('#ratioDropdownMenu .pill-opt-item').forEach(item => {
+      item.addEventListener('click', () => {
+        document.querySelectorAll('#ratioDropdownMenu .pill-opt-item').forEach(x => x.classList.remove('selected'));
+        item.classList.add('selected');
+        const ratioKey = item.dataset.ratio;
+        const config = RATIO_MAP[ratioKey] || RATIO_MAP['9-16'];
+
+        $('ratioPillLabel').textContent = config.label;
+        $('hiddenAspectRatioInput').value = config.label;
+        ratioMenu?.classList.remove('show');
+
+        // Dynamically apply ratio class to preview container
+        const frame = document.querySelector('.phone-mockup-frame');
+        if (frame) {
+          Object.values(RATIO_MAP).forEach(r => frame.classList.remove(r.cls));
+          frame.classList.add(config.cls);
+        }
+
+        const canvas = $('simulatedCanvas');
+        if (canvas) {
+          canvas.width = config.w;
+          canvas.height = config.h;
+        }
+
+        msg(`เปลี่ยนสัดส่วนวิดีโอเป็น ${config.label}`);
+      });
+    });
+
+    audioBtn?.addEventListener('click', () => {
+      const isCurrentlyOn = audioBtn.classList.contains('active');
+      audioBtn.classList.toggle('active', !isCurrentlyOn);
+      $('audioPillIcon').textContent = !isCurrentlyOn ? '🔊' : '🔇';
+      $('audioPillLabel').textContent = !isCurrentlyOn ? 'ON' : 'OFF';
+      $('hiddenAudioInput').value = !isCurrentlyOn ? 'true' : 'false';
+      msg(!isCurrentlyOn ? 'เปิดเสียงพากย์และซาวด์เอฟเฟกต์' : 'ปิดเสียง (Mute)');
+    });
+
+    window.addEventListener('click', e => {
+      if (!e.target.closest('#durationDropdownWrap')) durationMenu?.classList.remove('show');
+      if (!e.target.closest('#ratioDropdownWrap')) ratioMenu?.classList.remove('show');
+    });
+  }
+
+  // Topup Modal & Checkout Logic
+  let pendingCheckout = null;
+
+  function openTopupModal() {
+    $('topupModal').style.display = 'flex';
+  }
+  function closeTopupModal() {
+    $('topupModal').style.display = 'none';
+  }
+
+  function initTopupModal() {
+    $('topupModalTriggerBtn')?.addEventListener('click', openTopupModal);
+    $('energyBadgeClickable')?.addEventListener('click', openTopupModal);
+    $('costCardTopupBtn')?.addEventListener('click', openTopupModal);
+    $('closeTopupModalBtn')?.addEventListener('click', closeTopupModal);
+
+    $('topupModal')?.addEventListener('click', e => {
+      if (e.target === $('topupModal')) closeTopupModal();
+    });
+
+    const planNames = {
+      starter: 'Starter (200 เครดิต)',
+      plus: 'Plus [ลด 20%] (1,000 เครดิต)',
+      ultra: 'Ultra [ลด 23%] (3,000 เครดิต)',
+      teams: 'For Teams (แชร์เครดิตทีม)'
+    };
+
+    document.querySelectorAll('.btn-cta-tier').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const plan = btn.dataset.plan;
+        const credits = parseInt(btn.dataset.credits, 10);
+        const price = btn.dataset.price;
+
+        pendingCheckout = { plan, credits, price };
+        $('checkoutModalTitle').textContent = `ยืนยันการเติมแพ็กเกจ ${planNames[plan] || plan}`;
+        $('checkoutModalDesc').textContent = `คุณกำลังเติมแพ็กเกจ ${planNames[plan] || plan} ในราคา ฿${Number(price).toLocaleString()}`;
+        $('checkoutCreditsToAdd').textContent = `+${credits.toLocaleString()} เครดิต`;
+        $('checkoutPriceTotal').textContent = `฿${Number(price).toLocaleString()}.00`;
+
+        closeTopupModal();
+        $('topupCheckoutModal').style.display = 'flex';
+      });
+    });
+
+    $('cancelCheckoutBtn')?.addEventListener('click', () => {
+      $('topupCheckoutModal').style.display = 'none';
+      pendingCheckout = null;
+    });
+
+    $('confirmTopupBtn')?.addEventListener('click', () => {
+      if (!pendingCheckout) return;
+      userCredits += pendingCheckout.credits;
+      localStorage.setItem('aas_credits', userCredits);
+      updateCreditDisplays();
+      $('topupCheckoutModal').style.display = 'none';
+      msg(`🎉 เติมเครดิตสำเร็จ! ได้รับ +${pendingCheckout.credits.toLocaleString()} เครดิตแล้ว (ยอดคงเหลือ ⚡ ${userCredits.toLocaleString()} เครดิต)`);
+      pendingCheckout = null;
+    });
+  }
+
   async function loadVideoTab() {
     await loadDrafts();
+    updateCreditDisplays();
     try {
       const jobs = await api('/api/my/video-jobs');
       const list = $('videojoblist');
@@ -872,6 +1072,15 @@
     const draftId = $('video-draft-select').value;
     if (!draftId) return msg('กรุณาเลือกบทรีวิวก่อน', 'error');
 
+    const modelKey = $('video-engine-select').value || 'seedance_25';
+    const info = MODEL_COSTS[modelKey] || { name: modelKey, credits: 0 };
+
+    if (info.credits > 0 && userCredits < info.credits) {
+      msg(`เครดิตไม่เพียงพอ (ต้องการ ${info.credits} เครดิต แต่มี ${userCredits} เครดิต)`, 'error');
+      openTopupModal();
+      return;
+    }
+
     const draftText = $('video-draft-select').options[$('video-draft-select').selectedIndex].text;
     const progressBox = $('renderProgressBox');
     const progressBar = $('progressBarFill');
@@ -882,12 +1091,19 @@
     progressBox.style.display = 'block';
     $('generateVideoBtn').disabled = true;
 
+    // Deduct credits
+    if (info.credits > 0) {
+      userCredits -= info.credits;
+      localStorage.setItem('aas_credits', userCredits);
+      updateCreditDisplays();
+    }
+
     // Simulation Stages for realistic feel and instant prototype testability
     const stages = [
-      { pct: 20, stage: 'กำลังวิเคราะห์สคริปต์และจัดวางเฟรม 9:16...', detail: 'จัดวางตำแหน่งตะกร้า Shopee/TikTok และไอคอนตอบรับ' },
+      { pct: 20, stage: 'กำลังวิเคราะห์สคริปต์และจัดวางเฟรม 9:16...', detail: `โมเดล: ${info.name} (หัก ${info.credits} เครดิต)` },
       { pct: 50, stage: 'กำลังเรนเดอร์ภาพเคลื่อนไหวโมเดล 3D และตัวสินค้า...', detail: 'ประมวลผลแสงสตูดิโอและมุมกล้อง Dynamic Motion' },
       { pct: 80, stage: 'กำลังผสานเสียงพากย์และไดนามิกซับไตเติล...', detail: 'ซิงก์เสียง Voiceover ให้ตรงกับจังหวะของบทพูด 3 องก์' },
-      { pct: 100, stage: 'เรนเดอร์วิดีโอ 9:16 Mockup เสร็จสมบูรณ์! 🎉', detail: 'พร้อมเล่นตัวอย่างและส่งเข้าคิวโพสต์ทันที' }
+      { pct: 100, stage: 'เรนเดอร์วิดีโอ Mockup เสร็จสมบูรณ์! 🎉', detail: 'พร้อมเล่นตัวอย่างและส่งเข้าคิวโพสต์ทันที' }
     ];
 
     let currentStage = 0;
@@ -895,7 +1111,7 @@
       if (currentStage >= stages.length) {
         clearInterval(interval);
         $('generateVideoBtn').disabled = false;
-        msg('วิดีโอเรนเดอร์เสร็จสมบูรณ์! แสดงบนสมาร์ตโฟนแล้ว 🚀');
+        msg(`วิดีโอเรนเดอร์สำเร็จ! ใช้ไป ${info.credits} เครดิต (เหลือ ⚡ ${userCredits} เครดิต) 🚀`);
 
         // Update Phone Mockup captions and product title
         $('mockupScriptCaption').textContent = `"${draftText.split('·')[1] || 'พัดลมพกพาตัวนี้บอกเลยว่าโคตรเย็น! ปักตะกร้าส้มเลยจ้า'}"`;
@@ -1648,6 +1864,9 @@
     applyLanguage(localStorage.getItem('lang') || 'th');
     await checkSession();
     setupRadar();
+    updateCreditDisplays();
+    initPillSelectors();
+    initTopupModal();
     await refreshDashboard();
     startMockupCanvasAnimation();
   }

@@ -1,40 +1,202 @@
 <!doctype html>
-<html lang="th">
+<html lang="th" data-theme="light">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>สนับสนุนการพัฒนา | Affiliate Auto Studio</title>
-<link rel="stylesheet" href="/static/styles.css">
-<link rel="stylesheet" href="/static/donate.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>สนับสนุนการพัฒนา | Affiliate Auto Studio</title>
+  <link rel="stylesheet" href="/static/styles.css?v=20261020-002">
+  <link rel="stylesheet" href="/static/donate.css?v=20261020-002">
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('aas_theme') || 'light';
+      document.documentElement.dataset.theme = savedTheme;
+    })();
+  </script>
 </head>
 <body>
-<header><div class="wrap header"><div class="brand"><span class="mark">A</span><div><strong>Affiliate Auto Studio</strong><small>Neon Beta V7.4 · Development Fund</small></div></div><a class="back-link" href="/">← กลับหน้า Community</a></div></header>
-<main class="wrap donation-main">
-  <div class="donation-intro"><span class="eyebrow">COMMUNITY SUPPORTED</span><h1>ร่วมสนับสนุนให้ระบบนี้เติบโตไปด้วยกัน ❤</h1><p>เราอยากให้ Affiliate Auto Studio เป็นเครื่องมือที่ทุกคนมีส่วนช่วยกันสร้างได้ เงินสนับสนุนโดยสมัครใจจะช่วยเป็นค่าเซิร์ฟเวอร์ ค่าทดสอบ และเวลาพัฒนาฟีเจอร์ใหม่ ๆ</p></div>
-  <div class="donation-grid">
-    <section class="bank-card" aria-label="บัญชีรับเงินสนับสนุน"><div class="bank-card-top"><span class="bank-monogram">SCB</span><div><strong>โอนผ่านแอปธนาคาร</strong><small>ตรวจสอบชื่อผู้รับก่อนยืนยันทุกครั้ง</small></div></div>
-      <div class="bank-body">
-        <div class="bank-label">ธนาคาร</div><div class="bank-value" id="bank">กำลังโหลดข้อมูล...</div>
-        <div class="bank-label">เลขที่บัญชี</div><div class="account-row"><strong id="account">—</strong><button type="button" id="copyAccount" class="copy-button" disabled>คัดลอกเลขบัญชี</button></div>
-        <div class="bank-label">ชื่อบัญชีผู้รับ</div><div class="bank-value" id="payee">—</div>
-        <button type="button" id="copyAll" class="wide-button" disabled>คัดลอกข้อมูลสำหรับโอน</button>
+
+<!-- TOP NAVIGATION BAR -->
+<header class="donate-nav">
+  <div class="donate-nav-inner">
+    <a href="/" class="brand-group">
+      <div class="brand-icon">A</div>
+      <div class="brand-text">
+        <strong>Affiliate Auto Studio</strong>
+        <small>DEVELOPMENT FUND · METRIC FLOW</small>
       </div>
-      <div class="transfer-note">เงินจะโอนเข้าบัญชีผู้พัฒนาโดยตรง · ไม่มีการตัดเงินจากแอปโดยอัตโนมัติ · ยังไม่มี QR รับชำระเงินที่ตรวจสอบแล้ว</div>
-    </section>
-    <aside class="how-card"><div class="heart-icon">♥</div><h2>ทุกการสนับสนุนมีความหมาย</h2><ol><li>เปิดแอปธนาคารของคุณ</li><li>เลือกโอนเงินไปยังบัญชีตามที่แสดง</li><li>ตรวจสอบชื่อผู้รับและจำนวนเงินก่อนโอน</li><li>ถ้ามีบัญชี Community สามารถแจ้งโอนให้ผู้ดูแลตรวจสอบได้ด้านล่าง</li></ol><p id="notice" class="fine-print">การสนับสนุนโดยสมัครใจ ไม่ใช่ค่าสมัคร ไม่ได้ให้สิทธิ์ใช้ฟีเจอร์เพิ่มเติมโดยอัตโนมัติ และไม่ใช่การบริจาคที่ยืนยันสิทธิลดหย่อนภาษี</p></aside>
+    </a>
+
+    <div class="nav-actions">
+      <a class="nav-link" href="/landing">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
+        <span>หน้าแรก (Landing)</span>
+      </a>
+      <a class="nav-link" href="/community">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+        <span>ชุมชน (Community)</span>
+      </a>
+      <a class="back-link" href="/">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+        <span>กลับ Dashboard</span>
+      </a>
+      <button class="theme-toggle-btn" id="themeToggleBtn" title="สลับโหมดสว่าง/มืด" aria-label="Toggle Theme">
+        <svg id="themeIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+      </button>
+    </div>
   </div>
+</header>
+
+<!-- MAIN CONTENT -->
+<main class="donation-main">
+  <!-- INTRO -->
+  <div class="donation-intro">
+    <span class="eyebrow">✦ COMMUNITY SUPPORTED · VOLUNTARY FUND</span>
+    <h1>ร่วมสนับสนุนการพัฒนา เพื่อขับเคลื่อนระบบเติบโตไปด้วยกัน ❤</h1>
+    <p>เราตั้งใจพัฒนา Affiliate Auto Studio ให้เป็นเครื่องมือที่ทรงพลังและใช้งานง่ายที่สุดสำหรับครีเอเตอร์ชาวไทย เงินสนับสนุนโดยสมัครใจช่วยเป็นค่าเซิร์ฟเวอร์ ประมวลผล AI การทดสอบ และต่อยอดฟีเจอร์ใหม่ ๆ ให้ดียิ่งขึ้น</p>
+  </div>
+
+  <!-- DONATION GRID -->
+  <div class="donation-grid">
+    <!-- BANK CARD -->
+    <section class="bank-card" aria-label="บัญชีรับเงินสนับสนุน">
+      <div class="bank-card-top">
+        <span class="bank-monogram">SCB</span>
+        <div>
+          <strong>โอนผ่านแอปธนาคาร (SCB Easy / ทุกธนาคาร)</strong>
+          <small>กรุณาตรวจสอบชื่อผู้รับให้ตรงกับข้อมูลด้านล่างก่อนกดยืนยัน</small>
+        </div>
+      </div>
+
+      <div class="bank-body">
+        <div class="bank-label">ธนาคาร</div>
+        <div class="bank-value" id="bank">กำลังโหลดข้อมูล...</div>
+
+        <div class="bank-label">เลขที่บัญชี</div>
+        <div class="account-row">
+          <strong id="account">—</strong>
+          <button type="button" id="copyAccount" class="copy-button" disabled>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            <span>คัดลอกเลขบัญชี</span>
+          </button>
+        </div>
+
+        <div class="bank-label">ชื่อบัญชีผู้รับ</div>
+        <div class="bank-value" id="payee">—</div>
+
+        <button type="button" id="copyAll" class="wide-button" disabled>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+          <span>คัดลอกข้อมูลโอนทั้งหมด</span>
+        </button>
+      </div>
+
+      <div class="transfer-note">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline; vertical-align:middle; margin-right:4px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+        เงินจะโอนเข้าบัญชีผู้พัฒนาโดยตรง · ไม่มีการตัดเงินอัตโนมัติจากแอป · ระบบไม่มีส่วนเกี่ยวข้องกับการหักเงินในบัญชีของท่าน
+      </div>
+    </section>
+
+    <!-- HOW-TO & DISCLOSURE CARD -->
+    <aside class="how-card">
+      <div class="heart-icon">♥</div>
+      <h2>ทุกการสนับสนุนมีความหมายอย่างยิ่ง</h2>
+      <ol>
+        <li>เปิดแอปธนาคารใดก็ได้ในโทรศัพท์มือถือของคุณ</li>
+        <li>เลือกเมนูโอนเงิน และระบุเลขบัญชีไทยพาณิชย์ตามที่แสดง</li>
+        <li>ตรวจสอบชื่อผู้รับ <strong>นาย กฤตลักษณ์ สุขใส</strong> ก่อนยืนยัน</li>
+        <li>เข้าสู่ระบบเพื่อแจ้งยอดสนับสนุนด้านล่าง เพื่อให้แอดมินบันทึกประวัติ</li>
+      </ol>
+
+      <p id="notice" class="fine-print">
+        การสนับสนุนโดยสมัครใจ ไม่ใช่ค่าสมัคร ไม่ได้ให้สิทธิ์ใช้ฟีเจอร์เพิ่มเติมโดยอัตโนมัติ และไม่ใช่การบริจาคที่ยืนยันสิทธิลดหย่อนภาษี
+      </p>
+    </aside>
+  </div>
+
+  <!-- DONATION REPORTING -->
   <section id="reportArea" class="report-card">
-    <div class="report-heading"><div><h2>แจ้งการสนับสนุน</h2><p>ส่วนนี้เป็นเพียงการแจ้งข้อมูล ไม่ใช่หลักฐานยืนยันว่าได้รับเงินแล้ว</p></div><span class="review-tag">ตรวจสอบโดยผู้ดูแล</span></div>
-    <p id="loginPrompt">ถ้าโอนแล้วและต้องการติดตามสถานะ สามารถ <a href="/">เข้าสู่ระบบ Community</a> เพื่อแจ้งการโอนได้ ไม่บังคับสมัครเพื่อโอนเงิน</p>
+    <div class="report-heading">
+      <div>
+        <h2>📝 แจ้งการสนับสนุน (บันทึกเข้าระบบ)</h2>
+        <p>ส่วนนี้เป็นแบบฟอร์มแจ้งข้อมูลเพื่อส่งให้ผู้ดูแลระบบตรวจสอบ ไม่ใช่หลักฐานยืนยันยอดทันที</p>
+      </div>
+      <span class="review-tag">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+        ตรวจสอบโดยผู้ดูแล
+      </span>
+    </div>
+
+    <p id="loginPrompt" style="padding:16px; background:var(--color-surface-subtle); border-radius:var(--radius-md); font-size:14px; border:1px solid var(--color-border);">
+      ถ้าโอนแล้วและต้องการติดตามสถานะ สามารถ <a href="/" style="color:var(--color-primary); font-weight:700; text-decoration:none;">เข้าสู่ระบบ Community</a> เพื่อแจ้งการโอนได้ (ไม่บังคับสมัครเพื่อโอนเงิน)
+    </p>
+
     <form id="reportForm" hidden>
-      <div class="form-two"><label>จำนวนที่โอน (บาท)<input name="amount_baht" type="number" min="1" max="1000000" step="0.01" inputmode="decimal" placeholder="เช่น 100" required></label><label>หมายเหตุ (ไม่จำเป็น)<input name="note" maxlength="200" placeholder="เช่น โอนวันนี้เวลา 14:30"></label></div>
-      <p class="fine-print">ไม่ต้องส่งรหัสธนาคาร รหัสผ่าน OTP หรือข้อมูลบัตร และกรุณาตรวจสอบว่าโอนเงินจริงก่อนแจ้ง</p>
-      <button type="submit" class="submit-report">ส่งข้อมูลแจ้งโอน (รอตรวจสอบ)</button>
+      <div class="form-two">
+        <label>
+          <span>จำนวนเงินที่โอน (บาท) *</span>
+          <input name="amount_baht" type="number" min="1" max="1000000" step="0.01" inputmode="decimal" placeholder="เช่น 100.00" required>
+        </label>
+        <label>
+          <span>บันทึกช่วยจำ / เวลาที่โอน (ไม่จำเป็น)</span>
+          <input name="note" maxlength="200" placeholder="เช่น โอนผ่าน SCB วันนี้เวลา 14:30 น.">
+        </label>
+      </div>
+      <p class="fine-print" style="margin-bottom:14px; border:none; padding:0;">
+        ⚠️ ห้ามส่งรหัสผ่าน, PIN, หมายเลขบัตรเครดิต หรือ OTP เด็ดขาด และกรุณาตรวจสอบว่ามียอดเงินโอนจริงก่อนส่ง
+      </p>
+      <button type="submit" class="submit-report">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m22 2-7 20-4-9-9-4Z"></path><path d="M22 2 11 13"></path></svg>
+        <span>ส่งข้อมูลแจ้งโอน (รอตรวจสอบ)</span>
+      </button>
     </form>
-    <div id="myHistory" hidden><h3>รายการแจ้งโอนของฉัน</h3><div id="myList" class="donation-list"></div></div>
+
+    <div id="myHistory" hidden style="margin-top:24px;">
+      <h3 style="font-size:16px; font-weight:700; margin-bottom:8px;">ประวัติการแจ้งโอนของฉัน</h3>
+      <div id="myList" class="donation-list"></div>
+    </div>
   </section>
-  <section id="adminArea" class="report-card" hidden><div class="report-heading"><div><h2>ตรวจสอบการสนับสนุน — ผู้ดูแล</h2><p>กดยืนยันเฉพาะรายการที่ตรวจสอบเงินเข้าบัญชีไทยพาณิชย์เรียบร้อยแล้ว</p></div></div><div id="adminList" class="donation-list"></div></section>
+
+  <!-- ADMIN VERIFICATION AREA -->
+  <section id="adminArea" class="report-card" hidden>
+    <div class="report-heading">
+      <div>
+        <h2>⚙️ ตรวจสอบรายการสนับสนุน (Admin Review)</h2>
+        <p>กดยืนยันเฉพาะรายการที่ได้ตรวจสอบรายการเดินบัญชี SCB แล้วว่าเงินเข้าจริง</p>
+      </div>
+      <span class="review-tag" style="background:var(--color-secondary-subtle); color:var(--color-secondary); border-color:var(--color-secondary-border);">
+        Admin Only
+      </span>
+    </div>
+    <div id="adminList" class="donation-list"></div>
+  </section>
+
   <p id="donateMessage" class="donation-message" role="status" aria-live="polite"></p>
 </main>
-<footer>Affiliate Auto Studio Beta V7.4 · ต้นแบบทดสอบบนเครื่อง · ยังไม่ได้เชื่อมธนาคารหรือระบบออกใบเสร็จ</footer>
-<script src="/static/donate.js" defer></script>
-</body></html>
+
+<!-- FOOTER -->
+<footer>
+  <div style="max-width:1100px; margin:0 auto; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+    <span>Affiliate Auto Studio Beta V7.10 · ชุมชนนักสร้างคอนเทนต์ Affiliate ระบบอัตโนมัติ</span>
+    <span>
+      <a href="/" style="color:var(--color-text-muted); text-decoration:none; margin-right:12px;">Dashboard</a>
+      <a href="/landing" style="color:var(--color-text-muted); text-decoration:none; margin-right:12px;">Landing Page</a>
+      <a href="/community" style="color:var(--color-text-muted); text-decoration:none;">Community</a>
+    </span>
+  </div>
+</footer>
+
+<script>
+  // Theme Toggle logic
+  const themeBtn = document.getElementById('themeToggleBtn');
+  themeBtn?.addEventListener('click', () => {
+    const current = document.documentElement.dataset.theme;
+    const next = current === 'dark' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = next;
+    localStorage.setItem('aas_theme', next);
+  });
+</script>
+<script src="/static/donate.js?v=20261020-002" defer></script>
+</body>
+</html>

@@ -4,9 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#3B82F6">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <meta name="description" content="Affiliate Auto Studio · AI Content Automation Dashboard with Metric Flow Design System">
   <title>Affiliate Auto Studio · V7.10</title>
-  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="/static/styles.css?v=20261020-002">
 </head>
 <body>
 
@@ -199,11 +202,17 @@
       </div>
 
       <div class="topbar-right">
-        <!-- Energy Quota Badge -->
-        <div class="energy-badge" title="โควต้าวิดีโอและ AI วันนี้">
+        <!-- Energy Quota & Credit Top-up Badge -->
+        <div class="energy-badge" id="energyBadgeClickable" style="cursor:pointer;" title="คลิกเพื่อเติมเครดิตและดูโควต้า">
           <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-          <span class="mono" id="topbarEnergy">⚡ 2.4 / 3 วันนี้</span>
+          <span class="mono" id="topbarEnergy">⚡ 200 เครดิต</span>
         </div>
+
+        <!-- Top-up Credits Button -->
+        <button class="btn btn-topup" id="topupModalTriggerBtn" title="เติมเครดิต AI">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+          <span data-i18n="btn_topup">เติมเครดิต</span>
+        </button>
 
         <!-- Language Toggle -->
         <div class="lang-toggle" role="group" aria-label="Language selection">
@@ -652,21 +661,116 @@
               </div>
 
               <div class="form-group">
-                <label class="form-label" data-i18n="label_choose_engine">2. เลือกเครื่องยนต์ AI (Engine)</label>
+                <label class="form-label" data-i18n="label_choose_engine">2. เลือก Model (AI Model)</label>
                 <select name="engine_type" id="video-engine-select" class="form-select">
-                  <option value="mockup_instant" selected data-i18n="opt_instant_mockup">⚡ Instant AI Video Mockup (เรนเดอร์ตัวอย่างทันที ไม่เสียเครดิต)</option>
-                  <option value="google_veo" data-i18n="opt_google_veo">🎥 Google Veo 3.1 Preview (Gemini API 9:16 8s)</option>
-                  <option value="grok_imagine" data-i18n="opt_grok_imagine">🌌 xAI Grok Imagine (Prompt-to-Video)</option>
+                  <option value="seedance_25" selected>🎬 Seedance 2.5 Video (15 เครดิต / คลิป ~฿5.25 - ภาพยนตร์สมจริง)</option>
+                  <option value="nano_banana_pro">⚡ Nano Banana Pro (2 เครดิต / คลิป ~฿0.70 - เร็วพิเศษ)</option>
+                  <option value="google_veo">🎥 Google Veo 3.1 Preview (10 เครดิต / คลิป ~฿3.50 - Gemini High-Motion)</option>
+                  <option value="kling_30">🚀 Kling 3.0 Ultra (8 เครดิต / คลิป ~฿2.80 - Cinematic Motion)</option>
+                  <option value="seedream_50">✨ Seedream 5.0 Pro (6 เครดิต / คลิป ~฿2.10 - Photorealistic)</option>
+                  <option value="mockup_instant">🆓 Instant AI Mockup (0 เครดิต - เรนเดอร์ตัวอย่างทันที ไม่เสียเครดิต)</option>
                 </select>
+
+                <!-- Model Cost Breakdown Card -->
+                <div class="model-cost-card" id="modelCostCard">
+                  <div class="cost-row">
+                    <div class="cost-item">
+                      <span class="cost-label" data-i18n="cost_model">โมเดลที่เลือก</span>
+                      <strong class="cost-val" id="summaryModelName">Seedance 2.5 Video</strong>
+                    </div>
+                    <div class="cost-item">
+                      <span class="cost-label" data-i18n="cost_duration">ความยาวคลิป</span>
+                      <strong class="cost-val" id="summaryDuration">5-6" Short</strong>
+                    </div>
+                    <div class="cost-item">
+                      <span class="cost-label" data-i18n="cost_per_clip">ต้นทุนต่อคลิป</span>
+                      <strong class="cost-val cost-credits" id="summaryCostCredits">⚡ 15 เครดิต (~฿5.25)</strong>
+                    </div>
+                    <div class="cost-item">
+                      <span class="cost-label" data-i18n="cost_balance">เครดิตคงเหลือ</span>
+                      <strong class="cost-val" id="summaryBalance">⚡ 200 เครดิต</strong>
+                    </div>
+                  </div>
+                  <div class="cost-bar-progress">
+                    <span id="summaryRunsLeft">สามารถสร้างได้อีก ~13 คลิป จากเครดิตปัจจุบัน</span>
+                    <a href="javascript:void(0)" class="topup-link" id="costCardTopupBtn">+ เติมเครดิต</a>
+                  </div>
+                </div>
               </div>
 
+              <!-- 3. ขนาดและสัดส่วนวิดีโอ (Aspect Ratio) & ความยาว (Duration) -->
               <div class="form-group">
-                <label class="form-label" data-i18n="label_aspect_ratio">3. อัตราส่วนและรูปแบบ</label>
-                <div style="display:flex; gap:10px;">
-                  <span class="chip chip-primary mono">9:16 Vertical Video</span>
-                  <span class="chip chip-success mono">1080 x 1920 Full HD</span>
-                  <span class="chip chip-warning mono">Shopee & TikTok Ready</span>
+                <label class="form-label" data-i18n="label_aspect_ratio">3. สัดส่วนวิดีโอ (Aspect Ratio), ความยาว & เสียง</label>
+                
+                <div class="pill-selector-bar">
+                  <!-- Duration Pill Dropdown -->
+                  <div class="pill-dropdown-wrap" id="durationDropdownWrap">
+                    <button type="button" class="control-pill-btn" id="durationPillBtn">
+                      <span class="control-pill-icon">⏱</span>
+                      <span id="durationPillLabel">5-6" Short</span>
+                      <span style="font-size:10px; opacity:0.6;">▼</span>
+                    </button>
+                    <div class="pill-dropdown-menu" id="durationDropdownMenu">
+                      <div class="pill-opt-item" data-duration="quick"><strong>2-4"</strong> Quick</div>
+                      <div class="pill-opt-item selected" data-duration="short"><strong>5-6"</strong> Short</div>
+                      <div class="pill-opt-item" data-duration="long"><strong>8-10"</strong> Long</div>
+                      <div class="pill-opt-item" data-duration="extended"><strong>10+"</strong> Extended</div>
+                    </div>
+                  </div>
+
+                  <!-- Aspect Ratio Pill Dropdown -->
+                  <div class="pill-dropdown-wrap" id="ratioDropdownWrap">
+                    <button type="button" class="control-pill-btn" id="ratioPillBtn">
+                      <span class="pill-opt-box-icon ratio-vert" id="ratioPillIcon"></span>
+                      <span id="ratioPillLabel">9:16 Social story</span>
+                      <span style="font-size:10px; opacity:0.6;">▼</span>
+                    </button>
+                    <div class="pill-dropdown-menu" id="ratioDropdownMenu">
+                      <div class="pill-opt-item" data-ratio="1-1">
+                        <span class="pill-opt-box-icon ratio-sq"></span>
+                        <div><strong>1:1</strong> Square (IG Feed / FB)</div>
+                      </div>
+                      <div class="pill-opt-item" data-ratio="21-9">
+                        <span class="pill-opt-box-icon ratio-ultra"></span>
+                        <div><strong>21:9</strong> Ultrawide Cinema</div>
+                      </div>
+                      <div class="pill-opt-item" data-ratio="16-9">
+                        <span class="pill-opt-box-icon ratio-wide"></span>
+                        <div><strong>16:9</strong> Widescreen (YouTube)</div>
+                      </div>
+                      <div class="pill-opt-item" data-ratio="4-3">
+                        <span class="pill-opt-box-icon" style="width:16px; height:12px;"></span>
+                        <div><strong>4:3</strong> Classic TV</div>
+                      </div>
+                      <div class="pill-opt-item" data-ratio="3-4">
+                        <span class="pill-opt-box-icon" style="width:12px; height:16px;"></span>
+                        <div><strong>3:4</strong> Traditional</div>
+                      </div>
+                      <div class="pill-opt-item" data-ratio="4-5">
+                        <span class="pill-opt-box-icon ratio-port"></span>
+                        <div><strong>4:5</strong> Portrait (Instagram)</div>
+                      </div>
+                      <div class="pill-opt-item selected" data-ratio="9-16">
+                        <span class="pill-opt-box-icon ratio-vert"></span>
+                        <div><strong>9:16</strong> Social story (TikTok/Shorts)</div>
+                      </div>
+                      <div class="pill-opt-item" data-ratio="9-21">
+                        <span class="pill-opt-box-icon" style="width:9px; height:22px;"></span>
+                        <div><strong>9:21</strong> Vertical ultrawide</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Audio Toggle Pill -->
+                  <button type="button" class="control-pill-btn active" id="audioPillBtn">
+                    <span id="audioPillIcon">🔊</span>
+                    <span id="audioPillLabel">ON</span>
+                  </button>
                 </div>
+
+                <input type="hidden" name="aspect_ratio" id="hiddenAspectRatioInput" value="9:16">
+                <input type="hidden" name="duration" id="hiddenDurationInput" value="5-6">
+                <input type="hidden" name="audio_enabled" id="hiddenAudioInput" value="true">
               </div>
 
               <div class="form-group">
@@ -1147,6 +1251,328 @@
   </div>
 </div>
 
-<script src="/static/app.js" defer></script>
+<!-- ==========================================
+     TOP-UP CREDITS & PACKAGES MODAL (HIGGFIELD STYLE)
+     ========================================== -->
+<div class="topup-modal-overlay" id="topupModal" style="display:none;">
+  <div class="topup-modal-container">
+    <div class="topup-modal-header">
+      <div>
+        <h2>⚡ เติมเครดิต & อัปเกรดแพ็กเกจ (Credit Top-up & Plans)</h2>
+        <p style="font-size:13px; color:#94A3B8; margin-top:4px;">เลือกแพ็กเกจที่เหมาะกับการสร้างสรรค์คอนเทนต์ AI ของคุณ เครดิตไม่มีวันหมดอายุในรอบบิล</p>
+      </div>
+      <button class="topup-modal-close-btn" id="closeTopupModalBtn" aria-label="Close modal">✕</button>
+    </div>
+
+    <div class="topup-modal-body">
+      <!-- 4 Pricing Columns Grid (Matching Screenshot) -->
+      <div class="pricing-grid-4">
+
+        <!-- 1. STARTER TIER -->
+        <div class="pricing-card-higg tier-starter">
+          <div class="card-title-row">
+            <span class="card-tier-name">STARTER</span>
+          </div>
+          <p class="card-tier-desc">สำหรับผู้เริ่มต้นสร้างสรรค์ AI</p>
+
+          <div class="credits-summary-box">
+            <div class="credits-main-num">⚙ 200 เครดิต/เดือน</div>
+            <div class="credits-sub-list">
+              <div>≈ 100 Nano Banana Pro Generations</div>
+              <div>≈ 11 Seedance 2.0 Fast videos</div>
+              <div style="margin-top:4px; color:#E2E8F0;">✓ โควตาคงที่ 200 เครดิต/เดือน</div>
+            </div>
+          </div>
+
+          <div class="pricing-price-row">
+            <span class="price-main">฿490</span>
+            <span class="price-unit">ต่อเดือน, ชำระรายปี</span>
+          </div>
+
+          <button class="btn-cta-tier btn-cta-starter" data-plan="starter" data-credits="200" data-price="490">
+            รับแพ็กเกจ Starter
+          </button>
+          <div class="save-text-note">ไม่มีส่วนต่างเมื่อเทียบกับรายเดือน</div>
+
+          <div class="tier-section-title">
+            <span># FREE GENERATIONS</span>
+            <span style="font-size:10px; color:#60A5FA; cursor:pointer;">ดูเพิ่มเติม</span>
+          </div>
+          <div class="free-gens-box">
+            <div class="free-gen-item">
+              <span>✓ Higgsfield AI Influencer</span>
+              <span class="badge-gen-count"># 10 free gens</span>
+            </div>
+            <div class="free-gen-item">
+              <span>✓ Higgsfield Ads Studio</span>
+              <span class="badge-gen-count"># 10 free gens</span>
+            </div>
+            <div class="free-gen-item" style="color:#64748B;">
+              <span>✕ Higgsfield Genjutsu</span>
+              <span class="badge-gen-count none">No free gens</span>
+            </div>
+          </div>
+
+          <div class="tier-section-title">
+            <span>∞ UNLIMITED & FREE GENS</span>
+          </div>
+          <div style="font-size:12px; color:#64748B; margin-bottom:12px;">
+            <div>✕ Nano Banana 2 · No unlimited</div>
+            <div>✕ Kling 3.0 · No unlimited</div>
+            <div>✕ Nano Banana Pro · No unlimited</div>
+            <div style="color:#60A5FA; font-size:11px; margin-top:4px; cursor:pointer;">+ 3 unlimited & free generation models ›</div>
+          </div>
+
+          <div class="tier-features-list">
+            <div class="tier-feature-line checked">✓ เรนเดอร์ขนานได้สูงสุด 2 วิดีโอ, 4 ภาพ</div>
+            <div class="tier-feature-line checked">✓ เข้าถึงโมเดล Seedance 2.0 Fast & 2.0 Mini</div>
+            <div class="tier-feature-line checked">✓ เข้าถึงเฉพาะโมเดลและฟีเจอร์พื้นฐาน</div>
+            <div class="tier-feature-line disabled">✕ สิทธิ์เข้าถึงฟีเจอร์ AI ขั้นสูงล่วงหน้า</div>
+            <div class="tier-feature-line disabled">✕ เข้าถึงตลาด AI Marketplace ไม่จำกัด</div>
+          </div>
+        </div>
+
+        <!-- 2. PLUS TIER (Lime Green Highlight) -->
+        <div class="pricing-card-higg tier-plus">
+          <div class="card-title-row">
+            <span class="card-tier-name" style="color:#D9F99D;">PLUS</span>
+            <span style="background:#84CC16; color:#0F172A; font-size:10px; font-weight:800; padding:2px 6px; border-radius:4px;">ลด 20%</span>
+          </div>
+          <p class="card-tier-desc">สำหรับการสร้างคอนเทนต์ประจำวัน</p>
+
+          <div class="credits-summary-box">
+            <div class="credits-main-num">⚙ 1,000 เครดิต/เดือน</div>
+            <div class="credits-sub-list">
+              <div>≈ 500 Nano Banana Pro Generations</div>
+              <div>≈ 67 Seedance 2.5 videos</div>
+              <div style="margin-top:4px; color:#D9F99D;">✓ โควตาคงที่ 1,000 เครดิต/เดือน</div>
+            </div>
+          </div>
+
+          <div class="pricing-price-row">
+            <span class="price-struck">฿1,590</span>
+            <span class="price-main" style="color:#D9F99D;">฿1,290</span>
+            <span class="price-unit">ต่อเดือน, ชำระรายปี</span>
+          </div>
+
+          <button class="btn-cta-tier btn-cta-plus" data-plan="plus" data-credits="1000" data-price="1290">
+            รับแพ็กเกจ Plus
+          </button>
+          <div class="save-text-note" style="color:#BEF264;">ประหยัด ฿3,600 เมื่อเทียบกับจ่ายรายเดือน</div>
+
+          <div class="tier-section-title">
+            <span># FREE GENERATIONS</span>
+            <span style="font-size:10px; color:#D9F99D; cursor:pointer;">ดูเพิ่มเติม</span>
+          </div>
+          <div class="free-gens-box">
+            <div class="free-gen-item">
+              <span>✓ Higgsfield AI Influencer</span>
+              <span class="badge-gen-count"># 30 free gens</span>
+            </div>
+            <div class="free-gen-item">
+              <span>✓ Higgsfield Ads Studio</span>
+              <span class="badge-gen-count"># 10 free gens</span>
+            </div>
+            <div class="free-gen-item">
+              <span>✓ Higgsfield Genjutsu</span>
+              <span class="badge-gen-count">720p # 3 free gens</span>
+            </div>
+          </div>
+
+          <div class="tier-section-title">
+            <span>∞ UNLIMITED & FREE GENS</span>
+          </div>
+          <div style="font-size:12px; color:#CBD5E1; margin-bottom:12px;">
+            <div>✓ Nano Banana 2 · <span style="background:#84CC16; color:#000; font-size:10px; padding:1px 4px; border-radius:3px; font-weight:700;">2K 7-day unlimited</span></div>
+            <div style="margin-top:3px;">✓ Kling 3.0 · <span style="background:#84CC16; color:#000; font-size:10px; padding:1px 4px; border-radius:3px; font-weight:700;">7-day unlimited</span></div>
+            <div style="color:#64748B; margin-top:3px;">✕ Nano Banana Pro · No unlimited</div>
+            <div style="color:#D9F99D; font-size:11px; margin-top:4px; cursor:pointer;">+ 7 unlimited & free generation models ›</div>
+          </div>
+
+          <div class="tier-features-list">
+            <div class="tier-feature-line checked">✓ เรนเดอร์ขนานแบบชำระเงินไม่จำกัด <span style="background:#84CC16; color:#000; font-size:9px; padding:1px 4px; border-radius:3px; font-weight:800;">NEW</span></div>
+            <div class="tier-feature-line checked">✓ เข้าถึงโมเดล Seedance ทุกเวอร์ชัน</div>
+            <div class="tier-feature-line checked">✓ เข้าถึงทุกโมเดลและฟีเจอร์ AI ทั้งหมด</div>
+            <div class="tier-feature-line checked">✓ สิทธิ์เข้าถึงฟีเจอร์ AI ขั้นสูงล่วงหน้า</div>
+            <div class="tier-feature-line checked">✓ เข้าถึงตลาด AI Marketplace ไม่จำกัด</div>
+          </div>
+        </div>
+
+        <!-- 3. ULTRA TIER (Magenta/Reddish Pink Gradient) -->
+        <div class="pricing-card-higg tier-ultra">
+          <div class="card-title-row">
+            <span class="card-tier-name" style="color:#FDA4AF;">ULTRA</span>
+            <div style="display:flex; gap:4px;">
+              <span style="background:#E11D48; color:#fff; font-size:10px; font-weight:800; padding:2px 6px; border-radius:4px;">ลด 23%</span>
+              <span style="background:#0284C7; color:#fff; font-size:10px; font-weight:800; padding:2px 6px; border-radius:4px;">BEST VALUE</span>
+            </div>
+          </div>
+          <p class="card-tier-desc">สำหรับโปรเจกต์ AI ระดับจริงจัง</p>
+
+          <div class="credits-summary-box">
+            <div class="credits-main-num">⚙ 3,000 เครดิต/เดือน</div>
+            <div class="credits-sub-list">
+              <div>≈ 1,500 Nano Banana Pro Generations</div>
+              <div>≈ 200 Seedance 2.5 videos</div>
+              <div style="display:flex; gap:8px; margin-top:6px; font-weight:700; color:#FDA4AF;">
+                <span style="cursor:pointer; text-decoration:underline;">● 3,000</span>
+                <span style="cursor:pointer; opacity:0.6;">6,000</span>
+                <span style="cursor:pointer; opacity:0.6;">9,000</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="pricing-price-row">
+            <span class="price-struck">฿4,290</span>
+            <span class="price-main" style="color:#FDA4AF;">฿3,290</span>
+            <span class="price-unit">ต่อเดือน, ชำระรายปี</span>
+          </div>
+
+          <button class="btn-cta-tier btn-cta-ultra" data-plan="ultra" data-credits="3000" data-price="3290">
+            รับแพ็กเกจ Ultra
+          </button>
+          <div class="save-text-note" style="color:#FDA4AF;">ประหยัด ฿12,000 เมื่อเทียบกับจ่ายรายเดือน</div>
+
+          <div class="tier-section-title">
+            <span># FREE GENERATIONS</span>
+            <span style="font-size:10px; color:#FDA4AF; cursor:pointer;">ดูเพิ่มเติม</span>
+          </div>
+          <div class="free-gens-box">
+            <div class="free-gen-item">
+              <span>✓ Higgsfield AI Influencer</span>
+              <span class="badge-gen-count"># 30 free gens</span>
+            </div>
+            <div class="free-gen-item">
+              <span>✓ Higgsfield Ads Studio</span>
+              <span class="badge-gen-count"># 10 free gens</span>
+            </div>
+            <div class="free-gen-item">
+              <span>✓ Higgsfield Genjutsu</span>
+              <span class="badge-gen-count">720p # 3 free gens</span>
+            </div>
+          </div>
+
+          <div class="tier-section-title">
+            <span>∞ UNLIMITED & FREE GENS</span>
+          </div>
+          <div style="font-size:12px; color:#CBD5E1; margin-bottom:12px;">
+            <div>✓ Nano Banana 2 · <span style="background:#84CC16; color:#000; font-size:10px; padding:1px 4px; border-radius:3px; font-weight:700;">2K 7-day unlimited</span></div>
+            <div style="margin-top:3px;">✓ Kling 3.0 · <span style="background:#84CC16; color:#000; font-size:10px; padding:1px 4px; border-radius:3px; font-weight:700;">7-day unlimited</span></div>
+            <div style="margin-top:3px;">✓ Nano Banana Pro · <span style="background:#84CC16; color:#000; font-size:10px; padding:1px 4px; border-radius:3px; font-weight:700;">2K 7-day unlimited</span></div>
+            <div style="color:#FDA4AF; font-size:11px; margin-top:4px; cursor:pointer;">+ 7 unlimited & free generation models ›</div>
+          </div>
+
+          <div class="tier-features-list">
+            <div class="tier-feature-line checked">✓ เรนเดอร์ขนานแบบชำระเงินไม่จำกัด <span style="background:#84CC16; color:#000; font-size:9px; padding:1px 4px; border-radius:3px; font-weight:800;">NEW</span></div>
+            <div class="tier-feature-line checked">✓ เข้าถึงโมเดล Seedance ทุกเวอร์ชัน</div>
+            <div class="tier-feature-line checked">✓ เข้าถึงทุกโมเดลและฟีเจอร์ AI ทั้งหมด</div>
+            <div class="tier-feature-line checked">✓ สิทธิ์เข้าถึงฟีเจอร์ AI ขั้นสูงล่วงหน้า</div>
+            <div class="tier-feature-line checked">✓ เข้าถึงตลาด AI Marketplace ไม่จำกัด</div>
+            <div class="tier-feature-line checked" style="color:#86EFAC;">✓ ต้นทุนต่อเครดิตถูกที่สุด <span style="background:#22C55E; color:#000; font-size:9px; padding:1px 4px; border-radius:3px; font-weight:800;">ถูกลง 60%</span></div>
+          </div>
+        </div>
+
+        <!-- 4. FOR TEAMS TIER (Navy Royal Blue) -->
+        <div class="pricing-card-higg tier-teams">
+          <div class="card-title-row">
+            <span class="card-tier-name" style="color:#93C5FD;">FOR TEAMS</span>
+            <span style="background:#2563EB; color:#fff; font-size:10px; font-weight:800; padding:2px 6px; border-radius:4px;">ลดสูงสุด 30%</span>
+          </div>
+          <p class="card-tier-desc">สำหรับเอเจนซี่และทีมงานสร้างสรรค์</p>
+
+          <div class="credits-summary-box">
+            <div class="credits-main-num">👥 แชร์พื้นที่ทำงาน & เครดิตส่วนกลาง</div>
+            <div class="credits-sub-list">
+              <div>≈ 2-15 ที่นั่งต่อพื้นที่ทำงานทีม</div>
+              <div>≈ รวมเครดิตสูงสุด 37,500 เครดิต/เดือน</div>
+              <div style="margin-top:4px; color:#93C5FD;">✓ เริ่มต้น 1,000 เครดิต/ที่นั่ง/เดือน</div>
+            </div>
+          </div>
+
+          <div class="pricing-price-row">
+            <span style="font-size:13px; color:#94A3B8;">เริ่มต้น</span>
+            <span class="price-main" style="color:#93C5FD;">฿2,150</span>
+            <span class="price-unit">/ที่นั่ง/เดือน</span>
+          </div>
+
+          <button class="btn-cta-tier btn-cta-teams" data-plan="teams" data-credits="5000" data-price="2150">
+            ดูแพ็กเกจสำหรับทีม
+          </button>
+          <div class="save-text-note" style="color:#93C5FD;">ประหยัดสูงสุด 30% เมื่อชำระรายปี</div>
+
+          <!-- Special 30-Day Unlimited Banner -->
+          <div style="background:linear-gradient(90deg, #1E3A8A, #1D4ED8); border-radius:8px; padding:8px 12px; margin-bottom:14px; font-size:11px; font-weight:700; color:#FFFFFF;">
+            <div>30-DAY UNLIMITED SEEDANCE 2.5</div>
+            <div style="font-size:10px; font-weight:400; opacity:0.8;">สิทธิ์เฉพาะแพ็กเกจธุรกิจและทีมเท่านั้น</div>
+          </div>
+
+          <div class="tier-section-title">
+            <span>∞ UNLIMITED MODELS</span>
+            <span style="font-size:10px; color:#93C5FD; cursor:pointer;">ดูเพิ่มเติม</span>
+          </div>
+          <div style="font-size:12px; color:#CBD5E1; margin-bottom:12px;">
+            <div>✓ Nano Banana Pro · <span style="background:#84CC16; color:#000; font-size:10px; padding:1px 4px; border-radius:3px; font-weight:700;">4K 7-day unlimited</span></div>
+            <div style="margin-top:3px;">✓ Seedream 5.0 Pro · <span style="background:#84CC16; color:#000; font-size:10px; padding:1px 4px; border-radius:3px; font-weight:700;">2K 7-day unlimited</span></div>
+            <div style="margin-top:3px;">✓ Kling 3.0 · <span style="background:#84CC16; color:#000; font-size:10px; padding:1px 4px; border-radius:3px; font-weight:700;">7-day unlimited</span></div>
+          </div>
+
+          <div class="tier-features-list">
+            <div class="tier-feature-line checked">✓ เข้าถึงทุกฟีเจอร์และโมเดลทั้งหมด</div>
+            <div class="tier-feature-line checked">✓ รับประกันประสิทธิภาพตามข้อตกลง (SLA)</div>
+            <div class="tier-feature-line checked">✓ พื้นที่ทำงานแชร์และกองกลางเครดิต</div>
+            <div class="tier-feature-line checked">✓ เข้าถึงฟีเจอร์ AI ขั้นสูงก่อนใคร</div>
+            <div class="tier-feature-line checked">✓ รายงานวิเคราะห์และการสนับสนุนด่วน</div>
+            <div class="tier-feature-line checked">✓ แผงควบคุมงบประมาณของผู้ดูแลระบบ</div>
+            <div class="tier-feature-line checked">✓ คิวเรนเดอร์ลำดับแรกเพื่อความเร็วสูงสุด</div>
+            <div class="tier-feature-line checked">✓ รองรับระบบ Single Sign-On (SSO)</div>
+            <div class="tier-feature-line checked">✓ ระบบมอบหมายการเติมเครดิตในทีม</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Floating Credit Alert at Bottom Right (Matching Screenshot) -->
+    <div class="floating-credit-alert">
+      <span>⚠️</span>
+      <span><strong>เครดิตเหลือน้อย!</strong> เติมเครดิตเพื่อปลดล็อกการสร้างคอนเทนต์อย่างต่อเนื่อง</span>
+    </div>
+  </div>
+</div>
+
+<!-- TOP-UP CONFIRMATION CHECKOUT MODAL -->
+<div class="modal-overlay" id="topupCheckoutModal" style="display:none;">
+  <div class="modal-box" style="max-width:480px; text-align:center;">
+    <div style="font-size:36px; margin-bottom:8px;">💎</div>
+    <h3 style="font-size:20px; font-weight:800; margin-bottom:6px;" id="checkoutModalTitle">ยืนยันการเติมเครดิต</h3>
+    <p style="font-size:14px; color:var(--color-text-muted); margin-bottom:20px;" id="checkoutModalDesc">
+      คุณกำลังเติมแพ็กเกจ Plus (1,000 เครดิต) ในราคา ฿1,290
+    </p>
+
+    <div style="background:var(--color-surface-subtle); border:1px solid var(--color-border); border-radius:12px; padding:16px; margin-bottom:20px; text-align:left;">
+      <div style="display:flex; justify-content:space-between; margin-bottom:6px; font-size:13px;">
+        <span style="color:var(--color-text-muted);">จำนวนเครดิตที่จะได้รับ:</span>
+        <strong id="checkoutCreditsToAdd" style="color:var(--color-primary); font-family:var(--font-mono);">+1,000 เครดิต</strong>
+      </div>
+      <div style="display:flex; justify-content:space-between; margin-bottom:6px; font-size:13px;">
+        <span style="color:var(--color-text-muted);">ยอดชำระสุทธิ:</span>
+        <strong id="checkoutPriceTotal" style="color:var(--color-text-main); font-family:var(--font-mono);">฿1,290.00</strong>
+      </div>
+      <div style="display:flex; justify-content:space-between; font-size:13px;">
+        <span style="color:var(--color-text-muted);">ช่องทางการชำระ:</span>
+        <span style="color:var(--color-secondary); font-weight:700;">SCB PromptPay QR / Instant Demo</span>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:10px; justify-content:center;">
+      <button class="btn btn-ghost" id="cancelCheckoutBtn">ยกเลิก</button>
+      <button class="btn btn-primary" id="confirmTopupBtn" style="background:linear-gradient(135deg, #10B981, #059669); border:none;">
+        ✓ ยืนยันการเติมเครดิตทันที
+      </button>
+    </div>
+  </div>
+</div>
+
+<script src="/static/app.js?v=20261020-002" defer></script>
 </body>
 </html>

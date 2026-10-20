@@ -1,0 +1,544 @@
+<!doctype html>
+<html lang="th" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>ชุมชน & เสนอไอเดีย (Community Lab) | Affiliate Auto Studio</title>
+  <link rel="stylesheet" href="/static/styles.css?v=20261020-002">
+  <style>
+    .community-main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 20px 60px;
+      width: 100%;
+    }
+    .comm-hero {
+      background: linear-gradient(135deg, rgba(37,99,235,0.06), rgba(16,185,129,0.05));
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-xl);
+      padding: 32px;
+      margin-bottom: 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 24px;
+    }
+    .comm-hero-text h1 {
+      font-size: clamp(24px, 3.2vw, 34px);
+      font-weight: 800;
+      color: var(--color-text-main);
+      margin-top: 8px;
+      margin-bottom: 8px;
+    }
+    .comm-hero-text p {
+      font-size: 15px;
+      color: var(--color-text-muted);
+      max-width: 650px;
+    }
+    .comm-stats-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: 20px 24px;
+      min-width: 260px;
+      box-shadow: var(--shadow-sm);
+    }
+    .comm-layout {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 28px;
+      align-items: start;
+    }
+    .vote-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-width: 54px;
+      padding: 10px 8px;
+      background: var(--color-surface-subtle);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      transition: all 150ms ease;
+    }
+    .vote-box.has-voted {
+      background: var(--color-primary-subtle);
+      border-color: var(--color-primary-border);
+    }
+    .vote-box.has-voted .vote-num {
+      color: var(--color-primary);
+    }
+    .vote-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--color-text-muted);
+      font-size: 16px;
+      line-height: 1;
+      padding: 4px;
+      transition: all 150ms ease;
+    }
+    .vote-btn:hover {
+      color: var(--color-primary);
+      transform: translateY(-2px);
+    }
+    .vote-num {
+      font-family: var(--font-mono);
+      font-size: 15px;
+      font-weight: 700;
+      margin: 4px 0 2px;
+      color: var(--color-text-main);
+    }
+    .idea-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      display: flex;
+      gap: 18px;
+      box-shadow: var(--shadow-sm);
+      transition: all 150ms ease;
+    }
+    .idea-card:hover {
+      border-color: var(--color-border-hover);
+      box-shadow: var(--shadow-md);
+    }
+    .idea-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+    .comments-tray {
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid var(--color-border);
+    }
+    .comment-bubble {
+      background: var(--color-surface-subtle);
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+    @media (max-width: 900px) {
+      .comm-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('aas_theme') || 'light';
+      document.documentElement.dataset.theme = savedTheme;
+    })();
+  </script>
+</head>
+<body>
+
+<!-- TOPBAR NAVIGATION -->
+<header class="app-topbar" style="position:sticky; top:0; z-index:100; border-bottom:1px solid var(--color-border); background:var(--color-surface); backdrop-filter:blur(8px);">
+  <div style="max-width:1200px; margin:0 auto; padding:0 20px; height:64px; display:flex; align-items:center; justify-content:space-between;">
+    <a href="/" style="display:flex; align-items:center; gap:12px; text-decoration:none; color:var(--color-text-main);">
+      <div class="brand-icon" style="width:36px; height:36px; background:linear-gradient(135deg, #2563EB, #1D4ED8); color:#fff; font-weight:800; border-radius:10px; display:flex; align-items:center; justify-content:center;">A</div>
+      <div>
+        <strong style="font-size:15px; display:block; line-height:1.2;">Affiliate Auto Studio</strong>
+        <span style="font-size:11px; color:var(--color-text-muted); font-family:var(--font-mono);">COMMUNITY LAB · V7.10</span>
+      </div>
+    </a>
+
+    <div style="display:flex; align-items:center; gap:10px;">
+      <a href="/landing" class="btn btn-ghost btn-sm" style="font-weight:600;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
+        <span>หน้าแรก (Landing)</span>
+      </a>
+      <a href="/donate" class="btn btn-ghost btn-sm" style="font-weight:600;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path></svg>
+        <span>สนับสนุน (Donate)</span>
+      </a>
+      <a href="/" class="btn btn-primary btn-sm" style="font-weight:600;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+        <span>เข้า Dashboard</span>
+      </a>
+      <button id="commThemeToggle" class="btn btn-ghost btn-icon" title="สลับโหมดสว่าง/มืด" aria-label="Toggle Theme">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- MAIN CONTAINER -->
+<main class="community-main">
+  <!-- HERO BANNER -->
+  <section class="comm-hero">
+    <div class="comm-hero-text">
+      <span class="chip chip-primary mono" style="margin-bottom:8px;">👥 COMMUNITY LAB · BETA 100 CO-CREATION</span>
+      <h1>ศูนย์รวมชุมชนนักสร้างคอนเทนต์ Affiliate Auto Studio</h1>
+      <p>ร่วมแชร์ไอเดีย เสนอฟีเจอร์ใหม่ โหวต Roadmap และแลกเปลี่ยนเทคนิคการสร้างคอนเทนต์ Affiliate ระบบอัตโนมัติ เพื่อสร้างรายได้ไปด้วยกัน</p>
+    </div>
+    <div class="comm-stats-card">
+      <div style="font-size:12px; color:var(--color-text-muted); text-transform:uppercase; font-weight:700; letter-spacing:0.05em; margin-bottom:4px;">สถานะโควตา Beta 100</div>
+      <div style="font-family:var(--font-mono); font-size:26px; font-weight:800; color:var(--color-primary);" id="commCapacityText">กำลังโหลด...</div>
+      <div style="height:6px; background:var(--color-surface-subtle); border-radius:3px; margin:10px 0; overflow:hidden;">
+        <div id="commCapacityBar" style="height:100%; width:0%; background:linear-gradient(90deg, #2563EB, #10B981); transition:width 500ms ease;"></div>
+      </div>
+      <div style="font-size:12px; color:var(--color-secondary); font-weight:600;" id="commCapacitySub">กำลังตรวจสอบที่นั่ง...</div>
+    </div>
+  </section>
+
+  <!-- CONTENT LAYOUT -->
+  <div class="comm-layout">
+    <!-- LEFT: FEED & FILTERS -->
+    <div>
+      <!-- CONTROLS ROW -->
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:16px; margin-bottom:20px; flex-wrap:wrap;">
+        <div style="display:flex; gap:8px;">
+          <button class="chip chip-filter active" data-filter="all">ทั้งหมด</button>
+          <button class="chip chip-filter" data-filter="feature">🚀 Features</button>
+          <button class="chip chip-filter" data-filter="bug">🐛 Bugs</button>
+          <button class="chip chip-filter" data-filter="feedback">💡 Feedback</button>
+        </div>
+
+        <div style="display:flex; gap:10px; align-items:center;">
+          <span style="font-size:13px; color:var(--color-text-muted);">เรียงลำดับ:</span>
+          <select id="commSortSelect" class="form-select" style="width:140px; height:34px; padding:4px 10px; font-size:13px;">
+            <option value="top">โหวตสูงสุด</option>
+            <option value="new">ใหม่ล่าสุด</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- FEED LIST -->
+      <div id="commFeed" style="display:flex; flex-direction:column; gap:14px;">
+        <div class="mf-card" style="text-align:center; padding:40px; color:var(--color-text-muted);">
+          กำลังโหลดข้อเสนอชุมชน...
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: QUICK SUBMIT & ROADMAP -->
+    <div style="display:flex; flex-direction:column; gap:20px;">
+      <!-- QUICK PROPOSE CARD -->
+      <div class="mf-card" style="padding:22px;">
+        <h3 style="font-size:16px; font-weight:700; margin-bottom:6px; display:flex; align-items:center; gap:8px;">
+          <span>✦ เสนอไอเดีย / แจ้งบั๊ก</span>
+        </h3>
+        <p style="font-size:13px; color:var(--color-text-muted); margin-bottom:16px;">ส่งความคิดเห็นเพื่อให้สมาชิกคนอื่นร่วมโหวตและนำไปพัฒนา</p>
+
+        <form id="commIdeaForm">
+          <div class="form-group" style="margin-bottom:12px;">
+            <label class="form-label" style="font-size:12px;">ประเภทข้อเสนอ</label>
+            <select name="kind" class="form-select" style="font-size:13px; height:36px;" required>
+              <option value="feature">🚀 เสนอฟีเจอร์ใหม่ (Feature)</option>
+              <option value="bug">🐛 แจ้งปัญหา / บั๊ก (Bug Report)</option>
+              <option value="feedback">💡 ข้อเสนอแนะทั่วไป (Feedback)</option>
+            </select>
+          </div>
+
+          <div class="form-group" style="margin-bottom:12px;">
+            <label class="form-label" style="font-size:12px;">หัวข้อ (สั้นกระชับ)</label>
+            <input name="title" class="form-input" style="font-size:13px; height:36px;" minlength="5" maxlength="110" required placeholder="เช่น อยากได้ระบบสุ่มเพลงฮิต TikTok">
+          </div>
+
+          <div class="form-group" style="margin-bottom:16px;">
+            <label class="form-label" style="font-size:12px;">รายละเอียด</label>
+            <textarea name="body" class="form-textarea" rows="4" style="font-size:13px;" minlength="10" maxlength="2000" required placeholder="อธิบายข้อเสนอแนะ หรือปัญหาที่พบอย่างละเอียด..."></textarea>
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">
+            ส่งข้อเสนอเข้าชุมชน
+          </button>
+        </form>
+        <p id="commFeedbackMsg" style="font-size:12px; margin-top:10px; text-align:center; display:none;"></p>
+      </div>
+
+      <!-- ROADMAP PREVIEW CARD -->
+      <div class="mf-card" style="padding:22px;">
+        <h4 style="font-size:15px; font-weight:700; margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+          <span>🎯 Roadmap & สิ่งที่กำลังพัฒนา</span>
+        </h4>
+        <div style="display:flex; flex-direction:column; gap:12px; font-size:13px;">
+          <div style="padding:10px 12px; background:var(--color-surface-subtle); border-radius:var(--radius-sm); border-left:3px solid var(--color-secondary);">
+            <div style="display:flex; justify-content:space-between; margin-bottom:2px;">
+              <strong style="color:var(--color-text-main);">Shopee Direct Import V7.10</strong>
+              <span class="chip chip-success mono" style="font-size:10px; padding:1px 6px;">RELEASED</span>
+            </div>
+            <div style="color:var(--color-text-muted); font-size:12px;">รองรับการดึงสินค้า Shopee ผ่าน Paste Text และไฟล์ CSV</div>
+          </div>
+
+          <div style="padding:10px 12px; background:var(--color-surface-subtle); border-radius:var(--radius-sm); border-left:3px solid var(--color-primary);">
+            <div style="display:flex; justify-content:space-between; margin-bottom:2px;">
+              <strong style="color:var(--color-text-main);">Veo 3.1 9:16 Video Mockup</strong>
+              <span class="chip chip-primary mono" style="font-size:10px; padding:1px 6px;">BUILDING</span>
+            </div>
+            <div style="color:var(--color-text-muted); font-size:12px;">เรนเดอร์พรีวิววิดีโอ 9:16 บนมือถือเสมือนจริงแบบเรียลไทม์</div>
+          </div>
+
+          <div style="padding:10px 12px; background:var(--color-surface-subtle); border-radius:var(--radius-sm); border-left:3px solid var(--color-tertiary);">
+            <div style="display:flex; justify-content:space-between; margin-bottom:2px;">
+              <strong style="color:var(--color-text-main);">TikTok Direct Auto Post</strong>
+              <span class="chip chip-warning mono" style="font-size:10px; padding:1px 6px;">PLANNED</span>
+            </div>
+            <div style="color:var(--color-text-muted); font-size:12px;">เชื่อมต่อบัญชี TikTok สำหรับตั้งเวลาโพสต์คลิปอัตโนมัติ</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- GUIDELINES CARD -->
+      <div class="mf-card" style="padding:22px; font-size:13px; color:var(--color-text-muted);">
+        <h4 style="font-size:14px; font-weight:700; color:var(--color-text-main); margin-bottom:8px;">💡 ข้อตกลงชุมชน</h4>
+        <ul style="padding-left:18px; line-height:1.6;">
+          <li>เสนอความคิดเห็นอย่างสุภาพและสร้างสรรค์</li>
+          <li>ห้ามแชร์ API Keys หรือข้อมูลลับลงในข้อเสนอ</li>
+          <li>โหวตไอเดียที่สมาชิกท่านอื่นเสนอเพื่อเร่งคิวการพัฒนา</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- FOOTER -->
+<footer style="margin-top:auto; padding:24px 20px; border-top:1px solid var(--color-border); background:var(--color-surface); font-size:13px; color:var(--color-text-muted);">
+  <div style="max-width:1200px; margin:0 auto; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+    <span>Affiliate Auto Studio Beta V7.10 · ชุมชนนักสร้างคอนเทนต์ Affiliate</span>
+    <span>
+      <a href="/" style="color:var(--color-text-muted); text-decoration:none; margin-right:12px;">Dashboard</a>
+      <a href="/landing" style="color:var(--color-text-muted); text-decoration:none; margin-right:12px;">Landing Page</a>
+      <a href="/donate" style="color:var(--color-text-muted); text-decoration:none;">สนับสนุนระบบ</a>
+    </span>
+  </div>
+</footer>
+
+<script>
+  // Theme Toggle
+  const themeToggle = document.getElementById('commThemeToggle');
+  themeToggle?.addEventListener('click', () => {
+    const current = document.documentElement.dataset.theme;
+    const next = current === 'dark' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = next;
+    localStorage.setItem('aas_theme', next);
+  });
+
+  // State
+  let allIdeas = [];
+  let currentFilter = 'all';
+  let currentUser = null;
+
+  async function api(path, method = 'GET', data) {
+    const headers = {};
+    if (data !== undefined) headers['Content-Type'] = 'application/json';
+    if (currentUser?.csrf && method !== 'GET') headers['X-CSRF-Token'] = currentUser.csrf;
+    const res = await fetch(path, {
+      method,
+      headers,
+      credentials: 'same-origin',
+      body: data !== undefined ? JSON.stringify(data) : undefined
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(body.detail || 'HTTP Error ' + res.status);
+    }
+    return body;
+  }
+
+  async function initAuth() {
+    try {
+      const me = await api('/api/me');
+      currentUser = me;
+    } catch (e) {
+      currentUser = null;
+    }
+  }
+
+  async function loadCapacity() {
+    try {
+      const cap = await api('/api/beta/capacity');
+      const text = document.getElementById('commCapacityText');
+      const bar = document.getElementById('commCapacityBar');
+      const sub = document.getElementById('commCapacitySub');
+      if (text) text.textContent = `${cap.registered} / ${cap.max} บัญชี`;
+      const pct = Math.min(100, Math.round((cap.registered / cap.max) * 100));
+      if (bar) bar.style.width = pct + '%';
+      if (sub) sub.textContent = `เหลือโควตาทดลองใช้ ${cap.available} ที่นั่ง`;
+    } catch (e) {
+      console.warn('Capacity err', e);
+    }
+  }
+
+  async function loadIdeas() {
+    try {
+      const sort = document.getElementById('commSortSelect')?.value || 'top';
+      const feed = document.getElementById('commFeed');
+      allIdeas = await api(`/api/ideas?order=${sort}`);
+      renderFeed();
+    } catch (e) {
+      const feed = document.getElementById('commFeed');
+      if (feed) feed.innerHTML = `<div class="mf-card" style="text-align:center; padding:24px; color:var(--color-danger);">กรุณาเข้าสู่ระบบเพื่อดูและโหวตข้อเสนอในชุมชน (<a href="/" style="color:var(--color-primary); font-weight:700;">เข้าสู่ระบบที่นี่</a>)</div>`;
+    }
+  }
+
+  function renderFeed() {
+    const feed = document.getElementById('commFeed');
+    if (!feed) return;
+
+    let items = allIdeas;
+    if (currentFilter !== 'all') {
+      items = items.filter(x => x.kind === currentFilter);
+    }
+
+    if (!items.length) {
+      feed.innerHTML = `<div class="mf-card" style="text-align:center; padding:32px; color:var(--color-text-muted);">ยังไม่มีข้อเสนอในหมวดหมู่นี้ ร่วมเสนอเป็นคนแรกได้เลย</div>`;
+      return;
+    }
+
+    feed.innerHTML = items.map(x => `
+      <div class="idea-card">
+        <div class="vote-box" id="voteBox-${x.id}">
+          <button class="vote-btn" onclick="voteIdea(${x.id})" title="โหวตข้อเสนอนี้">▲</button>
+          <span class="vote-num" id="voteCount-${x.id}">${x.votes}</span>
+          <span style="font-size:10px; color:var(--color-text-muted);">โหวต</span>
+        </div>
+        <div style="flex:1;">
+          <div class="idea-meta">
+            <span class="chip chip-primary mono">${escapeHtml(x.kind)}</span>
+            <span class="chip chip-success mono">${escapeHtml(x.status)}</span>
+            <span style="font-size:12px; color:var(--color-text-muted);">โดย ${escapeHtml(x.author)} · ${(x.created_at || '').slice(0, 10)}</span>
+          </div>
+          <h3 style="font-size:16px; font-weight:700; margin-bottom:6px; color:var(--color-text-main);">${escapeHtml(x.title)}</h3>
+          <p style="font-size:14px; color:var(--color-text-main); line-height:1.6; margin-bottom:12px;">${escapeHtml(x.body)}</p>
+
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <button class="btn btn-ghost btn-sm" style="font-size:12px; padding:4px 8px;" onclick="toggleComments(${x.id})">
+              💬 ความคิดเห็น
+            </button>
+          </div>
+
+          <div class="comments-tray" id="commentsTray-${x.id}" style="display:none;">
+            <div id="commentsList-${x.id}" style="margin-bottom:10px;">
+              <span style="font-size:12px; color:var(--color-text-muted);">กำลังโหลดความคิดเห็น...</span>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <input type="text" id="commentInput-${x.id}" class="form-input" style="font-size:12px; height:32px;" placeholder="เขียนความคิดเห็น...">
+              <button class="btn btn-primary btn-sm" onclick="sendComment(${x.id})">ส่ง</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function escapeHtml(str) {
+    return String(str || '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  }
+
+  window.voteIdea = async function(id) {
+    try {
+      const res = await api(`/api/ideas/${id}/vote`, 'POST', {});
+      const voteNum = document.getElementById(`voteCount-${id}`);
+      const voteBox = document.getElementById(`voteBox-${id}`);
+      if (voteNum) {
+        let current = parseInt(voteNum.textContent, 10) || 0;
+        current = res.voted ? current + 1 : Math.max(0, current - 1);
+        voteNum.textContent = current;
+      }
+      if (voteBox) {
+        voteBox.classList.toggle('has-voted', res.voted);
+      }
+    } catch (e) {
+      alert(e.message || 'กรุณาเข้าสู่ระบบก่อนโหวต');
+    }
+  };
+
+  window.toggleComments = async function(id) {
+    const tray = document.getElementById(`commentsTray-${id}`);
+    if (!tray) return;
+    const isHidden = tray.style.display === 'none';
+    tray.style.display = isHidden ? 'block' : 'none';
+    if (isHidden) {
+      loadComments(id);
+    }
+  };
+
+  async function loadComments(id) {
+    const list = document.getElementById(`commentsList-${id}`);
+    if (!list) return;
+    try {
+      const comments = await api(`/api/ideas/${id}/comments`);
+      if (!comments.length) {
+        list.innerHTML = `<span style="font-size:12px; color:var(--color-text-muted);">ยังไม่มีความคิดเห็น มาร่วมเป็นคนแรกเลย!</span>`;
+        return;
+      }
+      list.innerHTML = comments.map(c => `
+        <div class="comment-bubble">
+          <strong>${escapeHtml(c.author)}:</strong> ${escapeHtml(c.body)}
+        </div>
+      `).join('');
+    } catch (e) {
+      list.innerHTML = `<span style="font-size:12px; color:var(--color-danger);">ไม่สามารถโหลดความคิดเห็นได้</span>`;
+    }
+  }
+
+  window.sendComment = async function(id) {
+    const input = document.getElementById(`commentInput-${id}`);
+    if (!input || !input.value.trim()) return;
+    try {
+      await api(`/api/ideas/${id}/comments`, 'POST', { body: input.value.trim() });
+      input.value = '';
+      loadComments(id);
+    } catch (e) {
+      alert(e.message || 'ส่งความคิดเห็นไม่สำเร็จ');
+    }
+  };
+
+  // Filter chips
+  document.querySelectorAll('.chip-filter').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.chip-filter').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentFilter = btn.dataset.filter;
+      renderFeed();
+    });
+  });
+
+  // Sort change
+  document.getElementById('commSortSelect')?.addEventListener('change', loadIdeas);
+
+  // Submit idea
+  document.getElementById('commIdeaForm')?.addEventListener('submit', async e => {
+    e.preventDefault();
+    const form = e.target;
+    const msg = document.getElementById('commFeedbackMsg');
+    const data = Object.fromEntries(new FormData(form));
+    try {
+      await api('/api/ideas', 'POST', data);
+      form.reset();
+      if (msg) {
+        msg.textContent = '✅ ส่งข้อเสนอของคุณเข้าสู่ชุมชนเรียบร้อยแล้ว!';
+        msg.style.color = 'var(--color-secondary)';
+        msg.style.display = 'block';
+        setTimeout(() => msg.style.display = 'none', 3000);
+      }
+      loadIdeas();
+    } catch (err) {
+      if (msg) {
+        msg.textContent = '❌ ' + (err.message || 'ส่งข้อเสนอไม่สำเร็จ');
+        msg.style.color = 'var(--color-danger)';
+        msg.style.display = 'block';
+      }
+    }
+  });
+
+  // Init
+  (async function() {
+    await initAuth();
+    await loadCapacity();
+    await loadIdeas();
+  })();
+</script>
+</body>
+</html>

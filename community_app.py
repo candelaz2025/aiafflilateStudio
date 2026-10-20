@@ -160,6 +160,17 @@ def create_app(data_dir=None, secret_key=None):
         raise RuntimeError('PUBLIC_DEPLOYMENT requires BETA_INVITE_CODE to protect the 100 beta seats')
     cipher = Fernet(get_key(data, secret_key))
     app = FastAPI(title='Affiliate Auto Studio — V7.10 Shopee Import Beta100', version='0.7.10')
+
+    @app.middleware("http")
+    async def add_no_cache_headers(request: Request, call_next):
+        response = await call_next(request)
+        path = request.url.path
+        if path == "/" or path.startswith("/static") or path in ("/updates", "/donate", "/landing", "/community"):
+            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
+        return response
+
     app.mount('/static', StaticFiles(directory=ROOT / 'static'), name='static')
 
     def connect():
@@ -355,6 +366,14 @@ def create_app(data_dir=None, secret_key=None):
     @app.get('/donate')
     def donate():
         return FileResponse(ROOT / 'static' / 'donate.html')
+
+    @app.get('/landing')
+    def landing():
+        return FileResponse(ROOT / 'static' / 'landing.html')
+
+    @app.get('/community')
+    def community():
+        return FileResponse(ROOT / 'static' / 'community.html')
 
     @app.get('/api/donate/info')
     def donation_info():
