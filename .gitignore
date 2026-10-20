@@ -17,3 +17,7 @@ community.db
 *.zip
 .DS_Store
 
+
+# Local Netlify folder
+.netlify
+public/
