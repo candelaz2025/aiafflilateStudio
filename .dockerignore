@@ -2,6 +2,9 @@ data
 studio_v6/*
 !studio_v6/product_discovery.py
 !studio_v6/video_service.py
+!studio_v6/grok_service.py
+!studio_v6/openrouter_service.py
+!studio_v6/shopee_user_import.py
 .venv
 __pycache__
 *.pyc
