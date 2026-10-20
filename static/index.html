@@ -241,11 +241,30 @@
         
         <!-- Hero Greeting Card (Reference Image 1) -->
         <div class="hero-dashboard-card">
+          <!-- 3D Mascot Character (Matching Image 1) -->
+          <div class="hero-character-mascot" style="position:absolute; right:28px; top:18px; pointer-events:none;">
+            <svg width="110" height="96" viewBox="0 0 110 96" fill="none">
+              <ellipse cx="55" cy="48" rx="48" ry="42" fill="url(#mascotGrad)" />
+              <ellipse cx="44" cy="42" rx="4.5" ry="7" fill="#1E293B" />
+              <ellipse cx="64" cy="42" rx="4.5" ry="7" fill="#1E293B" />
+              <ellipse cx="42.5" cy="39.5" rx="1.8" ry="2.5" fill="#FFFFFF" />
+              <ellipse cx="62.5" cy="39.5" rx="1.8" ry="2.5" fill="#FFFFFF" />
+              <ellipse cx="55" cy="54" rx="6" ry="3" fill="#FDA4AF" opacity="0.6" />
+              <defs>
+                <linearGradient id="mascotGrad" x1="10" y1="10" x2="100" y2="90" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#E0F2FE"/>
+                  <stop offset="0.6" stop-color="#BAE6FD"/>
+                  <stop offset="1" stop-color="#7DD3FC"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+
           <div class="hero-header-row">
             <span class="hero-greeting-tag">
               <span id="heroGreetingTime">☀️ สวัสดีตอนค่ำ</span>, <span id="heroUserName">KEVIN</span>
             </span>
-            <span class="hero-status-pill">✓ <span data-i18n="hero_status_ready">แบรนด์ & โมเดล AI พร้อมแล้ว</span></span>
+            <span class="hero-status-pill">✓ <span data-i18n="hero_status_ready">แบรนด์พร้อมแล้ว</span></span>
           </div>
           <h1 class="hero-heading" data-i18n="hero_title">มาสร้างคอนเทนต์กันเลย 🎯</h1>
 
@@ -287,48 +306,43 @@
           </div>
         </div>
 
-        <!-- 3 KPI Pipeline Cards (Metric Flow) -->
-        <div class="kpi-row">
-          <div class="kpi-card">
+        <!-- 3 KPI Pipeline Cards (Matching Image 1) -->
+        <div class="kpi-row" style="display:flex; align-items:center; gap:12px;">
+          <div class="kpi-card" style="flex:1;">
             <div class="kpi-header">
               <span class="kpi-title">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                <span data-i18n="kpi_drafts">ดราฟต์บทรีวิว</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                <span data-i18n="kpi_drafts">ดราฟต์</span>
               </span>
-              <span class="kpi-badge chip-primary" data-i18n="badge_ready">พร้อมสร้างคลิป</span>
             </div>
-            <div class="kpi-value mono" id="kpi-drafts-num">0</div>
-            <button class="kpi-footer-link" data-goto="drafts">
-              <span data-i18n="kpi_view_drafts">ดูบทรีวิวทั้งหมด</span> →
-            </button>
+            <div class="kpi-value mono" id="kpi-drafts-num">1</div>
           </div>
 
-          <div class="kpi-card">
+          <div style="font-size:22px; font-weight:800; color:var(--color-text-subtle); padding:0 4px;">›</div>
+
+          <div class="kpi-card" style="flex:1;">
             <div class="kpi-header">
               <span class="kpi-title">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                <span data-i18n="kpi_scheduled">คิวงานรอโพสต์</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                <span data-i18n="kpi_scheduled">ตั้งเวลาแล้ว</span>
               </span>
-              <span class="kpi-badge chip-warning" data-i18n="badge_queue">อยู่ในคิว</span>
             </div>
             <div class="kpi-value mono" id="kpi-queue-num">0</div>
             <button class="kpi-footer-link" data-goto="queue">
-              <span data-i18n="kpi_manage_queue">จัดการคิวโพสต์</span> →
+              <span data-i18n="kpi_manage_queue">ตั้งเวลาดราฟต์</span> →
             </button>
           </div>
 
-          <div class="kpi-card">
+          <div style="font-size:22px; font-weight:800; color:var(--color-text-subtle); padding:0 4px;">›</div>
+
+          <div class="kpi-card" style="flex:1;">
             <div class="kpi-header">
               <span class="kpi-title">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-                <span data-i18n="kpi_published">สินค้าที่ติดตาม</span>
+                <span data-i18n="kpi_published">เผยแพร่แล้ว</span>
               </span>
-              <span class="kpi-badge chip-success" data-i18n="badge_active">กำลังติดตาม</span>
             </div>
-            <div class="kpi-value mono" id="kpi-products-num">0</div>
-            <button class="kpi-footer-link" data-goto="products">
-              <span data-i18n="kpi_view_products">เปิดดูสินค้าของฉัน</span> →
-            </button>
+            <div class="kpi-value mono" id="kpi-products-num">1</div>
           </div>
         </div>
 
@@ -336,45 +350,50 @@
         <section class="onboarding-section">
           <div class="section-header-row">
             <h2 class="section-title">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
-              <span data-i18n="walkthrough_header">วิธีใช้ - เริ่มต้นใช้งาน (Guided Walkthrough)</span>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line><line x1="2" y1="7" x2="7" y2="7"></line><line x1="2" y1="17" x2="7" y2="17"></line><line x1="17" y1="17" x2="22" y2="17"></line><line x1="17" y1="7" x2="22" y2="7"></line></svg>
+              <span data-i18n="walkthrough_header">วิธีใช้ - เริ่มต้นใช้งาน</span>
             </h2>
             <button class="section-more-link" id="openFullWalkthroughBtn">
-              <span data-i18n="btn_view_all_steps">ดูขั้นตอนทั้งหมด</span> →
+              <span data-i18n="btn_view_all_steps">ดูทั้งหมด</span> →
             </button>
           </div>
 
           <div class="onboarding-grid">
-            <!-- Step 1 Card -->
+            <!-- Step 1 Card: สร้างแบรนด์ -->
             <div class="walkthrough-card step-1" data-step="1">
               <div>
-                <span class="walkthrough-step-badge" data-i18n="step_1_badge">ขั้นตอนที่ 1</span>
-                <h3 class="walkthrough-title" data-i18n="step_1_title">ค้นหาสินค้า & สแกน Shopee</h3>
-                <p class="walkthrough-desc" data-i18n="step_1_desc">เลือกสินค้ามาแรง ดูค่าคอมมิชชัน Extra Comm สูง บันทึกเข้าระบบในคลิกเดียว</p>
+                <span class="walkthrough-step-badge">🎬 วิธีใช้</span>
+                <div style="font-size:13px; font-weight:700; opacity:0.9; margin-bottom:4px;">ขั้นตอนที่ 1</div>
+                <h3 class="walkthrough-title" style="font-size:26px; font-weight:800;">สร้างแบรนด์</h3>
               </div>
               <div class="walkthrough-play-btn" title="ดูคำแนะนำ">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
               </div>
             </div>
 
-            <!-- Step 2 Card -->
+            <!-- Step 2 Card: สร้างคอนเทนต์ -->
             <div class="walkthrough-card step-2" data-step="2">
               <div>
-                <span class="walkthrough-step-badge" data-i18n="step_2_badge">ขั้นตอนที่ 2</span>
-                <h3 class="walkthrough-title" data-i18n="step_2_title">สร้างบทรีวิว AI Video Factory</h3>
-                <p class="walkthrough-desc" data-i18n="step_2_desc">AI สังเคราะห์สคริปต์ 3 องก์ (Hook, Pain Point, Call-to-action) พร้อม visual prompt</p>
+                <span class="walkthrough-step-badge">🎬 วิธีใช้</span>
+                <div style="font-size:13px; font-weight:700; opacity:0.9; margin-bottom:4px;">ขั้นตอนที่ 2</div>
+                <h3 class="walkthrough-title" style="font-size:26px; font-weight:800;">สร้างคอนเทนต์</h3>
               </div>
               <div class="walkthrough-play-btn" title="ดูคำแนะนำ">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
               </div>
             </div>
 
-            <!-- Step 3 Card -->
+            <!-- Step 3 Card: เชื่อมต่อเพจ -->
             <div class="walkthrough-card step-3" data-step="3">
               <div>
-                <span class="walkthrough-step-badge" data-i18n="step_3_badge">ขั้นตอนที่ 3</span>
-                <h3 class="walkthrough-title" data-i18n="step_3_title">สร้างคลิป AI & เชื่อมต่อคิว</h3>
-                <p class="walkthrough-desc" data-i18n="step_3_desc">เรนเดอร์คลิป 9:16 Mockup เสมือนจริง ดูตัวอย่างคลิปในมือถือแล้วส่งเข้าคิวโพสต์</p>
+                <span class="walkthrough-step-badge">🎬 วิธีใช้</span>
+                <div style="font-size:13px; font-weight:700; opacity:0.9; margin-bottom:4px;">ขั้นตอนที่ 3</div>
+                <h3 class="walkthrough-title" style="font-size:26px; font-weight:800;">เชื่อมต่อเพจ</h3>
+                <div style="display:flex; gap:6px; margin-top:8px;">
+                  <span style="background:rgba(255,255,255,0.25); border-radius:4px; padding:2px 6px; font-size:11px; font-weight:700;">Facebook</span>
+                  <span style="background:rgba(255,255,255,0.25); border-radius:4px; padding:2px 6px; font-size:11px; font-weight:700;">Instagram</span>
+                  <span style="background:rgba(255,255,255,0.25); border-radius:4px; padding:2px 6px; font-size:11px; font-weight:700;">TikTok</span>
+                </div>
               </div>
               <div class="walkthrough-play-btn" title="ดูคำแนะนำ">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
