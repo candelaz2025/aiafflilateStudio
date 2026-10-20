@@ -74,3 +74,63 @@ def test_csv_neutralises_formulas(tmp_path):
         db.execute("UPDATE users SET email='=HYPERLINK(\"http://x\")@example.org' WHERE username='boss'")
     row=list(csv.DictReader(io.StringIO(admin.get('/api/admin/members.csv').text.lstrip('﻿'))))[0]
     assert row['email'].startswith("'=")
+
+def _setup_three(tmp_path):
+    app=create_app(tmp_path,secret_key=Fernet.generate_key())
+    boss,alice,root=TestClient(app),TestClient(app),TestClient(app)
+    bh=register(boss,'boss');ah=register(alice,'alice');register(root,'root2')
+    promote(tmp_path,'boss');promote(tmp_path,'root2')
+    ids={r['username']:r['id'] for r in boss.get('/api/admin/members').json()}
+    return app,boss,bh,alice,ah,ids
+
+def test_admin_reset_password(tmp_path):
+    app,boss,bh,alice,ah,ids=_setup_three(tmp_path)
+    url=f"/api/admin/members/{ids['alice']}/reset-password"
+    assert boss.post(url).status_code==403                       # no CSRF token
+    assert alice.post(f"/api/admin/members/{ids['boss']}/reset-password",headers=ah).status_code==403
+    assert boss.post(f"/api/admin/members/{ids['boss']}/reset-password",headers=bh).status_code==400   # self
+    assert boss.post(f"/api/admin/members/{ids['root2']}/reset-password",headers=bh).status_code==400  # other admin
+    assert boss.post('/api/admin/members/9999/reset-password',headers=bh).status_code==404
+    r=boss.post(url,headers=bh)
+    assert r.status_code==200 and r.headers['cache-control']=='no-store'
+    temp=r.json()['temporary_password']
+    assert alice.get('/api/me').status_code==401                 # signed out everywhere
+    fresh=TestClient(app)
+    assert fresh.post('/api/login',json={'email':'alice@example.org','password':PW}).status_code==401
+    assert fresh.post('/api/login',json={'email':'alice@example.org','password':temp}).status_code==200
+    log=boss.get('/api/admin/audit').json()
+    assert log[0]['action']=='reset_password' and log[0]['target_username']=='alice' and log[0]['admin_username']=='boss'
+    assert temp not in str(log) and temp not in boss.get('/api/admin/members').text
+
+def test_admin_delete_member_removes_everything(tmp_path):
+    app,boss,bh,alice,ah,ids=_setup_three(tmp_path)
+    aid=ids['alice']
+    # Content that must go with the account, including an idea (no ON DELETE CASCADE) with a vote on it.
+    alice.put('/api/my/keys/openrouter',json={'key':'SECRET_MEMBER_OR_KEY_1234'},headers=ah)
+    p=alice.post('/api/my/products',json={'title':'mini fan','platform':'shopee'},headers=ah).json()
+    alice.post('/api/my/drafts',json={'product_id':p['id'],'style':'pov'},headers=ah)
+    idea=alice.post('/api/ideas',json={'kind':'feature','title':'Please add export','body':'Export my drafts to a file'},headers=ah)
+    assert idea.status_code==200,idea.text
+    iid=idea.json()['id']
+    boss.post(f'/api/ideas/{iid}/vote',headers=bh)
+    video_dir=tmp_path/'videos'/str(aid);video_dir.mkdir(parents=True);(video_dir/'1.mp4').write_bytes(b'x'*20)
+    url=f'/api/admin/members/{aid}/delete'
+    assert boss.post(url,json={'confirm_username':'alice'}).status_code==403                    # no CSRF
+    assert alice.post(f"/api/admin/members/{ids['boss']}/delete",json={'confirm_username':'boss'},headers=ah).status_code==403
+    assert boss.post(f"/api/admin/members/{ids['root2']}/delete",json={'confirm_username':'root2'},headers=bh).status_code==400
+    assert boss.post(url,json={'confirm_username':'alicia'},headers=bh).status_code==400        # wrong confirmation
+    r=boss.post(url,json={'confirm_username':'ALICE'},headers=bh)
+    assert r.status_code==200,r.text
+    assert alice.get('/api/me').status_code==401
+    assert not video_dir.exists()
+    with sqlite3.connect(tmp_path/'community.db') as db:
+        for table in ('users','sessions','credentials','products','drafts','ideas','votes'):
+            col='id' if table=='users' else 'user_id'
+            if table=='votes':
+                assert db.execute('SELECT COUNT(*) FROM votes WHERE idea_id=?',(iid,)).fetchone()[0]==0
+            else:
+                assert db.execute(f'SELECT COUNT(*) FROM {table} WHERE {col}=?',(aid,)).fetchone()[0]==0,table
+    assert [m['username'] for m in boss.get('/api/admin/members').json()]==['boss','root2']
+    assert TestClient(app).get('/api/beta/capacity').json()['registered']==2
+    log=boss.get('/api/admin/audit').json()
+    assert log[0]['action']=='delete_member' and log[0]['target_email']=='alice@example.org'
