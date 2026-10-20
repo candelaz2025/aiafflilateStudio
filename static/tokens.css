@@ -1,0 +1,144 @@
+/**
+ * AI Studio Pro - Design Tokens CSS Module
+ * Standard W3C Design Tokens mapping for Metric Flow & Highfield Obsidian
+ */
+
+:root {
+  /* Font Families */
+  --font-sans: 'Inter', 'Prompt', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
+
+  /* Font Weights */
+  --weight-light: 300;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --weight-extrabold: 800;
+
+  /* Type Scale */
+  --font-size-2xs: 10px;
+  --font-size-xs: 11px;
+  --font-size-sm: 12px;
+  --font-size-base: 13px;
+  --font-size-md: 14px;
+  --font-size-lg: 16px;
+  --font-size-xl: 18px;
+  --font-size-2xl: 22px;
+  --font-size-3xl: 28px;
+  --font-size-4xl: 36px;
+
+  /* Spacing Scale (8pt grid) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* Radii */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-2xl: 28px;
+  --radius-full: 9999px;
+
+  /* Brand Colors (Light Default) */
+  --color-primary: #2563EB;
+  --color-primary-hover: #1D4ED8;
+  --color-primary-active: #1E40AF;
+  --color-primary-subtle: #EFF6FF;
+  --color-primary-border: #BFDBFE;
+
+  --color-secondary: #10B981;
+  --color-secondary-hover: #059669;
+  --color-secondary-subtle: #ECFDF5;
+  --color-secondary-border: #A7F3D0;
+
+  --color-tertiary: #F59E0B;
+  --color-tertiary-hover: #D97706;
+  --color-tertiary-subtle: #FFFBEB;
+  --color-tertiary-border: #FDE68A;
+
+  --color-danger: #EF4444;
+  --color-danger-hover: #DC2626;
+  --color-danger-subtle: #FEF2F2;
+  --color-danger-border: #FECACA;
+
+  /* Surfaces & Structural */
+  --color-bg: #F8FAFC;
+  --color-surface: #FFFFFF;
+  --color-surface-hover: #F8FAFC;
+  --color-surface-subtle: #F1F5F9;
+  --color-border: #E2E8F0;
+  --color-border-subtle: #F1F5F9;
+  --color-border-hover: #CBD5E1;
+
+  /* Typography Colors */
+  --color-text-main: #0F172A;
+  --color-text-muted: #64748B;
+  --color-text-subtle: #94A3B8;
+  --color-text-inverse: #FFFFFF;
+
+  /* Shadows */
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.08), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.03);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.10), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+  --shadow-glow-primary: 0 0 24px -4px rgba(37, 99, 235, 0.35);
+  --shadow-glow-secondary: 0 0 24px -4px rgba(16, 185, 129, 0.35);
+
+  /* Transitions */
+  --trans-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --trans-normal: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --trans-smooth: 300ms cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Layout */
+  --sidebar-w: 240px;
+  --sidebar-w-collapsed: 72px;
+  --topbar-h: 64px;
+}
+
+/* Dark Mode Tokens (Highfield Obsidian) */
+[data-theme="dark"] {
+  --color-primary: #3B82F6;
+  --color-primary-hover: #60A5FA;
+  --color-primary-active: #2563EB;
+  --color-primary-subtle: rgba(59, 130, 246, 0.15);
+  --color-primary-border: rgba(59, 130, 246, 0.3);
+
+  --color-secondary: #10B981;
+  --color-secondary-hover: #34D399;
+  --color-secondary-subtle: rgba(16, 185, 129, 0.15);
+  --color-secondary-border: rgba(16, 185, 129, 0.3);
+
+  --color-tertiary: #F59E0B;
+  --color-tertiary-hover: #FBBF24;
+  --color-tertiary-subtle: rgba(245, 158, 11, 0.15);
+  --color-tertiary-border: rgba(245, 158, 11, 0.3);
+
+  --color-danger: #EF4444;
+  --color-danger-hover: #F87171;
+  --color-danger-subtle: rgba(239, 68, 68, 0.15);
+  --color-danger-border: rgba(239, 68, 68, 0.3);
+
+  --color-bg: #090D16;
+  --color-surface: #111827;
+  --color-surface-hover: #172236;
+  --color-surface-subtle: #182334;
+  --color-border: #1E293B;
+  --color-border-subtle: #162032;
+  --color-border-hover: #334155;
+
+  --color-text-main: #F8FAFC;
+  --color-text-muted: #94A3B8;
+  --color-text-subtle: #64748B;
+  --color-text-inverse: #090D16;
+}

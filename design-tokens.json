@@ -1,0 +1,149 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "name": "AI Studio Pro Design Tokens",
+  "version": "1.0.0",
+  "description": "Semantic Design Tokens for AI Studio Pro & Affiliate Auto Studio, supporting Metric Flow Light and Highfield Obsidian Dark themes.",
+  "color": {
+    "brand": {
+      "blue": {
+        "50": { "$type": "color", "$value": "#EFF6FF", "$description": "Lightest tint for subtle highlights" },
+        "100": { "$type": "color", "$value": "#DBEAFE", "$description": "Very soft blue background" },
+        "200": { "$type": "color", "$value": "#BFDBFE", "$description": "Border highlight for primary elements" },
+        "400": { "$type": "color", "$value": "#60A5FA", "$description": "Hover state in dark mode" },
+        "500": { "$type": "color", "$value": "#3B82F6", "$description": "Primary action in dark mode" },
+        "600": { "$type": "color", "$value": "#2563EB", "$description": "Primary brand color (Metric Flow Blue)" },
+        "700": { "$type": "color", "$value": "#1D4ED8", "$description": "Primary hover state in light mode" },
+        "800": { "$type": "color", "$value": "#1E40AF", "$description": "Primary active/pressed state" },
+        "900": { "$type": "color", "$value": "#1E3A8A", "$description": "Deep primary navy" }
+      },
+      "emerald": {
+        "50": { "$type": "color", "$value": "#ECFDF5", "$description": "Success background light" },
+        "200": { "$type": "color", "$value": "#A7F3D0", "$description": "Success border light" },
+        "400": { "$type": "color", "$value": "#34D399", "$description": "Success hover dark" },
+        "500": { "$type": "color", "$value": "#10B981", "$description": "Success & active connection badge" },
+        "600": { "$type": "color", "$value": "#059669", "$description": "Success hover light" }
+      },
+      "amber": {
+        "50": { "$type": "color", "$value": "#FFFBEB", "$description": "Warning background light" },
+        "200": { "$type": "color", "$value": "#FDE68A", "$description": "Warning border light" },
+        "400": { "$type": "color", "$value": "#FBBF24", "$description": "Warning hover dark" },
+        "500": { "$type": "color", "$value": "#F59E0B", "$description": "Warning & pending status" },
+        "600": { "$type": "color", "$value": "#D97706", "$description": "Warning hover light" }
+      },
+      "rose": {
+        "50": { "$type": "color", "$value": "#FEF2F2", "$description": "Danger background light" },
+        "200": { "$type": "color", "$value": "#FECACA", "$description": "Danger border light" },
+        "400": { "$type": "color", "$value": "#F87171", "$description": "Danger hover dark" },
+        "500": { "$type": "color", "$value": "#EF4444", "$description": "Destructive actions & disconnects" },
+        "600": { "$type": "color", "$value": "#DC2626", "$description": "Danger hover light" }
+      }
+    },
+    "theme": {
+      "light": {
+        "bg": { "$type": "color", "$value": "#F8FAFC", "$description": "Light canvas background" },
+        "surface": { "$type": "color", "$value": "#FFFFFF", "$description": "Light card/panel surface" },
+        "surfaceHover": { "$type": "color", "$value": "#F8FAFC", "$description": "Hover surface" },
+        "surfaceSubtle": { "$type": "color", "$value": "#F1F5F9", "$description": "Subtle surface container" },
+        "border": { "$type": "color", "$value": "#E2E8F0", "$description": "Default structural border" },
+        "borderSubtle": { "$type": "color", "$value": "#F1F5F9", "$description": "Hairline separator border" },
+        "borderHover": { "$type": "color", "$value": "#CBD5E1", "$description": "Border highlight on hover" },
+        "textMain": { "$type": "color", "$value": "#0F172A", "$description": "High-contrast heading and body text" },
+        "textMuted": { "$type": "color", "$value": "#64748B", "$description": "Secondary helper and label text" },
+        "textSubtle": { "$type": "color", "$value": "#94A3B8", "$description": "Disabled/placeholder text" },
+        "textInverse": { "$type": "color", "$value": "#FFFFFF", "$description": "Text on dark or primary filled backgrounds" }
+      },
+      "dark": {
+        "bg": { "$type": "color", "$value": "#090D16", "$description": "Highfield Obsidian Void deep canvas" },
+        "surface": { "$type": "color", "$value": "#111827", "$description": "Elevated card surface" },
+        "surfaceHover": { "$type": "color", "$value": "#172236", "$description": "Card hover state" },
+        "surfaceSubtle": { "$type": "color", "$value": "#182334", "$description": "Subtle container surface" },
+        "border": { "$type": "color", "$value": "#1E293B", "$description": "Default dark structural border" },
+        "borderSubtle": { "$type": "color", "$value": "#162032", "$description": "Hairline dark border" },
+        "borderHover": { "$type": "color", "$value": "#334155", "$description": "Border highlight on hover" },
+        "textMain": { "$type": "color", "$value": "#F8FAFC", "$description": "Primary white text" },
+        "textMuted": { "$type": "color", "$value": "#94A3B8", "$description": "Secondary muted grey text" },
+        "textSubtle": { "$type": "color", "$value": "#64748B", "$description": "Subtle metadata text" },
+        "textInverse": { "$type": "color", "$value": "#090D16", "$description": "Text inverted against bright tags" }
+      }
+    }
+  },
+  "typography": {
+    "fontFamily": {
+      "sans": { "$type": "fontFamily", "$value": "Inter, Prompt, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" },
+      "mono": { "$type": "fontFamily", "$value": "'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace" }
+    },
+    "fontWeight": {
+      "light": { "$type": "fontWeight", "$value": 300 },
+      "regular": { "$type": "fontWeight", "$value": 400 },
+      "medium": { "$type": "fontWeight", "$value": 500 },
+      "semibold": { "$type": "fontWeight", "$value": 600 },
+      "bold": { "$type": "fontWeight", "$value": 700 },
+      "extrabold": { "$type": "fontWeight", "$value": 800 }
+    },
+    "fontSize": {
+      "2xs": { "$type": "dimension", "$value": "10px" },
+      "xs": { "$type": "dimension", "$value": "11px" },
+      "sm": { "$type": "dimension", "$value": "12px" },
+      "base": { "$type": "dimension", "$value": "13px" },
+      "md": { "$type": "dimension", "$value": "14px" },
+      "lg": { "$type": "dimension", "$value": "16px" },
+      "xl": { "$type": "dimension", "$value": "18px" },
+      "2xl": { "$type": "dimension", "$value": "22px" },
+      "3xl": { "$type": "dimension", "$value": "28px" },
+      "4xl": { "$type": "dimension", "$value": "36px" }
+    },
+    "lineHeight": {
+      "tight": { "$type": "number", "$value": 1.2 },
+      "snug": { "$type": "number", "$value": 1.35 },
+      "normal": { "$type": "number", "$value": 1.5 },
+      "relaxed": { "$type": "number", "$value": 1.7 }
+    }
+  },
+  "spacing": {
+    "1": { "$type": "dimension", "$value": "4px" },
+    "2": { "$type": "dimension", "$value": "8px" },
+    "3": { "$type": "dimension", "$value": "12px" },
+    "4": { "$type": "dimension", "$value": "16px" },
+    "5": { "$type": "dimension", "$value": "20px" },
+    "6": { "$type": "dimension", "$value": "24px" },
+    "8": { "$type": "dimension", "$value": "32px" },
+    "10": { "$type": "dimension", "$value": "40px" },
+    "12": { "$type": "dimension", "$value": "48px" },
+    "16": { "$type": "dimension", "$value": "64px" }
+  },
+  "radius": {
+    "xs": { "$type": "dimension", "$value": "4px" },
+    "sm": { "$type": "dimension", "$value": "6px" },
+    "md": { "$type": "dimension", "$value": "10px" },
+    "lg": { "$type": "dimension", "$value": "14px" },
+    "xl": { "$type": "dimension", "$value": "20px" },
+    "2xl": { "$type": "dimension", "$value": "28px" },
+    "full": { "$type": "dimension", "$value": "9999px" }
+  },
+  "elevation": {
+    "xs": { "$type": "shadow", "$value": "0 1px 2px 0 rgba(0, 0, 0, 0.05)" },
+    "sm": { "$type": "shadow", "$value": "0 1px 3px 0 rgba(0, 0, 0, 0.08), 0 1px 2px -1px rgba(0, 0, 0, 0.05)" },
+    "md": { "$type": "shadow", "$value": "0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.04)" },
+    "lg": { "$type": "shadow", "$value": "0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.03)" },
+    "xl": { "$type": "shadow", "$value": "0 20px 25px -5px rgba(0, 0, 0, 0.10), 0 8px 10px -6px rgba(0, 0, 0, 0.04)" },
+    "glowPrimary": { "$type": "shadow", "$value": "0 0 24px -4px rgba(37, 99, 235, 0.35)" },
+    "glowSecondary": { "$type": "shadow", "$value": "0 0 24px -4px rgba(16, 185, 129, 0.35)" }
+  },
+  "motion": {
+    "fast": { "$type": "transition", "$value": "150ms cubic-bezier(0.4, 0, 0.2, 1)" },
+    "normal": { "$type": "transition", "$value": "200ms cubic-bezier(0.4, 0, 0.2, 1)" },
+    "smooth": { "$type": "transition", "$value": "300ms cubic-bezier(0.16, 1, 0.3, 1)" }
+  },
+  "layout": {
+    "sidebar": {
+      "width": { "$type": "dimension", "$value": "240px" },
+      "widthCollapsed": { "$type": "dimension", "$value": "72px" }
+    },
+    "topbar": {
+      "height": { "$type": "dimension", "$value": "64px" }
+    },
+    "container": {
+      "maxWidth": { "$type": "dimension", "$value": "1440px" }
+    }
+  }
+}
