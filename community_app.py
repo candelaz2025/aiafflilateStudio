@@ -35,6 +35,10 @@ PROVIDERS = ('gemini', 'xai', 'brave', 'openai')
 GROK_MODELS = grok.MODELS
 VEO_MODEL = 'veo-3.1-generate-preview'
 MAX_VIDEO_JOBS_PER_DAY = 3
+# Provider calls time out well within this; a 'submitting' row older than this was orphaned
+# by a crash/restart and must not block the member forever.
+STALE_SUBMIT_MINUTES = 5
+STALE_SUBMIT_MESSAGE = 'ส่งงานไม่สำเร็จหรือขาดการติดต่อระหว่างส่ง โปรดตรวจการใช้เครดิตในบัญชีผู้ให้บริการก่อนสั่งใหม่'
 STATES = ('proposed', 'planned', 'building', 'released', 'declined')
 DONATION_BANK = {
     'bank': 'ธนาคารไทยพาณิชย์ (SCB)',
@@ -193,6 +197,10 @@ def create_app(data_dir=None, secret_key=None):
         CREATE INDEX IF NOT EXISTS donation_reports_user_idx ON donation_reports(user_id, id DESC);
         CREATE TABLE IF NOT EXISTS login_failures (
           email TEXT PRIMARY KEY, attempts INTEGER NOT NULL, reset_at TEXT NOT NULL);
+        -- V7.11: throttle per (email, client IP) so failures from one address cannot lock out the owner.
+        CREATE TABLE IF NOT EXISTS login_attempts (
+          email TEXT NOT NULL, ip TEXT NOT NULL, attempts INTEGER NOT NULL, reset_at TEXT NOT NULL,
+          PRIMARY KEY(email, ip));
         CREATE TABLE IF NOT EXISTS drafts (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -300,6 +308,7 @@ def create_app(data_dir=None, secret_key=None):
         csrf = secrets.token_urlsafe(24)
         expires = (datetime.now(timezone.utc) + timedelta(days=SESSION_DAYS)).isoformat(timespec='seconds')
         with connect() as c:
+            c.execute('DELETE FROM sessions WHERE expires_at<=?',(now(),))
             c.execute('INSERT INTO sessions(token_hash,user_id,csrf,expires_at) VALUES(?,?,?,?)',
                       (hashlib.sha256(token.encode()).hexdigest(), user['id'], csrf, expires))
         # Secure cookies are mandatory when running with TLS/public deployment.
@@ -377,9 +386,11 @@ def create_app(data_dir=None, secret_key=None):
         return new_session({'id':uid, 'username':username, 'role':'member'},response)
 
     @app.post('/api/login')
-    def login(item: AuthBody, response: Response):
+    def login(item: AuthBody, req: Request, response: Response):
         email=item.email.strip().lower()
-        failure=read('SELECT * FROM login_failures WHERE email=?',(email,),True)
+        # Behind Caddy, uvicorn --proxy-headers sets the real client address.
+        ip=req.client.host if req.client else ''
+        failure=read('SELECT * FROM login_attempts WHERE email=? AND ip=?',(email,ip),True)
         if failure and failure['attempts']>=8 and failure['reset_at']>now():
             raise HTTPException(429,'ลองผิดหลายครั้ง โปรดลองใหม่อีก 15 นาที')
         user=read('SELECT * FROM users WHERE email=?',(email,),True)
@@ -392,13 +403,15 @@ def create_app(data_dir=None, secret_key=None):
         except (VerifyMismatchError, VerificationError):
             reset=(datetime.now(timezone.utc)+timedelta(minutes=15)).isoformat(timespec='seconds')
             with connect() as c:
+                # Expired rows are dead weight; unknown emails would otherwise accumulate forever.
+                c.execute('DELETE FROM login_attempts WHERE reset_at<=?',(now(),))
                 if failure and failure['reset_at']>now():
-                    c.execute('UPDATE login_failures SET attempts=attempts+1 WHERE email=?',(email,))
+                    c.execute('UPDATE login_attempts SET attempts=attempts+1 WHERE email=? AND ip=?',(email,ip))
                 else:
-                    c.execute('INSERT INTO login_failures VALUES(?,?,?) ON CONFLICT(email) DO UPDATE SET attempts=excluded.attempts, reset_at=excluded.reset_at',(email,1,reset))
+                    c.execute('INSERT INTO login_attempts VALUES(?,?,?,?) ON CONFLICT(email,ip) DO UPDATE SET attempts=excluded.attempts, reset_at=excluded.reset_at',(email,ip,1,reset))
             raise HTTPException(401,'อีเมลหรือรหัสผ่านไม่ถูกต้อง')
         with connect() as c:
-            c.execute('DELETE FROM login_failures WHERE email=?',(email,))
+            c.execute('DELETE FROM login_attempts WHERE email=? AND ip=?',(email,ip))
         return new_session(user,response)
 
     @app.get('/api/me')
@@ -536,6 +549,9 @@ def create_app(data_dir=None, secret_key=None):
                       JOIN products p ON p.id=d.product_id
                       WHERE v.user_id=? ORDER BY v.id DESC LIMIT 50""", (u['id'],))
 
+    def stale_submit_cutoff():
+        return (datetime.now(timezone.utc)-timedelta(minutes=STALE_SUBMIT_MINUTES)).isoformat(timespec='seconds')
+
     def load_api_key(user_id, provider):
         row=read('SELECT encrypted FROM credentials WHERE user_id=? AND provider=?',(user_id,provider),True)
         if not row: raise HTTPException(400, 'กรุณาเชื่อม '+('xAI / Grok Imagine' if provider=='xai' else 'Google Gemini / Veo')+' API ในเมนู API ของฉันก่อน')
@@ -588,6 +604,10 @@ def create_app(data_dir=None, secret_key=None):
             except Exception:
                 raise HTTPException(400,'ไฟล์รูปอ้างอิงไม่ถูกต้อง')
         # Reserve exactly one in-flight slot per user, atomically.
+        # Committed on its own so a 409/429 below cannot roll the cleanup back.
+        with connect() as c:
+            c.execute("UPDATE video_jobs SET status='failed',error_message=?,updated_at=? WHERE user_id=? AND status='submitting' AND updated_at<?",
+                      (STALE_SUBMIT_MESSAGE,now(),u['id'],stale_submit_cutoff()))
         with connect() as c:
             c.execute('BEGIN IMMEDIATE')
             active=c.execute("SELECT COUNT(*) FROM video_jobs WHERE user_id=? AND status IN ('submitting','running')",(u['id'],)).fetchone()[0]
@@ -624,6 +644,11 @@ def create_app(data_dir=None, secret_key=None):
         u=mutation(req,x_csrf_token)
         job=read('SELECT * FROM video_jobs WHERE id=? AND user_id=?',(job_id,u['id']),True)
         if not job: raise HTTPException(404,'ไม่พบงานวิดีโอนี้')
+        if job['status']=='submitting' and job['updated_at']<stale_submit_cutoff():
+            with connect() as c:
+                c.execute("UPDATE video_jobs SET status='failed',error_message=?,updated_at=? WHERE id=? AND user_id=? AND status='submitting'",
+                          (STALE_SUBMIT_MESSAGE,now(),job_id,u['id']))
+            return {'id':job_id,'status':'failed','notice':STALE_SUBMIT_MESSAGE}
         if job['status'] in ('failed','ready','submitting'):
             return {'id':job_id,'status':job['status'],'note':'งานนี้ไม่ต้องตรวจสถานะซ้ำ'}
         if job['status']!='running': raise HTTPException(409,'งานนี้ไม่อยู่ระหว่างสร้าง')
