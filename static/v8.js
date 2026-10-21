@@ -460,14 +460,22 @@
     return `<div class="v8-pc ${off ? 'is-off' : ''}" data-pid="${p.id}">
       <div class="v8-pc-img">${img ? `<img src="${esc(img)}" alt="" loading="lazy">` : '<div class="v8-pc-noimg">ไม่มีรูป</div>'}${p.discount_rate ? `<span class="v8-pc-off">${Math.round(Number(p.discount_rate))}% OFF</span>` : ''}</div>
       <div class="v8-pc-body">
-        <div class="v8-pc-title-row"><div class="v8-pc-title" title="${esc(p.title)}">${esc(p.title)}</div>
-          <button class="btn btn-ghost btn-sm" onclick="AASv8.editProduct(${p.id})" title="แก้ไขรายละเอียดทั้งหมด">✎ แก้ไข</button></div>
+        <div class="v8-pc-title-row">
+          <button class="v8-pc-title v8-inline" data-field="title" data-pid="${p.id}" data-value="${esc(p.title)}"
+                  onclick="AASv8.inlineEdit(this)" title="คลิกเพื่อแก้ชื่อ">${esc(p.title)}<span class="v8-pc-pen" aria-hidden="true">✎</span></button>
+          <button class="btn btn-ghost btn-sm" onclick="AASv8.editProduct(${p.id})" title="แก้ไขรายละเอียดทั้งหมด">⋯ แก้ทั้งหมด</button></div>
         <div class="v8-pc-price-row">
-          <button class="v8-pc-price v8-pc-price-edit" onclick="AASv8.editPrice(${p.id}, this)"
-                  data-price="${p.price != null ? Number(p.price) : ''}" title="คลิกเพื่อแก้ราคา">${price}<span class="v8-pc-pen" aria-hidden="true">✎</span></button>
+          <button class="v8-pc-price v8-inline" data-field="price" data-pid="${p.id}" data-value="${p.price != null ? Number(p.price) : ''}"
+                  onclick="AASv8.inlineEdit(this)" title="คลิกเพื่อแก้ราคา">${price}<span class="v8-pc-pen" aria-hidden="true">✎</span></button>
           ${productStatus(p)}</div>
-        <span class="v8-pc-comm">อัตราค่าคอมมิชชัน ${p.commission_rate != null ? Number(p.commission_rate) + '%' : '-'}</span>
-        <div class="v8-muted v8-small">${p.sales ? 'ขายได้ ' + Number(p.sales).toLocaleString('th-TH') + ' ชิ้น' : (p.commission_baht ? '≈ ' + baht(p.commission_baht) + '/ชิ้น' : '&nbsp;')}</div>
+        <div class="v8-pc-commbox">
+          <div><span class="v8-small v8-muted">ค่าคอม</span>
+            <button class="v8-pc-rate v8-inline" data-field="commission_rate" data-pid="${p.id}" data-value="${p.commission_rate != null ? Number(p.commission_rate) : ''}"
+                    onclick="AASv8.inlineEdit(this)" title="คลิกเพื่อแก้ % ค่าคอม">${p.commission_rate != null ? Number(p.commission_rate) + '%' : 'ใส่ %'}<span class="v8-pc-pen" aria-hidden="true">✎</span></button></div>
+          <div class="v8-pc-earn"><span class="v8-small v8-muted">ได้ต่อชิ้น</span>
+            <strong>${commBaht(p)}</strong></div>
+        </div>
+        <div class="v8-muted v8-small">${p.sales ? 'ขายได้ ' + Number(p.sales).toLocaleString('th-TH') + ' ชิ้น' : '&nbsp;'}</div>
         <div class="v8-pc-link"><span class="v8-pc-linkbox ${link ? 'has' : ''}" title="${esc(link)}">${link ? esc(link.replace(/^https:\/\//, '')) : 'ยังไม่มีลิงก์ affiliate'}</span>
           <button class="btn btn-ghost btn-sm" onclick="AASv8.editLink(${p.id}, ${jsArg(link)})" title="แก้ลิงก์ affiliate">✎</button></div>
         <div class="v8-muted v8-small">ID ${esc(p.item_id || ('#' + p.id))}</div>
@@ -489,36 +497,50 @@
     grid.innerHTML = prods.length ? prods.map(productCard).join('')
       : stateBox('empty', 'ยังไม่มีสินค้า — กด "↓ นำเข้า CSV/Excel" หรือ "+ เพิ่มสินค้าเอง" หรือดึงจาก Shopee ด้านบน', null);
   }
-  function editPrice(id, btn) {
-    if (btn.dataset.editing === '1') return;
-    btn.dataset.editing = '1';
-    const was = btn.innerHTML;
-    const current = btn.dataset.price;
-    btn.outerHTML = `<span class="v8-pc-price-box"><span class="v8-pc-baht">฿</span>` +
-      `<input class="v8-pc-price-input" type="number" min="0" max="10000000" step="0.01" value="${esc(current)}" ` +
-      `inputmode="decimal" aria-label="ราคาสินค้า" data-pid="${id}"></span>`;
-    const input = document.querySelector(`.v8-pc-price-input[data-pid="${id}"]`);
-    if (!input) return;
+  function commBaht(p) {
+    const v = p.commission_baht != null ? Number(p.commission_baht)
+      : (p.price != null && p.commission_rate != null ? Number(p.price) * Number(p.commission_rate) / 100 : null);
+    return v != null && isFinite(v) ? '฿' + v.toLocaleString('th-TH', { maximumFractionDigits: 2 }) : '-';
+  }
+  const INLINE = {
+    title: { type: 'text', label: 'ชื่อสินค้า', min: 3, max: 200, cls: 'v8-in-title' },
+    price: { type: 'number', label: 'ราคา', min: 0, max: 10000000, step: '0.01', prefix: '฿', cls: 'v8-in-num' },
+    commission_rate: { type: 'number', label: 'ค่าคอม %', min: 0, max: 100, step: '0.1', suffix: '%', cls: 'v8-in-num v8-in-rate' },
+  };
+  // Click a value on the card, type, Enter. Escape or an unchanged value puts it back.
+  function inlineEdit(btn) {
+    const field = btn.dataset.field, id = Number(btn.dataset.pid), cfg = INLINE[field];
+    if (!cfg || btn.dataset.editing === '1') return;
+    const current = btn.dataset.value || '';
+    const holder = document.createElement('span');
+    holder.className = 'v8-in-box';
+    holder.innerHTML = (cfg.prefix ? `<span class="v8-in-fix">${cfg.prefix}</span>` : '') +
+      `<input class="${cfg.cls}" type="${cfg.type}" aria-label="${cfg.label}" value="${esc(current)}"` +
+      (cfg.type === 'number' ? ` min="${cfg.min}" max="${cfg.max}" step="${cfg.step}" inputmode="decimal"` : ` maxlength="${cfg.max}"`) + '>' +
+      (cfg.suffix ? `<span class="v8-in-fix">${cfg.suffix}</span>` : '');
+    btn.replaceWith(holder);
+    const input = holder.querySelector('input');
     input.focus(); input.select();
-    let settled = false;
-    const cancel = () => {
-      if (settled) return; settled = true;
-      const box = input.closest('.v8-pc-price-box');
-      if (box) box.outerHTML = `<button class="v8-pc-price v8-pc-price-edit" onclick="AASv8.editPrice(${id}, this)" ` +
-        `data-price="${esc(current)}" title="คลิกเพื่อแก้ราคา">${was}</button>`;
-    };
+    let done = false;
+    const restore = () => { if (done) return; done = true; holder.replaceWith(btn); };
     const save = () => {
-      if (settled) return;
+      if (done) return;
       const raw = input.value.trim();
-      if (raw === '' || Number(raw) === Number(current)) return cancel();
-      const v = Number(raw);
-      if (!isFinite(v) || v < 0) { toast('ราคาต้องเป็นตัวเลขไม่ติดลบ', 'error'); return cancel(); }
-      settled = true;
-      patchProduct(id, { price: v }, `บันทึกราคา ฿${v.toLocaleString('th-TH')} แล้ว`);
+      if (raw === String(current).trim()) return restore();
+      let val = raw;
+      if (cfg.type === 'number') {
+        if (raw === '') return restore();
+        val = Number(raw);
+        if (!isFinite(val) || val < cfg.min || val > cfg.max) { toast(`${cfg.label}ต้องอยู่ระหว่าง ${cfg.min}–${cfg.max}`, 'error'); return restore(); }
+      } else if (raw.length < cfg.min) { toast(`${cfg.label}ต้องยาวอย่างน้อย ${cfg.min} ตัวอักษร`, 'error'); return restore(); }
+      done = true;
+      input.disabled = true;
+      const shown = field === 'price' ? '฿' + val.toLocaleString('th-TH') : field === 'commission_rate' ? val + '%' : `"${String(val).slice(0, 30)}"`;
+      patchProduct(id, { [field]: val }, `บันทึก${cfg.label} ${shown} แล้ว`);
     };
     input.addEventListener('keydown', e => {
       if (e.key === 'Enter') { e.preventDefault(); save(); }
-      if (e.key === 'Escape') { e.preventDefault(); cancel(); }
+      if (e.key === 'Escape') { e.preventDefault(); restore(); }
     });
     input.addEventListener('blur', save);
   }
@@ -2356,7 +2378,7 @@
     openThread: id => Chat.openThread(id),
     openPay: () => Pay.open(),
     renderProducts,
-    editPrice(id, btn) { editPrice(id, btn); },
+    inlineEdit(btn) { inlineEdit(btn); },
     goKeys() { AAS.switchTab('keys'); setTimeout(() => document.querySelector('#keys [name=gemini], #keys input')?.focus(), 350); },
     editProduct(id) { EditProduct.open(id); },
     renameProduct(id, cur) { const t = (prompt('ชื่อสินค้าใหม่', cur) || '').trim(); if (t && t !== cur) patchProduct(id, { title: t }, 'เปลี่ยนชื่อแล้ว'); },
