@@ -191,7 +191,11 @@ button, input, select, textarea {
   display: flex;
   min-height: 100vh;
   width: 100%;
-  overflow-x: hidden;
+  /* `overflow-x: hidden` would make this a scroll container (per spec the other
+     axis computes to `auto`), and the sticky sidebar would then anchor to a box
+     that never scrolls - so it scrolled away with the page. `clip` cuts
+     horizontal overflow without creating a scrollport, keeping sticky alive. */
+  overflow-x: clip;
 }
 
 /* ==========================================================================
@@ -207,6 +211,8 @@ button, input, select, textarea {
   position: sticky;
   top: 0;
   height: 100vh;
+  max-height: 100vh;
+  align-self: flex-start;
   z-index: 50;
   transition: width var(--trans-normal), transform var(--trans-normal);
 }
@@ -293,13 +299,29 @@ button, input, select, textarea {
 
 .sidebar-nav {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
+  /* reaching either end of the menu must not start scrolling the page behind it */
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--sidebar-border) transparent;
   padding: 16px 12px;
   display: flex;
   flex-direction: column;
   gap: 18px;
 }
+
+.sidebar-nav::-webkit-scrollbar { width: 8px; }
+.sidebar-nav::-webkit-scrollbar-track { background: transparent; }
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: var(--sidebar-border);
+  border: 2px solid transparent;
+  background-clip: content-box;
+  border-radius: 999px;
+}
+.sidebar-nav:hover::-webkit-scrollbar-thumb { background: var(--color-text-subtle); background-clip: content-box; }
 
 .nav-group-title {
   font-size: 10.5px;
@@ -1584,7 +1606,9 @@ button, input, select, textarea {
 @media (max-width: 768px) {
   .sidebar {
     position: fixed;
+    top: 0;
     left: -260px;
+    height: 100%;
   }
   .sidebar.mobile-open {
     left: 0;
