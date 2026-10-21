@@ -461,8 +461,11 @@
       <div class="v8-pc-img">${img ? `<img src="${esc(img)}" alt="" loading="lazy">` : '<div class="v8-pc-noimg">ไม่มีรูป</div>'}${p.discount_rate ? `<span class="v8-pc-off">${Math.round(Number(p.discount_rate))}% OFF</span>` : ''}</div>
       <div class="v8-pc-body">
         <div class="v8-pc-title-row"><div class="v8-pc-title" title="${esc(p.title)}">${esc(p.title)}</div>
-          <button class="btn btn-ghost btn-sm" onclick="AASv8.renameProduct(${p.id}, ${jsArg(p.title)})">✎ แก้ชื่อ</button></div>
-        <div class="v8-pc-price-row"><span class="v8-pc-price">${price}</span>${productStatus(p)}</div>
+          <button class="btn btn-ghost btn-sm" onclick="AASv8.editProduct(${p.id})" title="แก้ไขรายละเอียดทั้งหมด">✎ แก้ไข</button></div>
+        <div class="v8-pc-price-row">
+          <button class="v8-pc-price v8-pc-price-edit" onclick="AASv8.editPrice(${p.id}, this)"
+                  data-price="${p.price != null ? Number(p.price) : ''}" title="คลิกเพื่อแก้ราคา">${price}<span class="v8-pc-pen" aria-hidden="true">✎</span></button>
+          ${productStatus(p)}</div>
         <span class="v8-pc-comm">อัตราค่าคอมมิชชัน ${p.commission_rate != null ? Number(p.commission_rate) + '%' : '-'}</span>
         <div class="v8-muted v8-small">${p.sales ? 'ขายได้ ' + Number(p.sales).toLocaleString('th-TH') + ' ชิ้น' : (p.commission_baht ? '≈ ' + baht(p.commission_baht) + '/ชิ้น' : '&nbsp;')}</div>
         <div class="v8-pc-link"><span class="v8-pc-linkbox ${link ? 'has' : ''}" title="${esc(link)}">${link ? esc(link.replace(/^https:\/\//, '')) : 'ยังไม่มีลิงก์ affiliate'}</span>
@@ -486,10 +489,123 @@
     grid.innerHTML = prods.length ? prods.map(productCard).join('')
       : stateBox('empty', 'ยังไม่มีสินค้า — กด "↓ นำเข้า CSV/Excel" หรือ "+ เพิ่มสินค้าเอง" หรือดึงจาก Shopee ด้านบน', null);
   }
+  function editPrice(id, btn) {
+    if (btn.dataset.editing === '1') return;
+    btn.dataset.editing = '1';
+    const was = btn.innerHTML;
+    const current = btn.dataset.price;
+    btn.outerHTML = `<span class="v8-pc-price-box"><span class="v8-pc-baht">฿</span>` +
+      `<input class="v8-pc-price-input" type="number" min="0" max="10000000" step="0.01" value="${esc(current)}" ` +
+      `inputmode="decimal" aria-label="ราคาสินค้า" data-pid="${id}"></span>`;
+    const input = document.querySelector(`.v8-pc-price-input[data-pid="${id}"]`);
+    if (!input) return;
+    input.focus(); input.select();
+    let settled = false;
+    const cancel = () => {
+      if (settled) return; settled = true;
+      const box = input.closest('.v8-pc-price-box');
+      if (box) box.outerHTML = `<button class="v8-pc-price v8-pc-price-edit" onclick="AASv8.editPrice(${id}, this)" ` +
+        `data-price="${esc(current)}" title="คลิกเพื่อแก้ราคา">${was}</button>`;
+    };
+    const save = () => {
+      if (settled) return;
+      const raw = input.value.trim();
+      if (raw === '' || Number(raw) === Number(current)) return cancel();
+      const v = Number(raw);
+      if (!isFinite(v) || v < 0) { toast('ราคาต้องเป็นตัวเลขไม่ติดลบ', 'error'); return cancel(); }
+      settled = true;
+      patchProduct(id, { price: v }, `บันทึกราคา ฿${v.toLocaleString('th-TH')} แล้ว`);
+    };
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); save(); }
+      if (e.key === 'Escape') { e.preventDefault(); cancel(); }
+    });
+    input.addEventListener('blur', save);
+  }
+
   async function patchProduct(id, body, okMsg) {
     try { await api(`/api/my/products/${id}`, 'PATCH', body); if (okMsg) toast(okMsg, 'success'); AAS.reloadProducts(); }
     catch (e) { toast(e.message, 'error'); AAS.reloadProducts(); }
   }
+
+  // ===================================================== EDIT PRODUCT (full form)
+  // Same fields as the manual add form — editing a product should not be a weaker
+  // version of creating one.
+  const EditProduct = {
+    product: null,
+    async open(id) {
+      let p;
+      try { p = (await api('/api/my/products')).find(x => x.id === id); }
+      catch (e) { return toast(e.message, 'error'); }
+      if (!p) return toast('ไม่พบสินค้านี้', 'error');
+      this.product = p;
+      const f = $('v8EpForm');
+      f.product_id.value = p.id;
+      f.title.value = p.title || '';
+      f.platform.value = ['shopee', 'tiktok', 'other'].includes(p.platform) ? p.platform : 'other';
+      f.url.value = p.offer_link || p.url || '';
+      f.price.value = p.price != null ? p.price : '';
+      f.commission_rate.value = p.commission_rate != null ? p.commission_rate : '';
+      f.image_url.value = (p.image_url || '').startsWith('https://') ? p.image_url : '';
+      f.image.value = '';
+      this.syncComm();
+      this.syncPreview();
+      $('v8EditProduct').hidden = false;
+      setTimeout(() => f.title.focus(), 50);
+    },
+    close() { $('v8EditProduct').hidden = true; this.product = null; },
+    syncComm() {
+      const f = $('v8EpForm');
+      const price = parseFloat(f.price.value), rate = parseFloat(f.commission_rate.value);
+      $('v8EpComm').value = (isFinite(price) && isFinite(rate))
+        ? '≈ ฿' + (price * rate / 100).toLocaleString('th-TH', { maximumFractionDigits: 2 }) + ' /ชิ้น'
+        : 'กรอกราคาและค่าคอมเพื่อคำนวณ';
+    },
+    syncPreview() {
+      const f = $('v8EpForm');
+      const p = this.product || {};
+      const file = f.image.files && f.image.files[0];
+      const url = f.image_url.value.trim();
+      const current = p.image_url || p.image_path || '';
+      const box = $('v8EpPreview');
+      if (file) {
+        box.innerHTML = `<span class="v8-small v8-muted">รูปใหม่ที่จะอัปโหลด:</span><img src="${URL.createObjectURL(file)}" alt="">`;
+      } else if (url) {
+        box.innerHTML = `<span class="v8-small v8-muted">รูปจากลิงก์:</span><img src="${esc(url)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'v8-small v8-warn',textContent:'โหลดรูปจากลิงก์นี้ไม่ได้'}))">`;
+      } else if (current) {
+        box.innerHTML = `<span class="v8-small v8-muted">รูปปัจจุบัน (เก็บไว้ถ้าไม่เปลี่ยน):</span><img src="${esc(current)}" alt="">`;
+      } else {
+        box.innerHTML = '<span class="v8-small v8-muted">ยังไม่มีรูป</span>';
+      }
+    },
+    async submit(e) {
+      e.preventDefault();
+      const f = e.target;
+      const btn = e.submitter; btn.disabled = true; btn.textContent = 'กำลังบันทึก…';
+      const fd = new FormData(f);
+      const id = fd.get('product_id');
+      fd.delete('product_id');
+      if (!(fd.get('image') instanceof File) || !fd.get('image').size) fd.delete('image');
+      fd.set('keep_image', '1');
+      try {
+        const r = await form(`/api/my/products/${id}/manual`, fd, 'PUT');
+        toast('✅ ' + r.message, 'success');
+        this.close();
+        AAS.reloadProducts();
+      } catch (err) { toast(err.message, 'error'); }
+      finally { btn.disabled = false; btn.textContent = 'บันทึกการแก้ไข'; }
+    },
+    bind() {
+      const f = $('v8EpForm'); if (!f) return;
+      f.addEventListener('submit', e => this.submit(e));
+      ['price', 'commission_rate'].forEach(n => f[n].addEventListener('input', () => this.syncComm()));
+      f.image.addEventListener('change', () => this.syncPreview());
+      f.image_url.addEventListener('input', () => this.syncPreview());
+      $('v8EpCancel')?.addEventListener('click', () => this.close());
+      $('v8EpClose')?.addEventListener('click', () => this.close());
+      $('v8EditProduct')?.addEventListener('click', e => { if (e.target.id === 'v8EditProduct') this.close(); });
+    },
+  };
 
   // =========================================================== PUBLISH MODAL
   const Publish = {
@@ -1241,9 +1357,22 @@
     },
     renderEngine() {
       const e = this.boot.engine;
+      const w = this.boot.writer || {};
+      // One key covers both halves of the job — writing the script and rendering the
+      // clip — so the recommendation sits here, where the person is about to generate.
+      const needKey = w.mode !== 'gemini';
       $('v8Engine').innerHTML = `<div><strong>🎬 เอนจินวิดีโอ (Phase 1):</strong> ${esc(e.label)}</div>
         <div class="v8-small v8-muted">${esc(e.note)}</div>
-        <div class="v8-engine-cost">ต้นทุนคลิป AI: <strong>${e.cost_credits} เครดิต</strong> · คงเหลือ <strong id="v8CreditsLeft">${this.boot.credits}</strong> เครดิต · คลิปพรีวิว UGC: <strong>ฟรี</strong></div>`;
+        <div class="v8-engine-cost">ต้นทุนคลิป AI: <strong>${e.cost_credits} เครดิต</strong> · คงเหลือ <strong id="v8CreditsLeft">${this.boot.credits}</strong> เครดิต · คลิปพรีวิว UGC: <strong>ฟรี</strong></div>
+        <div class="v8-writer ${needKey ? 'is-tip' : 'is-on'}">
+          <div><strong>✍️ คนเขียนบท:</strong> ${esc(w.label || '')}</div>
+          ${needKey ? `<div class="v8-small">เชื่อมคีย์ Gemini ของคุณแล้วจะได้: บทที่เขียนใหม่ทุกครั้งแบบไม่ซ้ำ (ไม่ใช่สลับสำนวนจากชุดเดิม) ·
+            เลือกมุมเล่าให้เหมาะกับสินค้าแต่ละชิ้น · และสร้างคลิปจริงได้โดย<strong>ไม่หักเครดิตระบบ</strong></div>
+            <div class="v8-writer-act">
+              <button class="btn btn-primary btn-sm" onclick="AASv8.goKeys()">เชื่อมคีย์ Gemini</button>
+              <span class="v8-small v8-muted">ขอคีย์ฟรีที่ <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a> · ใช้ได้ทันที</span>
+            </div>` : ''}
+        </div>`;
     },
     renderProducts() {
       const ps = this.boot.products;
@@ -1291,6 +1420,7 @@
           : await api('/api/studio/projects', 'POST', { product_id: this.productId, style: this.style });
         if (reuse) r.message = 'เปลี่ยนสไตล์และเขียนบทใหม่แล้ว (ใช้โปรเจกต์เดิม)';
         toast('✅ ' + r.message, 'success');
+        if (r.notice) toast('⚠ ' + r.notice, 'info');
         this.project = r.project;
         await this.load(true);
         $('v8ScriptEditor').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1357,7 +1487,8 @@
       try {
         const r = await api(`/api/studio/projects/${this.project.id}`, 'PATCH', { regenerate: true, style: this.style });
         this.project = r.project; this.renderScript(); this.resetPreview(); this.drawFrame(0.4); this.renderClips(); this.paintSteps();
-        toast('🎲 สุ่มบทใหม่แล้ว', 'success');
+        toast((this.boot.writer || {}).mode === 'gemini' ? '✍️ Gemini เขียนบทใหม่ให้แล้ว' : '🎲 สุ่มบทใหม่แล้ว', 'success');
+        if (r.notice) toast('⚠ ' + r.notice, 'info');
       } catch (e) { toast(e.message, 'error'); }
     },
 
@@ -2225,6 +2356,9 @@
     openThread: id => Chat.openThread(id),
     openPay: () => Pay.open(),
     renderProducts,
+    editPrice(id, btn) { editPrice(id, btn); },
+    goKeys() { AAS.switchTab('keys'); setTimeout(() => document.querySelector('#keys [name=gemini], #keys input')?.focus(), 350); },
+    editProduct(id) { EditProduct.open(id); },
     renameProduct(id, cur) { const t = (prompt('ชื่อสินค้าใหม่', cur) || '').trim(); if (t && t !== cur) patchProduct(id, { title: t }, 'เปลี่ยนชื่อแล้ว'); },
     editLink(id, cur) { const v = prompt('ลิงก์ affiliate (https://s.shopee.co.th/… หรือเว้นว่างเพื่อลบ)', cur); if (v === null) return; patchProduct(id, { offer_link: v.trim() }, v.trim() ? 'บันทึกลิงก์แล้ว' : 'ลบลิงก์แล้ว'); },
     toggleProduct(id, on) { patchProduct(id, { active: !!on }, on ? 'เปิดใช้งานสินค้า' : 'ปิดใช้งานสินค้า (จะไม่ขึ้นในหน้าสร้างคอนเทนต์)'); },
@@ -2307,12 +2441,14 @@
     $('v8HelpSearch')?.addEventListener('input', () => Help.loaded && Help.render());
     bindTabGo(document);
     dashCta();
+    EditProduct.bind();
     TikTokConnect.bind();
     $('v8TtClose')?.addEventListener('click', () => TikTokPost.close());
     $('v8TtModal')?.addEventListener('click', e => { if (e.target.id === 'v8TtModal') TikTokPost.close(); });
     document.addEventListener('keydown', e => { if (e.key !== 'Escape') return;
       if (!$('v8TtModal')?.hidden) TikTokPost.close();
-      if (!$('v8TtConnect')?.hidden) TikTokConnect.close(); });
+      if (!$('v8TtConnect')?.hidden) TikTokConnect.close();
+      if (!$('v8EditProduct')?.hidden) EditProduct.close(); });
     const qs = new URLSearchParams(location.search);
     const tab = qs.get('tab');
     if (qs.get('oauth')) {

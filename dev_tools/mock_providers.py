@@ -603,3 +603,41 @@ async def tt_status(req: Request, authorization: str = Header(default='')):
             data['publicaly_available_post_id'] = [7300000000000000001]
     log('tiktok.status', publish_id=pid, status=data['status'])
     return {'data': data, 'error': {'code': 'ok', 'message': '', 'log_id': 'mocklog'}}
+
+
+# ------------------------------------------- Gemini text (script writing)
+_gem_text_calls = {'n': 0}
+TEXT_STATE = {'fail': False, 'empty': False, 'garbage': False}
+
+
+@app.post('/gemini/models/{model}:generateContent')
+async def gem_generate(model: str, request: Request, x_goog_api_key: str = Header(default='')):
+    bad = _gem_auth(x_goog_api_key)
+    if bad:
+        return bad
+    if TEXT_STATE['fail']:
+        return JSONResponse({'error': {'code': 429, 'message': 'Resource exhausted'}}, 429)
+    body = await request.json()
+    asked = json.dumps(body.get('contents', []), ensure_ascii=False)
+    _gem_text_calls['n'] += 1
+    n = _gem_text_calls['n']
+    log('gemini.text', model=model, call=n, prompt=asked[:3000],
+        temperature=(body.get('generationConfig') or {}).get('temperature'))
+    if TEXT_STATE['empty']:
+        return {'candidates': []}
+    if TEXT_STATE['garbage']:
+        return {'candidates': [{'content': {'parts': [{'text': 'ไม่ใช่ JSON เลยสักนิด'}]}}]}
+    # Every call answers differently, the way a real model would — the tests rely on it.
+    script = {
+        'angle': ['problem', 'benefit', 'question'][n % 3],
+        'hook': f'บทที่ {n} จาก Gemini ลองใช้แล้วชอบ',
+        'scenes': [
+            {'t': '0-2s', 'visual': f'เปิดเรื่องแบบที่ {n}', 'text': f'เปิดเรื่อง {n}', 'voice': f'ทักทายแบบที่ {n}'},
+            {'t': '2-6s', 'visual': 'สาธิตการใช้งาน', 'text': 'ใช้งานจริง', 'voice': 'ราคา 199 บาท ใช้ได้ทุกวัน'},
+            {'t': '6-10s', 'visual': 'โคลสอัปสินค้า', 'text': 'งานดี', 'voice': 'เรตติ้ง 4.8/5 ขายแล้ว 25,000 ชิ้น'},
+            {'t': '10-13s', 'visual': 'ชี้ที่ตะกร้า', 'text': 'กดตะกร้า', 'voice': 'กดตะกร้าได้เลย'},
+        ],
+        'caption': f'แคปชั่นหมายเลข {n}',
+        'hashtags': '#รีวิว #ของดี #ShopeeAffiliate #ป้ายยา #ของใช้',
+    }
+    return {'candidates': [{'content': {'parts': [{'text': json.dumps(script, ensure_ascii=False)}]}}]}

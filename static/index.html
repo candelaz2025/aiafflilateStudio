@@ -2666,6 +2666,32 @@
     </div>
   </div>
 </div>
+<!-- V8: edit a product — the same fields the manual add form collects -->
+<div class="modal-backdrop" id="v8EditProduct" hidden>
+  <div class="modal-content v8-edit-modal" role="dialog" aria-modal="true" aria-labelledby="v8EpTitle">
+    <button class="modal-close-btn" id="v8EpClose" aria-label="ปิด">&times;</button>
+    <h3 id="v8EpTitle">✎ แก้ไขสินค้า</h3>
+    <form id="v8EpForm" enctype="multipart/form-data" autocomplete="off">
+      <input type="hidden" name="product_id">
+      <div class="v8-form-grid v8-grid-3">
+        <label class="v8-span2">ชื่อสินค้า<input name="title" class="form-input" required minlength="3" maxlength="200"></label>
+        <label>แพลตฟอร์ม<select name="platform" class="form-select">
+          <option value="shopee">Shopee</option><option value="tiktok">TikTok</option><option value="other">อื่น ๆ</option></select></label>
+        <label class="v8-span3">ลิงก์สินค้า Affiliate<input name="url" type="url" class="form-input" placeholder="https://s.shopee.co.th/..."></label>
+        <label>ราคา (฿)<input name="price" class="form-input" inputmode="decimal" placeholder="199"></label>
+        <label>ค่าคอม (%)<input name="commission_rate" class="form-input" inputmode="decimal" placeholder="10"></label>
+        <label>ค่าคอมต่อชิ้น<input class="form-input" id="v8EpComm" readonly tabindex="-1" aria-live="polite"></label>
+        <label class="v8-span2">ลิงก์รูป (https)<input name="image_url" type="url" class="form-input" placeholder="https://..."></label>
+        <label>หรืออัปโหลดรูปใหม่<input name="image" type="file" accept="image/png,image/jpeg,image/webp" class="form-input"></label>
+      </div>
+      <div class="v8-ep-preview" id="v8EpPreview"></div>
+      <div class="v8-ep-foot">
+        <button type="button" class="btn btn-ghost" id="v8EpCancel">ยกเลิก</button>
+        <button type="submit" class="btn btn-primary">บันทึกการแก้ไข</button>
+      </div>
+    </form>
+  </div>
+</div>
 <!-- V8: TikTok pre-connect consent — what we are about to ask TikTok for, shown
      before the redirect so the grant is never a surprise -->
 <div class="modal-backdrop" id="v8TtConnect" hidden>

@@ -455,3 +455,50 @@ body.is-demo #sidebarLogoutBtn{display:none}
 .v8-oauth-go:hover:not(:disabled){background:#E62348}
 .v8-oauth-go:disabled{opacity:.6}
 @media (max-width:460px){.v8-oauth-card{padding:18px 16px}.v8-oauth-party{width:104px}}
+
+/* ------------------------------------------------- inline price editing (product card)
+   The price is the number people correct most often, so it edits in place instead of
+   through a dialog: click, type, Enter. Escape puts it back. */
+.v8-pc-price-edit{background:none;border:1px solid transparent;border-radius:var(--radius-sm);
+  padding:1px 6px;margin-left:-6px;cursor:text;font:inherit;font-size:18px;font-weight:800;color:#15803d;
+  display:inline-flex;align-items:center;gap:5px;transition:background var(--trans-fast),border-color var(--trans-fast)}
+.v8-pc-price-edit:hover{background:var(--color-surface-subtle);border-color:var(--color-border)}
+.v8-pc-price-edit:focus-visible{outline:2px solid var(--color-primary);outline-offset:1px}
+.v8-pc-pen{font-size:11px;font-weight:400;color:var(--color-text-subtle);opacity:0;transition:opacity var(--trans-fast)}
+.v8-pc-price-edit:hover .v8-pc-pen,.v8-pc-price-edit:focus-visible .v8-pc-pen{opacity:1}
+.v8-pc-price-box{display:inline-flex;align-items:center;gap:3px}
+.v8-pc-baht{font-size:17px;font-weight:800;color:#15803d}
+.v8-pc-price-input{width:104px;font-size:16px;font-weight:800;color:#15803d;padding:3px 6px;
+  border:1px solid var(--color-primary);border-radius:var(--radius-sm);
+  background:var(--color-surface);font-family:var(--font-mono)}
+.v8-pc-price-input:focus{outline:2px solid var(--color-primary);outline-offset:1px}
+:root[data-theme="dark"] .v8-pc-price-edit,:root[data-theme="dark"] .v8-pc-baht,
+:root[data-theme="dark"] .v8-pc-price-input{color:#4ADE80}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .v8-pc-price-edit,
+  :root:not([data-theme="light"]) .v8-pc-baht,:root:not([data-theme="light"]) .v8-pc-price-input{color:#4ADE80}}
+
+/* --------------------------------------------------------- edit product modal */
+.v8-span3{grid-column:span 3}
+.v8-edit-modal{max-width:640px;width:calc(100vw - 32px);max-height:88vh;overflow-y:auto;overscroll-behavior:contain}
+.v8-edit-modal h3{margin:0 0 16px;font-size:18px}
+.v8-edit-modal label{display:block;font-size:12.5px;font-weight:600}
+.v8-edit-modal .form-input,.v8-edit-modal .form-select{margin-top:4px;width:100%}
+.v8-edit-modal #v8EpComm{background:var(--color-surface-subtle);color:var(--color-text-muted);
+  font-family:var(--font-mono);font-size:12.5px;cursor:default}
+.v8-ep-preview{display:flex;align-items:center;gap:10px;margin-top:14px;padding:10px 12px;
+  border:1px solid var(--color-border);border-radius:var(--radius-md);background:var(--color-surface-subtle);min-height:56px}
+.v8-ep-preview img{width:56px;height:56px;object-fit:cover;border-radius:var(--radius-sm);border:1px solid var(--color-border)}
+.v8-ep-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--color-border)}
+@media (max-width:640px){.v8-span3{grid-column:auto}.v8-edit-modal{padding:18px 16px}}
+
+/* ------------------------------------------------- script writer status + key nudge */
+.v8-writer{margin-top:10px;padding:10px 12px;border-radius:var(--radius-md);line-height:1.6;
+  border:1px solid var(--color-border);background:var(--color-surface-subtle)}
+.v8-writer.is-on{border-color:#86EFAC;background:#F0FDF4}
+.v8-writer.is-tip{border-color:#BFDBFE;background:#EFF6FF}
+.v8-writer-act{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:9px}
+:root[data-theme="dark"] .v8-writer.is-on{background:#0C2417;border-color:#166534}
+:root[data-theme="dark"] .v8-writer.is-tip{background:#0D1F38;border-color:#1E40AF}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]) .v8-writer.is-on{background:#0C2417;border-color:#166534}
+  :root:not([data-theme="light"]) .v8-writer.is-tip{background:#0D1F38;border-color:#1E40AF}}

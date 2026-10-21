@@ -21,7 +21,7 @@ from pydantic import BaseModel, Field
 from integrations import ugc
 from studio_v6 import mock_video_service as mock_video
 from studio_v6 import openrouter_service as openrouter
-from integrations import gemini_omni, video_templates
+from integrations import copy_rules, gemini_omni, gemini_text, video_templates
 
 ENGINE_MODEL = 'google/veo-3.1-lite'
 ENGINE_LABEL = 'Google Veo 3.1 Lite (ผ่าน OpenRouter)'
@@ -98,6 +98,11 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, now, data_d
           name TEXT NOT NULL, file_name TEXT NOT NULL, mime TEXT NOT NULL,
           created_at TEXT NOT NULL)''')
         db.execute('CREATE INDEX IF NOT EXISTS studio_avatars_owner ON studio_avatars(user_id, id DESC)')
+        db.execute('''CREATE TABLE IF NOT EXISTS studio_script_history (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          project_id INTEGER NOT NULL REFERENCES studio_projects(id) ON DELETE CASCADE,
+          hook TEXT NOT NULL DEFAULT '', signature TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL)''')
+        db.execute('CREATE INDEX IF NOT EXISTS studio_hist_proj ON studio_script_history(project_id, id DESC)')
 
     # ------------------------------------------------------------------ engine
     def engine_for(user_id):
@@ -120,6 +125,49 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, now, data_d
         return {'mode': 'sample', 'label': 'คลิปตัวอย่าง (ยังไม่ได้เชื่อม AI)', 'cost_credits': 0,
                 'note': 'ยังไม่มีเอนจิน AI ที่ใช้งานได้ — ใช้ "คลิปพรีวิว" ที่สร้างในเบราว์เซอร์ได้ฟรี หรือบันทึกคีย์ OpenRouter ในเมนู API Keys',
                 'seconds': 0}
+
+    def script_history(project_id, limit=14):
+        rows = read('SELECT hook, signature FROM studio_script_history WHERE project_id=? ORDER BY id DESC LIMIT ?',
+                    (project_id, limit))
+        out = []
+        for r in rows:
+            out += [r['hook'], r['signature']]
+        return [x for x in out if x]
+
+    def remember_script(project_id, script):
+        with connect() as c:
+            c.execute('INSERT INTO studio_script_history(project_id,hook,signature,created_at) VALUES(?,?,?,?)',
+                      (project_id, script.get('hook', '')[:200], ugc.signature(script), now()))
+            c.execute('''DELETE FROM studio_script_history WHERE project_id=? AND id NOT IN
+                         (SELECT id FROM studio_script_history WHERE project_id=? ORDER BY id DESC LIMIT 20)''',
+                      (project_id, project_id))
+
+    def write_script(user_id, product, style, *, avoid=None, project_id=None):
+        """One script, never a repeat of what this project already showed.
+
+        With the user's Gemini key the model writes it, which is the only way two clips
+        for the same product come out genuinely different. Without a key the built-in
+        generator runs, and `notice` tells the user what connecting a key would buy.
+        """
+        avoid = list(avoid or []) + (script_history(project_id) if project_id else [])
+        label = next((x['label'] for x in ugc.STYLES if x['id'] == style), style)
+        key = _optional_key(user_id, 'gemini')
+        if key:
+            try:
+                model = gemini_text.pick_model(key)
+                data = gemini_text.write_script(key, product, label, avoid=avoid, model=model)
+                script = ugc.from_model(data, product, style)
+                if ugc.signature(script) in set(avoid):
+                    raise gemini_text.GeminiTextError('บทที่ได้ซ้ำกับของเดิม')
+                script['issues'] = copy_rules.check(script, product)
+                return script, ''
+            except (gemini_text.GeminiTextError, ValueError) as e:
+                script = ugc.generate(product, style, secrets.randbelow(1000) + 1, avoid=avoid)
+                script['issues'] = copy_rules.check(script, product)
+                return script, f'เขียนบทด้วย Gemini ไม่สำเร็จ ({str(e)[:120]}) — ใช้บทจากระบบแทน'
+        script = ugc.generate(product, style, secrets.randbelow(1000) + 1, avoid=avoid)
+        script['issues'] = copy_rules.check(script, product)
+        return script, ''
 
     def credits_of(user_id):
         r = read('SELECT credits FROM users WHERE id=?', (user_id,), True)
@@ -205,7 +253,12 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, now, data_d
         projects = [project_out(p) for p in read('SELECT * FROM studio_projects WHERE user_id=? ORDER BY id DESC LIMIT 20', (u['id'],))]
         chans = read("""SELECT id,platform,account_name FROM connected_channels WHERE user_id=? AND platform IN ('facebook','instagram','line_oa','tiktok')
                         AND access_token_encrypted IS NOT NULL AND access_token_encrypted!=''""", (u['id'],))
+        has_gemini = bool(_optional_key(u['id'], 'gemini'))
         return {'styles': ugc.STYLES, 'products': products, 'projects': projects, 'engine': engine_for(u['id']),
+                'writer': {'mode': 'gemini' if has_gemini else 'builtin',
+                           'label': ('Gemini เขียนบทให้ — บทใหม่ทุกครั้ง ไม่ซ้ำ' if has_gemini
+                                     else 'บทจากระบบ (ไม่ต้องใช้คีย์) — สลับสำนวนให้ไม่ซ้ำ แต่ยังอยู่ในกรอบที่เขียนไว้ล่วงหน้า'),
+                           'angles': copy_rules.ANGLES},
                 'templates': video_templates.TEMPLATES, 'avatars': avatars_of(u['id']),
                 'aspects': list(gemini_omni.ASPECTS), 'resolutions': list(gemini_omni.RESOLUTIONS),
                 'credits': credits_of(u['id']), 'channels': chans,
@@ -235,7 +288,14 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, now, data_d
         prod = read('SELECT * FROM products WHERE id=? AND user_id=?', (body.product_id, u['id']), True)
         if not prod:
             raise HTTPException(404, 'ไม่พบสินค้าในบัญชีของคุณ')
-        script = ugc.generate(prod, body.style)
+        # Earlier projects for the same product count as "already seen" — a second clip
+        # for one product should not open with the line the first one used.
+        prior = read('''SELECT h.hook, h.signature FROM studio_script_history h
+                        JOIN studio_projects sp ON sp.id = h.project_id
+                        WHERE sp.user_id=? AND sp.product_id=? ORDER BY h.id DESC LIMIT 14''',
+                     (u['id'], prod['id']))
+        avoid = [x for r in prior for x in (r['hook'], r['signature']) if x]
+        script, notice = write_script(u['id'], prod, body.style, avoid=avoid)
         with connect() as c:
             c.execute('BEGIN IMMEDIATE')
             draft_id = make_draft(c, u['id'], prod['id'], body.style, script)
@@ -244,7 +304,11 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, now, data_d
                             (u['id'], prod['id'], draft_id, body.style, json.dumps(script, ensure_ascii=False),
                              script['caption'] + '\n' + script['hashtags'], now(), now()))
             pid = cur.lastrowid
-        return {'project': project_out(own_project(u['id'], pid)), 'message': 'สร้างบท UGC สำเร็จ — แก้ไขได้ก่อนทำคลิป'}
+        remember_script(pid, script)
+        out = {'project': project_out(own_project(u['id'], pid)), 'message': 'สร้างบท UGC สำเร็จ — แก้ไขได้ก่อนทำคลิป'}
+        if notice:
+            out['notice'] = notice
+        return out
 
     @app.get('/api/studio/projects')
     def list_projects(req: Request):
@@ -264,12 +328,13 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, now, data_d
             raise HTTPException(409, 'กำลังสร้างคลิปอยู่ แก้บทไม่ได้จนกว่าจะเสร็จ')
         script = json.loads(p['script_json'])
         style = body.style or p['style']
+        notice = ''
         if body.regenerate or (body.style and body.style != p['style']):
             if style not in ugc.STYLE_IDS:
                 raise HTTPException(400, 'สไตล์ UGC ไม่ถูกต้อง')
             prod = read('SELECT * FROM products WHERE id=?', (p['product_id'],), True)
-            variant = (secrets.randbelow(1000) + 1) if body.regenerate else 0
-            script = ugc.generate(prod, style, variant)
+            script, notice = write_script(u['id'], prod, style, project_id=pid)
+            remember_script(pid, script)
             caption = script['caption'] + '\n' + script['hashtags']
         else:
             caption = p['caption']
@@ -292,7 +357,10 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, now, data_d
             if p['draft_id']:
                 c.execute('UPDATE drafts SET script=?, prompt=?, style=? WHERE id=? AND user_id=?',
                           (ugc.to_text(script), ugc.to_prompt(script), style, p['draft_id'], u['id']))
-        return {'project': project_out(own_project(u['id'], pid)), 'message': 'บันทึกบทแล้ว'}
+        out = {'project': project_out(own_project(u['id'], pid)), 'message': 'บันทึกบทแล้ว'}
+        if notice:
+            out['notice'] = notice
+        return out
 
     @app.post('/api/studio/projects/{pid}/preview')
     async def upload_preview(pid: int, req: Request, file: UploadFile = File(...), x_csrf_token: str | None = Header(default=None)):
@@ -508,6 +576,12 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, now, data_d
         if not row or not dec:
             raise HTTPException(400, f'ไม่พบคีย์ {provider} — บันทึกคีย์ในหน้า "คีย์และการตั้งค่า" ก่อน')
         return dec(row['encrypted'])
+
+    def _optional_key(user_id, provider):
+        """The key if there is one, else '' — for paths that have a fallback."""
+        dec = cipher_holder.get('dec')
+        row = read('SELECT encrypted FROM credentials WHERE user_id=? AND provider=?', (user_id, provider), True)
+        return dec(row['encrypted']) if row and dec else ''
 
     def _own_key(user_id):
         return _provider_key(user_id, 'openrouter')

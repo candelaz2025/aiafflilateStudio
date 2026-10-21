@@ -1442,11 +1442,9 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, cipher, now
         save_item(u['id'], item, product_id)
         return {'id': product_id, 'item': item, 'message': 'อัปเดตราคาและค่าคอมล่าสุดแล้ว'}
 
-    @app.post('/api/my/products/manual')
-    async def manual_product(req: Request, title: str = Form(...), url: str = Form(''), platform: str = Form('shopee'),
-                             price: str = Form(''), commission_rate: str = Form(''), image_url: str = Form(''),
-                             image: UploadFile | None = File(None), x_csrf_token: str | None = Header(default=None)):
-        u = mutation(req, x_csrf_token)
+    async def _manual_fields(title, url, platform, price, commission_rate, image_url, image):
+        """Validate the manual product form. Shared by add and edit so the two can never
+        disagree about what a valid product looks like."""
         title = title.strip()
         if not 3 <= len(title) <= 200:
             raise HTTPException(400, 'ชื่อสินค้าต้องยาว 3-200 ตัวอักษร')
@@ -1486,11 +1484,51 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, cipher, now
             fname = secrets.token_urlsafe(16) + ext
             (media_dir / fname).write_bytes(data)
         comm_baht = round(p * rate / 100, 2) if p is not None and rate is not None else None
+        return {'title': title, 'url': url, 'platform': platform, 'price': p, 'commission_rate': rate,
+                'commission_baht': comm_baht, 'image_url': image_url, 'image_file': fname}
+
+    @app.post('/api/my/products/manual')
+    async def manual_product(req: Request, title: str = Form(...), url: str = Form(''), platform: str = Form('shopee'),
+                             price: str = Form(''), commission_rate: str = Form(''), image_url: str = Form(''),
+                             image: UploadFile | None = File(None), x_csrf_token: str | None = Header(default=None)):
+        u = mutation(req, x_csrf_token)
+        f = await _manual_fields(title, url, platform, price, commission_rate, image_url, image)
         with connect() as c:
             cur = c.execute('''INSERT INTO products(user_id,title,url,platform,created_at,price,commission_rate,commission_baht,
                                image_url,image_file,source) VALUES (?,?,?,?,?,?,?,?,?,?,'manual')''',
-                            (u['id'], title, url, platform, now(), p, rate, comm_baht, image_url, fname))
+                            (u['id'], f['title'], f['url'], f['platform'], now(), f['price'], f['commission_rate'],
+                             f['commission_baht'], f['image_url'], f['image_file']))
         return {'id': cur.lastrowid, 'message': 'บันทึกสินค้า (กรอกเอง) เรียบร้อย'}
+
+    @app.put('/api/my/products/{product_id}/manual')
+    async def edit_product_full(product_id: int, req: Request, title: str = Form(...), url: str = Form(''),
+                                platform: str = Form('shopee'), price: str = Form(''), commission_rate: str = Form(''),
+                                image_url: str = Form(''), image: UploadFile | None = File(None),
+                                keep_image: str = Form('1'), x_csrf_token: str | None = Header(default=None)):
+        """Edit every field of a product, exactly as the add form collects them.
+
+        An uploaded file wins; otherwise keep_image=1 preserves whatever image the
+        product already has, so saving a price change never silently drops the photo.
+        """
+        u = mutation(req, x_csrf_token)
+        existing = product_for(u['id'], product_id)
+        f = await _manual_fields(title, url, platform, price, commission_rate, image_url, image)
+        img_file = f['image_file'] or (existing.get('image_file', '') if keep_image == '1' else '')
+        img_url = f['image_url'] or (existing.get('image_url', '') if keep_image == '1' and not f['image_file'] else '')
+        with connect() as c:
+            c.execute('''UPDATE products SET title=?, url=?, offer_link=CASE WHEN ?!='' THEN ? ELSE offer_link END,
+                         platform=?, price=?, commission_rate=?, commission_baht=?, image_url=?, image_file=?
+                         WHERE id=? AND user_id=?''',
+                      (f['title'], f['url'], f['url'], f['url'], f['platform'], f['price'], f['commission_rate'],
+                       f['commission_baht'], img_url, img_file, product_id, u['id']))
+        # A replaced upload leaves the old file behind; remove it so media does not pile up.
+        old_file = existing.get('image_file', '')
+        if f['image_file'] and old_file and old_file != f['image_file']:
+            try:
+                (media_dir / old_file).unlink(missing_ok=True)
+            except OSError:
+                pass
+        return {'id': product_id, 'message': f'บันทึกการแก้ไข "{f["title"][:40]}" แล้ว'}
 
     def _fetch_product_image(url: str) -> str:
         """Best-effort server-side download of a Shopee-CDN image. Returns saved
