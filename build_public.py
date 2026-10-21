@@ -69,7 +69,6 @@ def main():
     redirects_content = """# Netlify Clean URLs and Routing Rules
 /landing        /landing.html       200
 /community      /community.html     200
-/admin          /admin.html         200
 /donate         /donate.html        200
 /updates        /updates.html       200
 /dashboard      /index.html         200

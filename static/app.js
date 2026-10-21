@@ -518,8 +518,8 @@
       const k = el.dataset.i18nPh;
       if (i18n[lang] && i18n[lang][k]) el.placeholder = i18n[lang][k];
     });
-    $('langThBtn')?.classList.toggle('active', lang === 'th');
-    $('langEnBtn')?.classList.toggle('active', lang === 'en');
+    document.querySelectorAll('#langThBtn, [data-proxy="langThBtn"]').forEach(b => b.classList.toggle('active', lang === 'th'));
+    document.querySelectorAll('#langEnBtn, [data-proxy="langEnBtn"]').forEach(b => b.classList.toggle('active', lang === 'en'));
     localStorage.setItem('lang', lang);
   }
 
@@ -1724,7 +1724,7 @@
               <button class="btn btn-ghost btn-sm" onclick="window.appOpenPermModal(${u.id}, ${esc(jsArg(u.username))}, ${esc(jsArg(u.email))}, '${u.role}', '${encodeURIComponent(u.permissions || '')}')">
                 🛡️ สิทธิ์
               </button>
-              ${u.id !== me.id ? `<button class="btn btn-ghost btn-sm" style="color:var(--color-danger);" onclick="window.appDeleteUser(${u.id})">ลบ</button>` : ''}
+              ${u.id !== me.id ? `<button class="btn btn-ghost btn-sm" style="color:var(--color-danger);" onclick="window.appDeleteUser(${u.id}, ${esc(jsArg(u.username))})">ลบ</button>` : ''}
             </div>
           </td>
         </tr>
@@ -2105,6 +2105,9 @@
   $('langThBtn')?.addEventListener('click', () => applyLanguage('th'));
   $('langEnBtn')?.addEventListener('click', () => applyLanguage('en'));
 
+  // Sidebar copies of the topbar tools forward their click to the original button
+  document.querySelectorAll('[data-proxy]').forEach(b => b.addEventListener('click', () => $(b.dataset.proxy)?.click()));
+
   // Notification Button
   $('notifBtn')?.addEventListener('click', () => {
     if (window.AASv8) window.AASv8.showNotifications(); else msg('ยังไม่มีการแจ้งเตือนใหม่');
@@ -2230,10 +2233,11 @@
     }
   };
 
-  window.appDeleteUser = async userId => {
-    if (!confirm('ยืนยันลบบัญชีผู้ใช้นี้หรือไม่?')) return;
+  window.appDeleteUser = async (userId, username) => {
+    const typed = prompt(`ลบบัญชี "${username}" และข้อมูลทั้งหมดถาวร\nพิมพ์ชื่อผู้ใช้เพื่อยืนยัน`);
+    if (typed === null) return;
     try {
-      await api(`/api/admin/users/${userId}`, 'DELETE');
+      await api(`/api/admin/users/${userId}?confirm_username=${encodeURIComponent(typed)}`, 'DELETE');
       msg('ลบบัญชีผู้ใช้สำเร็จ');
       await loadUsers();
     } catch (e) {

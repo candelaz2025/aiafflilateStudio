@@ -300,3 +300,28 @@ body.is-demo #sidebarLogoutBtn{display:none}
 .v8-token-form{display:flex;flex-direction:column;gap:10px;margin:10px 0}
 .v8-token-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .v8-token-row input{flex:1;min-width:200px}
+/* Topbar fit: below 1280px the topbar keeps credits + sign-in/profile; language, theme and notifications move to .sidebar-tools */
+.sidebar-tools{display:none}
+@media (max-width:1279px){
+.topbar-right .lang-toggle,.topbar-right #themeToggleBtn,.topbar-right #notifBtn,.topbar-right #topupModalTriggerBtn{display:none}
+.sidebar-tools{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.topbar-left{min-width:0}
+.topbar-right{flex-shrink:0;gap:8px}
+.topbar-right .energy-badge,#authModalTriggerBtn{white-space:nowrap}
+}
+@media (max-width:768px){.search-shortcut,.v8-beta-chip{display:none}.topbar-left{gap:8px}.global-search-input{padding-right:12px}}
+@media (max-width:520px){.global-search{display:none}}
+/* Dashboard pipeline cards: a row on wide screens, a stacked column on phones */
+.kpi-row.kpi-pipeline{display:flex;align-items:center;gap:12px}
+.kpi-pipeline .kpi-card{min-width:0}
+@media (max-width:640px){
+.kpi-row.kpi-pipeline{flex-direction:column;align-items:stretch}
+.kpi-pipeline .kpi-arrow{align-self:center;transform:rotate(90deg);line-height:1}
+.hero-character-mascot{display:none}
+.hero-header-row{flex-wrap:wrap;gap:8px}
+.hero-greeting-tag{white-space:nowrap}
+.hero-heading{font-size:24px}
+.hero-prompt-bar{flex-wrap:wrap;padding:8px 8px 8px 14px}
+.hero-prompt-input{flex:1 1 0;min-width:0;height:40px;text-overflow:ellipsis}
+.hero-prompt-btn{flex-basis:100%;justify-content:center;margin-top:6px}
+}
