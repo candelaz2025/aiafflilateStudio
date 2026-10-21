@@ -1011,7 +1011,7 @@
     queued_tiktok: [4, 'อยู่ในคิว TikTok'],
   };
   const Studio = {
-    boot: null, productId: null, style: 'ugc_pov', project: null, img: null, playing: false, raf: 0, pollT: 0,
+    boot: null, productId: null, tpl: '', avatarId: null, style: 'ugc_pov', project: null, img: null, playing: false, raf: 0, pollT: 0,
     async load(keepProject) {
       const grid = $('v8StudioProducts');
       if (!grid) return;
@@ -1104,7 +1104,7 @@
       await this.loadImage(p.product.image);
       this.drawFrame(0.4);
       if (p.clip_url) this.showVideo(p.clip_url); else if (p.preview_url) this.showVideo(p.preview_url); else this.resetPreview();
-      this.renderClips(); this.renderAi(); this.renderPlatforms(); this.paintSteps(); this.renderProjects(); AutoPost.render();
+      this.renderClips(); this.renderAi(); this.renderGemini(); this.renderPlatforms(); this.paintSteps(); this.renderProjects(); AutoPost.render();
       if (p.status === 'clip_running') this.schedulePoll();
     },
     renderScript() {
@@ -1319,6 +1319,43 @@
       else st.innerHTML = '';
       if (p.status === 'clip_failed' && p.clip_url) st.innerHTML += `<div class="v8-small v8-muted" style="margin-top:4px">คลิป AI ก่อนหน้ายังดาวน์โหลดได้ในขั้นตอนที่ 4</div>`;
     },
+    // ---------- Gemini: templates + avatars
+    renderGemini() {
+      const e = this.boot.engine, panel = $('v8GeminiPanel');
+      if (!panel) return;
+      const on = !!e.supports_template;
+      panel.hidden = !on;
+      if (!on) return;
+      const tpls = this.boot.templates || [];
+      if (!this.tpl || !tpls.some(t => t.id === this.tpl)) this.tpl = (tpls[0] || {}).id;
+      $('v8TplGrid').innerHTML = tpls.map(t => `<button type="button" class="v8-tpl ${t.id === this.tpl ? 'is-on' : ''}" data-tpl="${esc(t.id)}">
+        <span class="v8-tpl-ico">${t.icon}</span><span class="v8-tpl-name">${esc(t.name)}</span><span class="v8-tpl-desc">${esc(t.desc)}</span></button>`).join('');
+      $('v8TplGrid').querySelectorAll('[data-tpl]').forEach(b => b.addEventListener('click', () => { this.tpl = b.dataset.tpl; this.renderGemini(); }));
+      const avs = this.boot.avatars || [];
+      $('v8AvatarRow').innerHTML = `<button type="button" class="v8-av ${!this.avatarId ? 'is-on' : ''}" data-av="">
+          <span class="v8-av-none">ไม่ใช้</span><span class="v8-av-name">ไม่มีตัวละคร</span></button>` +
+        avs.map(a => `<button type="button" class="v8-av ${this.avatarId === a.id ? 'is-on' : ''}" data-av="${a.id}">
+          <img src="${esc(a.url)}" alt=""><span class="v8-av-name">${esc(a.name)}</span>
+          <span class="v8-av-del" data-del="${a.id}" title="ลบตัวละคร">✕</span></button>`).join('') +
+        `<button type="button" class="v8-av v8-av-add" id="v8AvatarAdd"><span class="v8-av-none">＋</span><span class="v8-av-name">อัปโหลดรูป</span></button>`;
+      $('v8AvatarRow').querySelectorAll('[data-av]').forEach(b => b.addEventListener('click', e2 => {
+        if (e2.target.dataset.del) return;
+        this.avatarId = b.dataset.av ? +b.dataset.av : null; this.renderGemini();
+      }));
+      $('v8AvatarRow').querySelectorAll('[data-del]').forEach(x => x.addEventListener('click', async e2 => {
+        e2.stopPropagation();
+        if (!confirm('ลบตัวละครนี้?')) return;
+        try { const r = await api(`/api/studio/avatars/${x.dataset.del}`, 'DELETE'); this.boot.avatars = r.avatars; if (this.avatarId === +x.dataset.del) this.avatarId = null; this.renderGemini(); toast('ลบแล้ว', 'success'); }
+        catch (err) { toast(err.message, 'error'); }
+      }));
+      $('v8AvatarAdd').addEventListener('click', () => $('v8AvatarFile').click());
+    },
+    async uploadAvatar(file) {
+      if (!file) return;
+      const fd = new FormData(); fd.append('file', file); fd.append('name', file.name.replace(/\.[^.]+$/, '').slice(0, 40));
+      try { const r = await form('/api/studio/avatars', fd); this.boot.avatars = r.avatars; this.avatarId = r.id; this.renderGemini(); toast('✅ ' + r.message, 'success'); }
+      catch (e) { toast(e.message, 'error'); }
+    },
     async aiClip() {
       const e = this.boot.engine;
       if (!this.project) return toast('สร้างบทก่อน', 'error');
@@ -1326,7 +1363,12 @@
       if (this.dirty) { try { await this.saveScript(true); } catch { return; } }
       $('v8AiClip').disabled = true;
       try {
-        const r = await api(`/api/studio/projects/${this.project.id}/ai-clip`, 'POST');
+        const opts = this.boot.engine.supports_template ? {
+          template: this.tpl, avatar_id: this.avatarId || null,
+          aspect: $('v8GmAspect').value, resolution: $('v8GmRes').value,
+          seconds: +$('v8GmSec').value, voice_over: !!$('v8GmVoice').checked,
+        } : {};
+        const r = await api(`/api/studio/projects/${this.project.id}/ai-clip`, 'POST', opts);
         this.project = r.project; this.boot.credits = r.credits; setCredits(r.credits); this.renderEngine();
         toast(r.message, 'success');
         this.renderAi(); this.paintSteps(); this.schedulePoll();
@@ -1448,6 +1490,14 @@
       });
       $('v8PlayPreview')?.addEventListener('click', () => this.play());
       $('v8RecordPreview')?.addEventListener('click', () => this.record());
+      $('v8AvatarFile')?.addEventListener('change', e => { this.uploadAvatar(e.target.files[0]); e.target.value = ''; });
+      $('v8GeminiVerify')?.addEventListener('click', async b => {
+        const btn = b.target, msg = $('v8GeminiVerifyMsg');
+        btn.disabled = true; msg.textContent = 'กำลังตรวจกับ Google…';
+        try { const r = await api('/api/studio/gemini/verify', 'POST', {}); msg.innerHTML = `<span class="${r.has_omni ? 'v8-ok' : 'v8-warn'}">${r.has_omni ? '✅' : '⚠'} ${esc(r.message)}</span>`; }
+        catch (e) { msg.innerHTML = `<span class="v8-err">❌ ${esc(e.message)}</span>`; }
+        finally { btn.disabled = false; }
+      });
       $('v8AiClip')?.addEventListener('click', () => this.aiClip());
       $('v8AiRetry')?.addEventListener('click', () => this.aiClip());
       $('v8SaveLibrary')?.addEventListener('click', () => this.save('library'));

@@ -1503,6 +1503,17 @@
             <p style="font-size:13px; color:var(--color-text-muted);">คีย์เข้ารหัสด้วย Fernet Encryption เก็บไว้ในเซิร์ฟเวอร์ของคุณเท่านั้น</p>
           </div>
           <div id="connectionlist" class="grid-cols-2" style="margin-bottom:16px;"></div>
+          <div class="v8-gemini-card" id="v8GeminiKeyCard">
+            <div>
+              <strong>🎥 Gemini Omni Flash — สร้างวิดีโอด้วยคีย์ของคุณเอง</strong>
+              <div class="v8-small v8-muted">บันทึกคีย์ Gemini ไว้ในช่อง <strong>gemini</strong> ด้านบน แล้วกดตรวจสอบที่นี่ · คิดค่าใช้จ่ายกับบัญชี Google AI Studio ของคุณ ไม่หักเครดิตระบบ</div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <a class="btn btn-ghost btn-sm" href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer">รับคีย์ ↗</a>
+              <button class="btn btn-secondary btn-sm" id="v8GeminiVerify">📡 ตรวจสอบคีย์</button>
+            </div>
+            <div id="v8GeminiVerifyMsg" class="v8-small" style="flex-basis:100%"></div>
+          </div>
         </div>
 
         <div class="mf-card">
@@ -1511,7 +1522,7 @@
             <li><strong>TikTok Creator Content Posting:</strong> ต้องเปิดใช้งานโหมด Creator / TikTok Shop Seller เพื่อรับสิทธิ์ Content Posting API</li>
             <li><strong>Shopee Open Platform:</strong> ใช้ Shopee Open Platform Partner ID และ Affiliate Access Key สำหรับ Shopee Video</li>
             <li><strong>Meta Facebook Pages & Reels:</strong> รับ Page Access Token จาก Meta for Developers (สิทธิ์ pages_manage_posts, pages_read_engagement)</li>
-            <li><strong>Google Gemini / Veo:</strong> รับคีย์ได้จาก <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer">Google AI Studio ↗</a></li>
+            <li><strong>Google Gemini (สร้างวิดีโอ Omni Flash):</strong> รับคีย์ได้จาก <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer">Google AI Studio ↗</a></li>
             <li><strong>xAI Grok:</strong> รับคีย์ได้จาก <a href="https://console.x.ai" target="_blank" rel="noopener noreferrer">xAI Console ↗</a></li>
           </ul>
         </div>
@@ -1585,6 +1596,20 @@
               <div class="v8-option" id="v8AiOption">
                 <h4>B. คลิป AI จริง</h4>
                 <div id="v8AiInfo" class="v8-muted"></div>
+                <div id="v8GeminiPanel" hidden>
+                  <div class="v8-gm-row"><strong>แนววิดีโอ (เทมเพลต)</strong></div>
+                  <div id="v8TplGrid" class="v8-tpl-grid"></div>
+                  <div class="v8-gm-grid">
+                    <label>สัดส่วน<select class="form-select" id="v8GmAspect"><option value="9:16">9:16 แนวตั้ง</option><option value="16:9">16:9 แนวนอน</option></select></label>
+                    <label>ความละเอียด<select class="form-select" id="v8GmRes"><option value="720p" selected>720p</option><option value="1080p">1080p</option><option value="360p">360p</option></select></label>
+                    <label>ความยาว<select class="form-select" id="v8GmSec"><option value="10" selected>10 วินาที</option><option value="20">20 วินาที</option></select></label>
+                  </div>
+                  <label class="v8-onb-skip"><input type="checkbox" id="v8GmVoice" checked> ใส่เสียงพากย์ไทย + ซับไตเติลจากบทที่เขียนไว้</label>
+                  <div class="v8-gm-row" style="margin-top:10px"><strong>ตัวละคร (ไม่บังคับ)</strong>
+                    <span class="v8-small v8-muted">อัปโหลดรูปหน้า แล้ว AI จะให้คนนี้เป็นพรีเซนเตอร์</span></div>
+                  <div id="v8AvatarRow" class="v8-avatar-row"></div>
+                  <input type="file" id="v8AvatarFile" accept="image/jpeg,image/png,image/webp" hidden>
+                </div>
                 <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
                   <button class="btn btn-primary" id="v8AiClip">🎬 สร้างคลิป AI</button>
                   <button class="btn btn-ghost" id="v8AiRetry" hidden>↻ ลองใหม่</button>
@@ -2641,8 +2666,8 @@
 </div>
 <div id="v8Toast" class="v8-toast" role="status" aria-live="polite" hidden></div>
 
-<link rel="stylesheet" href="/static/v8.css?v=20261021-007">
-<script src="/static/app.js?v=20261021-007" defer></script>
-<script src="/static/v8.js?v=20261021-007" defer></script>
+<link rel="stylesheet" href="/static/v8.css?v=20261021-008">
+<script src="/static/app.js?v=20261021-008" defer></script>
+<script src="/static/v8.js?v=20261021-008" defer></script>
 </body>
 </html>

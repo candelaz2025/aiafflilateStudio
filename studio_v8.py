@@ -14,13 +14,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import requests
-from fastapi import FastAPI, File, Header, HTTPException, Request, UploadFile
+from fastapi import FastAPI, File, Form, Header, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel, Field
 
 from integrations import ugc
 from studio_v6 import mock_video_service as mock_video
 from studio_v6 import openrouter_service as openrouter
+from integrations import gemini_omni, video_templates
 
 ENGINE_MODEL = 'google/veo-3.1-lite'
 ENGINE_LABEL = 'Google Veo 3.1 Lite (ผ่าน OpenRouter)'
@@ -56,6 +57,15 @@ class QuickProductIn(BaseModel):
     source: str = Field(default='manual', pattern=r'^(manual|radar)$')
 
 
+class ClipOptionsIn(BaseModel):
+    template: str = Field(default='studio_product', max_length=40)
+    avatar_id: int | None = None
+    aspect: str = Field(default='9:16', max_length=8)
+    resolution: str = Field(default='720p', max_length=8)
+    seconds: int = Field(default=10, ge=5, le=20)
+    voice_over: bool = True
+
+
 def register(app: FastAPI, *, connect, read, require_user, mutation, now, data_dir: Path):
     sample_img = '/static/samples/sample-fan.svg'
 
@@ -82,6 +92,12 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, now, data_d
         cols = {r[1] for r in db.execute('PRAGMA table_info(studio_projects)')}
         if 'ready_job_id' not in cols:
             db.execute('ALTER TABLE studio_projects ADD COLUMN ready_job_id INTEGER')
+        db.execute('''CREATE TABLE IF NOT EXISTS studio_avatars (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          name TEXT NOT NULL, file_name TEXT NOT NULL, mime TEXT NOT NULL,
+          created_at TEXT NOT NULL)''')
+        db.execute('CREATE INDEX IF NOT EXISTS studio_avatars_owner ON studio_avatars(user_id, id DESC)')
 
     # ------------------------------------------------------------------ engine
     def engine_for(user_id):
@@ -93,6 +109,10 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, now, data_d
         if os.getenv('PLATFORM_OPENROUTER_API_KEY', '').strip():
             return {'mode': 'ai_platform', 'label': ENGINE_LABEL, 'cost_credits': cost,
                     'note': 'ใช้เครดิตของระบบ หากล้มเหลวจะคืนเครดิตอัตโนมัติ', 'seconds': 90}
+        if read("SELECT 1 FROM credentials WHERE user_id=? AND provider='gemini'", (user_id,), True):
+            return {'mode': 'gemini_own_key', 'label': f'Gemini Omni Flash ({gemini_omni.MODEL}) — คีย์ของคุณ', 'cost_credits': 0,
+                    'note': 'ใช้คีย์ Gemini ของคุณเอง ไม่หักเครดิตระบบ · ค่าใช้จ่ายคิดกับบัญชี Google AI Studio ของคุณ',
+                    'seconds': 120, 'supports_template': True, 'supports_avatar': True}
         if read("SELECT 1 FROM credentials WHERE user_id=? AND provider='openrouter'", (user_id,), True):
             est = openrouter.estimated_cost(ENGINE_MODEL, False)
             return {'mode': 'ai_own_key', 'label': ENGINE_LABEL + ' — คีย์ OpenRouter ของคุณ', 'cost_credits': 0,
@@ -186,6 +206,8 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, now, data_d
         chans = read("""SELECT id,platform,account_name FROM connected_channels WHERE user_id=? AND platform IN ('facebook','instagram','line_oa')
                         AND access_token_encrypted IS NOT NULL AND access_token_encrypted!=''""", (u['id'],))
         return {'styles': ugc.STYLES, 'products': products, 'projects': projects, 'engine': engine_for(u['id']),
+                'templates': video_templates.TEMPLATES, 'avatars': avatars_of(u['id']),
+                'aspects': list(gemini_omni.ASPECTS), 'resolutions': list(gemini_omni.RESOLUTIONS),
                 'credits': credits_of(u['id']), 'channels': chans,
                 'platforms': {'tiktok': {'connected': False, 'mode': 'manual',
                                          'note': 'ยังไม่เชื่อมต่อ TikTok API — ดาวน์โหลดคลิป + คัดลอกแคปชั่น แล้วอัปโหลดเองที่ tiktok.com/upload'}}}
@@ -319,8 +341,88 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, now, data_d
                 c.execute('INSERT INTO credit_ledger(user_id,delta,reason,project_id,created_at) VALUES(?,?,?,?,?)',
                           (user_id, row['credits_charged'], 'refund: ' + reason[:120], p['id'], now()))
 
+    @app.post('/api/studio/gemini/verify')
+    async def verify_gemini_key(req: Request, x_csrf_token: str | None = Header(default=None)):
+        """Check the Gemini key the user saved actually works, before they burn a clip on it."""
+        u = mutation(req, x_csrf_token)
+        from starlette.concurrency import run_in_threadpool
+        try:
+            info = await run_in_threadpool(gemini_omni.verify_key, _provider_key(u['id'], 'gemini'))
+        except gemini_omni.GeminiError as e:
+            raise HTTPException(400, str(e))
+        if not info['has_omni']:
+            return {'ok': True, 'has_omni': False,
+                    'message': f'คีย์ใช้ได้ แต่บัญชีนี้ยังไม่เห็นโมเดล {gemini_omni.MODEL} — ตรวจสิทธิ์ใน Google AI Studio'}
+        return {'ok': True, 'has_omni': True, 'model': gemini_omni.MODEL, 'message': 'คีย์ Gemini ใช้งานได้ พร้อมสร้างวิดีโอ'}
+
+    # ------------------------------------------------------- avatars (ตัวละคร)
+    avatar_dir = data_dir / 'avatars'
+    AVATAR_MIMES = {'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp'}
+
+    def avatars_of(user_id):
+        return [{'id': a['id'], 'name': a['name'], 'url': f"/api/studio/avatars/{a['id']}/image",
+                 'created_at': a['created_at']}
+                for a in read('SELECT * FROM studio_avatars WHERE user_id=? ORDER BY id DESC LIMIT 30', (user_id,))]
+
+    def avatar_row(user_id, avatar_id):
+        row = read('SELECT * FROM studio_avatars WHERE id=? AND user_id=?', (avatar_id, user_id), True)
+        if not row:
+            raise HTTPException(404, 'ไม่พบตัวละครนี้')
+        return row
+
+    @app.get('/api/studio/avatars')
+    def list_avatars(req: Request):
+        u = require_user(req)
+        return {'avatars': avatars_of(u['id'])}
+
+    @app.post('/api/studio/avatars')
+    async def upload_avatar(req: Request, file: UploadFile = File(...), name: str = Form(''),
+                            x_csrf_token: str | None = Header(default=None)):
+        u = mutation(req, x_csrf_token)
+        if read('SELECT COUNT(*) AS n FROM studio_avatars WHERE user_id=?', (u['id'],), True)['n'] >= 20:
+            raise HTTPException(409, 'เก็บตัวละครได้สูงสุด 20 คน — ลบคนที่ไม่ใช้ก่อน')
+        ext = AVATAR_MIMES.get(file.content_type or '')
+        data = await file.read(gemini_omni.MAX_IMAGE_BYTES + 1)
+        if not ext:
+            raise HTTPException(400, 'รองรับรูป JPG, PNG, WEBP เท่านั้น')
+        if len(data) > gemini_omni.MAX_IMAGE_BYTES:
+            raise HTTPException(400, 'รูปต้องไม่เกิน 7 MB')
+        sig = data[:12]
+        if not (sig.startswith(b'\xff\xd8\xff') or sig.startswith(b'\x89PNG') or (sig[:4] == b'RIFF' and sig[8:12] == b'WEBP')):
+            raise HTTPException(400, 'ไฟล์ไม่ใช่รูปภาพที่ถูกต้อง')
+        fname = secrets.token_urlsafe(16) + ext
+        avatar_dir.mkdir(parents=True, exist_ok=True)
+        (avatar_dir / fname).write_bytes(data)
+        label = (name or '').strip()[:40] or (file.filename or 'ตัวละคร').rsplit('.', 1)[0][:40]
+        with connect() as c:
+            cur = c.execute('INSERT INTO studio_avatars(user_id,name,file_name,mime,created_at) VALUES(?,?,?,?,?)',
+                            (u['id'], label, fname, file.content_type, now()))
+        return {'id': cur.lastrowid, 'avatars': avatars_of(u['id']), 'message': f'เพิ่มตัวละคร "{label}" แล้ว'}
+
+    @app.get('/api/studio/avatars/{avatar_id}/image')
+    def avatar_image(avatar_id: int, req: Request):
+        u = require_user(req)
+        a = avatar_row(u['id'], avatar_id)
+        path = avatar_dir / a['file_name']
+        if not path.is_file():
+            raise HTTPException(404, 'ไม่พบไฟล์รูป')
+        return FileResponse(path, media_type=a['mime'], headers={'Cache-Control': 'private, max-age=3600'})
+
+    @app.delete('/api/studio/avatars/{avatar_id}')
+    def delete_avatar(avatar_id: int, req: Request, x_csrf_token: str | None = Header(default=None)):
+        u = mutation(req, x_csrf_token)
+        a = avatar_row(u['id'], avatar_id)
+        with connect() as c:
+            c.execute('DELETE FROM studio_avatars WHERE id=? AND user_id=?', (avatar_id, u['id']))
+        try:
+            (avatar_dir / a['file_name']).unlink()
+        except OSError:
+            pass
+        return {'ok': True, 'avatars': avatars_of(u['id'])}
+
     @app.post('/api/studio/projects/{pid}/ai-clip')
-    async def start_ai_clip(pid: int, req: Request, x_csrf_token: str | None = Header(default=None)):
+    async def start_ai_clip(pid: int, req: Request, opts: ClipOptionsIn | None = None,
+                            x_csrf_token: str | None = Header(default=None)):
         u = mutation(req, x_csrf_token)
         p = own_project(u['id'], pid)
         eng = engine_for(u['id'])
@@ -330,7 +432,27 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, now, data_d
             raise HTTPException(409, 'คลิปนี้กำลังสร้างอยู่')
         cost = eng['cost_credits']
         script = json.loads(p['script_json'])
-        prompt = ugc.to_prompt(script)
+        opts = opts or ClipOptionsIn()
+        gemini = eng['mode'] == 'gemini_own_key'
+        avatar, avatar_bytes, avatar_mime = None, None, ''
+        if gemini:
+            if opts.template not in video_templates.TEMPLATE_IDS:
+                raise HTTPException(400, 'ไม่พบเทมเพลตวิดีโอนี้')
+            if opts.aspect not in gemini_omni.ASPECTS or opts.resolution not in gemini_omni.RESOLUTIONS:
+                raise HTTPException(400, 'สัดส่วนหรือความละเอียดไม่ถูกต้อง')
+            if opts.avatar_id:
+                avatar = avatar_row(u['id'], opts.avatar_id)
+                path = avatar_dir / avatar['file_name']
+                if not path.is_file():
+                    raise HTTPException(404, 'ไฟล์รูปตัวละครหาย — อัปโหลดใหม่')
+                avatar_bytes, avatar_mime = path.read_bytes(), avatar['mime']
+            product = read('SELECT title FROM products WHERE id=?', (p['product_id'],), True)
+            prompt = video_templates.build_prompt(
+                opts.template, product_title=(product or {}).get('title', ''),
+                script_text=ugc.to_text(script) if opts.voice_over else '',
+                has_avatar=bool(avatar_bytes), seconds=opts.seconds)
+        else:
+            prompt = ugc.to_prompt(script)
         if 'MOCK_FAIL' in p['script_json']:
             prompt += ' MOCK_FAIL'
         with connect() as c:
@@ -345,11 +467,12 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, now, data_d
                 c.execute('INSERT INTO credit_ledger(user_id,delta,reason,project_id,created_at) VALUES(?,?,?,?,?)',
                           (u['id'], -cost, 'AI clip ' + ENGINE_MODEL, pid, now()))
             ts = now()
-            provider = 'openrouter' if eng['mode'] == 'ai_own_key' else 'platform'
+            provider = 'gemini' if gemini else ('openrouter' if eng['mode'] == 'ai_own_key' else 'platform')
+            model = gemini_omni.MODEL if gemini else ENGINE_MODEL
             cur = c.execute('''INSERT INTO video_jobs(user_id,draft_id,provider,model,duration,prompt,status,est_cost_usd,created_at,checked_at,updated_at)
                                VALUES(?,?,?,?,?,?,'submitting',?,?,?,?)''',
-                            (u['id'], p['draft_id'], provider, ENGINE_MODEL, openrouter.DURATION, prompt,
-                             openrouter.estimated_cost(ENGINE_MODEL, False), ts, ts, ts))
+                            (u['id'], p['draft_id'], provider, model, opts.seconds if gemini else openrouter.DURATION, prompt,
+                             0 if gemini else openrouter.estimated_cost(ENGINE_MODEL, False), ts, ts, ts))
             job_id = cur.lastrowid
             c.execute('''UPDATE studio_projects SET status='clip_running', video_job_id=?, engine_mode=?, credits_charged=?,
                          credits_refunded=0, error='', updated_at=? WHERE id=?''', (job_id, eng['mode'], cost, ts, pid))
@@ -357,6 +480,10 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, now, data_d
         try:
             if eng['mode'] == 'simulate':
                 op = await run_in_threadpool(mock_video.start_video, 'mock', prompt, None, None)
+            elif gemini:
+                op = await run_in_threadpool(gemini_omni.start_video, _provider_key(u['id'], 'gemini'), prompt,
+                                             image=avatar_bytes, mime=avatar_mime,
+                                             aspect=opts.aspect, resolution=opts.resolution)
             else:
                 key = os.getenv('PLATFORM_OPENROUTER_API_KEY', '').strip() if eng['mode'] == 'ai_platform' else _own_key(u['id'])
                 op = await run_in_threadpool(openrouter.start_video, key, prompt, None, None, model=ENGINE_MODEL, audio=False,
@@ -375,12 +502,15 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, now, data_d
 
     cipher_holder = {}
 
-    def _own_key(user_id):
+    def _provider_key(user_id, provider):
         dec = cipher_holder.get('dec')
-        row = read("SELECT encrypted FROM credentials WHERE user_id=? AND provider='openrouter'", (user_id,), True)
+        row = read('SELECT encrypted FROM credentials WHERE user_id=? AND provider=?', (user_id, provider), True)
         if not row or not dec:
-            raise HTTPException(400, 'ไม่พบคีย์ OpenRouter')
+            raise HTTPException(400, f'ไม่พบคีย์ {provider} — บันทึกคีย์ในหน้า "คีย์และการตั้งค่า" ก่อน')
         return dec(row['encrypted'])
+
+    def _own_key(user_id):
+        return _provider_key(user_id, 'openrouter')
 
     app.state.studio_set_decrypt = lambda fn: cipher_holder.__setitem__('dec', fn)
 
@@ -392,10 +522,17 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, now, data_d
             return {'project': project_out(p), 'credits': credits_of(u['id'])}
         job = read('SELECT * FROM video_jobs WHERE id=? AND user_id=?', (p['video_job_id'], u['id']), True)
         from starlette.concurrency import run_in_threadpool
-        service = mock_video if mock_video.is_mock_job(job['operation_name']) else openrouter
+        if mock_video.is_mock_job(job['operation_name']):
+            service = mock_video
+        elif job['provider'] == 'gemini':
+            service = gemini_omni
+        else:
+            service = openrouter
         try:
-            key = 'mock' if service is mock_video else (os.getenv('PLATFORM_OPENROUTER_API_KEY', '').strip()
-                                                        if p['engine_mode'] == 'ai_platform' else _own_key(u['id']))
+            key = ('mock' if service is mock_video else
+                   _provider_key(u['id'], 'gemini') if service is gemini_omni else
+                   (os.getenv('PLATFORM_OPENROUTER_API_KEY', '').strip()
+                    if p['engine_mode'] == 'ai_platform' else _own_key(u['id'])))
             state, uri = await run_in_threadpool(service.poll_video, key, job['operation_name'])
             if state == 'running':
                 return {'project': project_out(p), 'credits': credits_of(u['id'])}

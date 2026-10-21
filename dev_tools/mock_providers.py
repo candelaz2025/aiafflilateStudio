@@ -21,12 +21,13 @@ import hmac
 import html
 import json
 import re
+import secrets
 import time
 from urllib.parse import urlencode
 
 import requests
 from fastapi import FastAPI, Form, Header, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 
 app = FastAPI(title='Mock providers')
 LOG: list[dict] = []
@@ -380,3 +381,71 @@ async def shopee_graphql(request: Request, authorization: str | None = Header(de
     chunk = rows[(page - 1) * limit: page * limit]
     return {'data': {'productOfferV2': {'nodes': [node(r) for r in chunk],
                                         'pageInfo': {'page': page, 'limit': limit, 'hasNextPage': len(rows) > page * limit}}}}
+
+
+# ----------------------------------------------------------------- Gemini Omni Flash (video)
+GEMINI_KEY = 'MOCK-GEMINI-KEY'
+_gem_files: dict[str, dict] = {}
+# Smallest thing that passes our >12-byte sanity check and looks like an MP4.
+_MP4 = b'\x00\x00\x00\x18ftypmp42' + b'\x00' * 64
+
+
+def _gem_auth(key):
+    if key != GEMINI_KEY:
+        return JSONResponse({'error': {'code': 403, 'message': 'API key not valid'}}, 403)
+    return None
+
+
+@app.get('/gemini/models')
+def gem_models(x_goog_api_key: str = Header(default='')):
+    bad = _gem_auth(x_goog_api_key)
+    if bad:
+        return bad
+    return {'models': [{'name': 'models/gemini-omni-1.1-flash'}, {'name': 'models/gemini-2.5-flash'}]}
+
+
+@app.post('/gemini/interactions')
+async def gem_interactions(request: Request, x_goog_api_key: str = Header(default='')):
+    bad = _gem_auth(x_goog_api_key)
+    if bad:
+        return bad
+    body = await request.json()
+    prompt = body.get('input')
+    text = prompt if isinstance(prompt, str) else ' '.join(
+        p.get('text', '') for p in prompt if isinstance(p, dict))
+    has_image = isinstance(prompt, list) and any(p.get('type') == 'image' for p in prompt)
+    fmt = body.get('response_format') or {}
+    log('gemini.interactions', model=body.get('model'), aspect=fmt.get('aspect_ratio'),
+        resolution=fmt.get('resolution'), has_image=has_image, prompt=text[:3000])
+    if 'GEMFAIL' in text:
+        return JSONResponse({'error': {'code': 400, 'message': 'Prompt rejected'}}, 400)
+    fid = 'mockgem' + secrets.token_hex(6)
+    _gem_files[fid] = {'polls': 0, 'fail': 'GEMSLOWFAIL' in text}
+    uri = str(request.base_url).rstrip('/') + f'/gemini/files/{fid}:download?alt=media'
+    return {'id': 'interactions/' + fid,
+            'steps': [{'model_output': True, 'content': [{'type': 'video', 'mime_type': 'video/mp4', 'uri': uri}]}]}
+
+
+@app.get('/gemini/files/{file_id}:download')
+def gem_download(file_id: str, alt: str = '', x_goog_api_key: str = Header(default='')):
+    bad = _gem_auth(x_goog_api_key)
+    if bad:
+        return bad
+    if file_id not in _gem_files:
+        return JSONResponse({'error': {'code': 404, 'message': 'File not found'}}, 404)
+    log('gemini.download', file=file_id)
+    return Response(_MP4, media_type='video/mp4')
+
+
+@app.get('/gemini/files/{file_id}')
+def gem_file(file_id: str, x_goog_api_key: str = Header(default='')):
+    bad = _gem_auth(x_goog_api_key)
+    if bad:
+        return bad
+    f = _gem_files.get(file_id)
+    if not f:
+        return JSONResponse({'error': {'code': 404, 'message': 'File not found'}}, 404)
+    f['polls'] += 1
+    if f['fail']:
+        return {'name': f'files/{file_id}', 'state': 'FAILED'}
+    return {'name': f'files/{file_id}', 'state': 'ACTIVE' if f['polls'] >= 2 else 'PROCESSING'}
