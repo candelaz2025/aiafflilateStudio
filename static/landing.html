@@ -445,7 +445,7 @@
     <div class="trial-info">
       <div class="capacity-badge" id="trialCapacityPill">
         <span>🔥</span>
-        <span id="trialCapText">โควตา Beta: เหลือ 86 / 100 ที่นั่ง</span>
+        <span id="trialCapText">โควตา Beta: กำลังตรวจสอบที่นั่ง…</span>
       </div>
 
       <h2>ลงทะเบียนทดลองใช้งานฟรี<br>สัมผัสระบบจริงทันที</h2>
@@ -540,8 +540,9 @@
         const text = document.getElementById('trialCapText');
         if (text) text.textContent = `โควตา Beta: เหลือ ${data.available} / ${data.max} ที่นั่ง`;
       }
+      else { const t = document.getElementById('trialCapText'); if (t) t.textContent = 'โควตา Beta: ตรวจสอบไม่ได้ชั่วคราว'; }
     } catch(e) {
-      console.warn('Capacity err', e);
+      const t = document.getElementById('trialCapText'); if (t) t.textContent = 'โควตา Beta: ตรวจสอบไม่ได้ชั่วคราว';
     }
   }
   loadCap();

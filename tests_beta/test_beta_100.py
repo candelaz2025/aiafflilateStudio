@@ -19,7 +19,7 @@ def test_100_member_limit_atomic(tmp_path,monkeypatch):
     with TestClient(app) as c:
         for n in range(100):
             assert register(c,n).status_code==200,n
-        assert c.get('/api/beta/capacity').json()=={'limit':100,'registered':100,'remaining':0,'invite_only':False}
+        cap=c.get('/api/beta/capacity').json(); assert (cap['limit'],cap['registered'],cap['remaining'],cap['invite_only'],cap['available'],cap['max'])==(100,100,0,False,0,100)
         fail=register(c,100)
         assert fail.status_code==409, fail.text
         assert c.get('/api/me').status_code==200

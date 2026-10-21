@@ -9,3 +9,4 @@ Pillow>=10,<13
 requests>=2.31,<3
 python-dotenv>=1,<2
 google-genai>=1.0,<3
+websockets>=12,<17

@@ -621,13 +621,13 @@
 
   async function loadCapacity() {
     try {
-      const cap = await api('/api/capacity');
+      const cap = await api('/api/beta/capacity');
       const pct = Math.min(100, Math.round((cap.registered / cap.capacity) * 100));
-      document.getElementById('commCapacityText').textContent = `${cap.registered} / ${cap.capacity} ที่นั่ง`;
+      document.getElementById('commCapacityText').textContent = `เหลือ ${cap.remaining} / ${cap.limit} ที่นั่ง`;
       document.getElementById('commCapacityBar').style.width = `${pct}%`;
       document.getElementById('commCapacitySub').textContent = `ว่างอีก ${cap.remaining} ที่นั่ง (เปิดรับสมัคร Beta อยู่)`;
     } catch {
-      document.getElementById('commCapacityText').textContent = '1 / 100 ที่นั่ง';
+      document.getElementById('commCapacityText').textContent = 'ตรวจสอบไม่ได้';
       document.getElementById('commCapacityBar').style.width = '1%';
     }
   }
@@ -646,7 +646,7 @@
           </div>
         `;
       } else {
-        feed.innerHTML = `<div class="side-widget-card" style="text-align:center; padding:36px; color:#F87171;">โหลดข้อมูลไม่สำเร็จ: ${escapeHtml(e.message)}</div>`;
+        feed.innerHTML = `<div class="side-widget-card" style="text-align:center; padding:36px; color:#F87171;">โหลดข้อมูลไม่สำเร็จ: ${escapeHtml(e.message)} <button class="btn btn-secondary btn-sm" onclick="location.reload()">ลองใหม่</button></div>`;
       }
     }
   }
@@ -758,6 +758,7 @@
     }
   };
 
+  window.loadComments = loadComments;
   async function loadComments(id) {
     const list = document.getElementById(`commentsList-${id}`);
     if (!list) return;
@@ -773,7 +774,7 @@
         </div>
       `).join('');
     } catch (e) {
-      list.innerHTML = `<span style="font-size:12px; color:#F87171;">ไม่สามารถโหลดความคิดเห็นได้</span>`;
+      list.innerHTML = `<span style="font-size:12px; color:#F87171;">ไม่สามารถโหลดความคิดเห็นได้ <button class="btn btn-ghost btn-sm" onclick="loadComments(${id})">ลองใหม่</button></span>`;
     }
   }
 

@@ -4,7 +4,7 @@
   // ==========================================
   // STATE & INITIALIZATION
   // ==========================================
-  let me = { id: 1, username: 'Kevin', role: 'admin', csrf: 'demo-csrf-token' };
+  let me = { id: 0, username: 'ผู้เยี่ยมชม', role: 'guest', csrf: '' };
   let currentLang = 'th';
   let currentTheme = localStorage.getItem('theme') || 'light';
   let activeTab = 'dash';
@@ -33,6 +33,23 @@
 
   const val = form => Object.fromEntries(new FormData(form));
 
+  // V8: explicit loading / empty / error states with retry (never leave "กำลังโหลด" forever)
+  const retryFns = {};
+  window.appRetry = key => { if (retryFns[key]) retryFns[key](); };
+  function stateBox(kind, text, retryKey, colspan) {
+    const color = kind === 'error' ? 'var(--color-danger)' : 'var(--color-text-muted)';
+    const icon = kind === 'error' ? '⚠️' : kind === 'loading' ? '⏳' : '📭';
+    const btn = retryKey ? ` <button class="btn btn-secondary btn-sm" onclick="window.appRetry('${retryKey}')">ลองใหม่</button>` : '';
+    const inner = `<span style="color:${color}">${icon} ${esc(text)}</span>${btn}`;
+    return colspan ? `<tr><td colspan="${colspan}" style="text-align:center; padding:24px;">${inner}</td></tr>`
+                   : `<div class="mf-card" style="text-align:center; padding:24px;">${inner}</div>`;
+  }
+  window.AASstateBox = stateBox;
+  // Safe string literal for inline onclick handlers (apostrophes in titles used to break the handler).
+  const jsArg = v => `decodeURIComponent('${encodeURIComponent(String(v ?? '')).replace(/'/g, '%27')}')`;
+  window.AASjsArg = jsArg;
+
+
   async function api(path, method = 'GET', data) {
     const headers = {};
     if (data !== undefined) headers['Content-Type'] = 'application/json';
@@ -44,7 +61,26 @@
       body: data === undefined ? undefined : JSON.stringify(data)
     });
     const body = await r.json().catch(() => ({}));
-    if (!r.ok) throw Error(typeof body.detail === 'string' ? body.detail : 'คำขอล้มเหลว ' + r.status);
+    if (!r.ok) {
+      if (typeof body.detail === 'string') throw Error(body.detail);
+      if (Array.isArray(body.detail) && body.detail.length) {
+        // FastAPI validation (422): turn field errors into a readable Thai message.
+        const names = { app_id: 'AppID', secret: 'Secret', channel_id: 'Channel ID', channel_secret: 'Channel secret', access_token: 'Access token',
+          title: 'ชื่อสินค้า', url: 'ลิงก์', body: 'ข้อความ', password: 'รหัสผ่าน', email: 'อีเมล', username: 'ชื่อผู้ใช้', keyword: 'คีย์เวิร์ด', caption: 'แคปชั่น' };
+        const parts = body.detail.slice(0, 3).map(d => {
+          const field = (d.loc || []).slice(-1)[0];
+          const label = names[field] || field || 'ข้อมูล';
+          const ctx = d.ctx || {};
+          if (d.type === 'string_too_short') return `${label} สั้นเกินไป (อย่างน้อย ${ctx.min_length} ตัวอักษร)`;
+          if (d.type === 'string_too_long') return `${label} ยาวเกินไป (ไม่เกิน ${ctx.max_length} ตัวอักษร)`;
+          if (d.type === 'string_pattern_mismatch') return `${label} รูปแบบไม่ถูกต้อง`;
+          if (d.type === 'missing') return `กรุณากรอก ${label}`;
+          return `${label} ไม่ถูกต้อง`;
+        });
+        throw Error(parts.join(' · '));
+      }
+      throw Error('คำขอล้มเหลว ' + r.status);
+    }
     return body;
   }
 
@@ -77,7 +113,7 @@
       hero_greeting_time_morning: '☀️ อรุณสวัสดิ์',
       hero_greeting_time_afternoon: '🌤 สวัสดีตอนบ่าย',
       hero_greeting_time_evening: '🌙 สวัสดีตอนค่ำ',
-      hero_status_ready: 'แบรนด์ & โมเดล AI พร้อมแล้ว',
+      hero_status_ready: 'เริ่มได้ทันทีที่เมนู สร้างคอนเทนต์',
       hero_title: 'มาสร้างคอนเทนต์กันเลย 🎯',
       hero_prompt_placeholder: 'วันนี้อยากสร้างคอนเทนต์หรือค้นหาสินค้าอะไรดี?',
       btn_create_now: 'สร้างเลย',
@@ -115,7 +151,7 @@
       col_action: 'การทำงาน',
       loading_data: 'กำลังโหลดข้อมูล...',
       radar_page_title: '⌕ Product Radar & Shopee Scanner',
-      radar_page_desc: 'ค้นหาสินค้ากระแสจริง ข้อมูลยืนยันได้ พร้อมตรวจค่า Extra Commission',
+      radar_page_desc: 'หาไอเดียสินค้าจากแหล่งสาธารณะ + ราคา/ค่าคอมจริงจาก Shopee Affiliate API (เมื่อเชื่อมคีย์)',
       btn_search_products: 'ค้นหาสินค้าจริง',
       btn_auto_scan: '✦ สแกนกระแสสินค้าอัตโนมัติ',
       label_extra_comm_only: 'เน้นเฉพาะ EXTRA COMM (คอมมิชชันพิเศษจาก Shopee)',
@@ -304,7 +340,7 @@
       col_action: 'Action',
       loading_data: 'Loading data...',
       radar_page_title: '⌕ Product Radar & Shopee Scanner',
-      radar_page_desc: 'Discover verified trending products with Extra Commission analytics',
+      radar_page_desc: 'Product ideas from public sources + real price/commission from the Shopee Affiliate API (when connected)',
       btn_search_products: 'Search Products',
       btn_auto_scan: '✦ Auto Scan Trends',
       label_extra_comm_only: 'Filter EXTRA COMM only (High Shopee Commission)',
@@ -494,6 +530,7 @@
     if (targetId === 'ideas') loadIdeas();
     if (targetId === 'users_mgmt') { loadUsers(); loadSystemSettings(); }
     if (targetId === 'keys') { loadConnections(); loadChannels(); }
+    document.dispatchEvent(new CustomEvent('aas:tab', { detail: targetId }));
   }
 
   // ==========================================
@@ -508,9 +545,12 @@
         localStorage.setItem('aas_credits', userCredits);
       }
     } catch {
-      // Default to demo admin user so prototype is 100% testable out of the box
-      me = { id: 1, username: 'Kevin', role: 'admin', csrf: 'demo-csrf-token' };
+      // Logged out: show an honest guest state (no fake admin identity).
+      me = { id: 0, username: 'ผู้เยี่ยมชม', role: 'guest', csrf: '' };
     }
+    document.body.classList.toggle('is-guest', !me.id);
+    document.body.classList.toggle('is-admin', me.role === 'admin');
+    document.dispatchEvent(new CustomEvent('aas:auth', { detail: me }));
     updateUserUI();
     updateCreditDisplays();
   }
@@ -520,6 +560,7 @@
     $('userName').textContent = me.username || 'Kevin';
     $('userAvatar').textContent = (me.username || 'K').slice(0, 1).toUpperCase();
     $('userRole').textContent = (me.role || 'MEMBER').toUpperCase();
+    if ($('authModalTriggerBtn')) $('authModalTriggerBtn').textContent = me.id ? 'สลับบัญชี / ออกจากระบบ' : 'เข้าสู่ระบบ / สมัคร';
     $('heroUserName').textContent = (me.username || 'KEVIN').toUpperCase();
 
     // Set time-based greeting
@@ -576,49 +617,39 @@
   async function setupRadar() {
     $('radarform')?.addEventListener('submit', async e => {
       e.preventDefault();
-      const q = $('radar-query').value.trim();
-      const extraComm = $('extra-comm-mode').checked;
-      const resultsBox = $('radar-results');
-      resultsBox.innerHTML = `<div style="text-align:center; padding:24px; color:var(--color-primary);">${i18n[currentLang].loading_data}</div>`;
-
-      try {
-        const items = await api(`/api/my/radar/search?q=${encodeURIComponent(q)}&extra_comm_only=${extraComm ? 'true' : 'false'}`);
-        renderRadarResults(items);
-      } catch {
-        // High fidelity mock discovery results for seamless prototyping!
-        const sampleTrends = [
-          { title: `${q} ไร้สาย ปรับระดับได้ ดีไซน์มินิมอล`, price: '฿249', sold: '14.2K ชิ้น', extra_comm: '18%', platform: 'shopee', source_url: 'https://shopee.co.th' },
-          { title: `${q} สเตนเลส 316 เก็บอุณหภูมิ 24 ชม.`, price: '฿389', sold: '8.9K ชิ้น', extra_comm: '22%', platform: 'shopee', source_url: 'https://shopee.co.th' },
-          { title: `${q} รุ่นอัปเกรด 2026 แบตเตอรี่อึด 10 ชม.`, price: '฿189', sold: '25.6K ชิ้น', extra_comm: '15%', platform: 'tiktok', source_url: 'https://tiktok.com' }
-        ];
-        renderRadarResults(sampleTrends);
-      }
+      runRadar();
     });
+    retryFns.radar = () => runRadar();
 
     $('radar-auto')?.addEventListener('click', async () => {
       const resultsBox = $('radar-results');
       resultsBox.innerHTML = `<div style="text-align:center; padding:24px; color:var(--color-primary);">กำลังสแกนกระแสสินค้าอัตโนมัติ...</div>`;
       try {
         const topics = await api('/api/my/radar/trending');
-        const list = Array.isArray(topics) ? topics : (topics.topics || ['พัดลมพกพา', 'แก้วเก็บความเย็น', 'หูฟังบลูทูธ', 'กล้องฟิล์ม']);
+        const raw = Array.isArray(topics) ? topics : (topics.topics || []);
+        const list = raw.map(t => typeof t === 'string' ? { keyword: t } : t).filter(t => t && t.keyword);
+        if (!list.length) {
+          resultsBox.innerHTML = stateBox('empty', 'ยังไม่พบหัวข้อสินค้ากระแสจากแหล่งข้อมูลตอนนี้ ลองค้นหาด้วยคีย์เวิร์ดเอง', null);
+          return;
+        }
         resultsBox.innerHTML = `
           <div style="display:flex; flex-direction:column; gap:10px;">
-            <div style="font-weight:700; font-size:14px; color:var(--color-primary);">🔥 สินค้าและหมวดหมู่ที่มาแรงที่สุดขณะนี้:</div>
-            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:10px;">
+            <div style="font-weight:700; font-size:14px; color:var(--color-primary);">🔥 หัวข้อที่เกี่ยวกับสินค้าจากแหล่งสาธารณะ (ยังไม่ยืนยันยอดขาย/ค่าคอม)</div>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:10px;">
               ${list.map(t => `
-                <div class="mf-card" style="display:flex; justify-content:space-between; align-items:center;">
-                  <div>
-                    <div style="font-weight:600; font-size:13px;">${esc(t)}</div>
-                    <div style="font-size:11px; color:var(--color-secondary);">Extra Comm 15-25%</div>
+                <div class="mf-card" style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                  <div style="min-width:0">
+                    <div style="font-weight:600; font-size:13px;">${esc(t.keyword)}</div>
+                    <div style="font-size:11px; color:var(--color-text-muted);">${esc(t.source || 'แหล่งสาธารณะ')}${t.title && t.title !== t.keyword ? ' · ' + esc(String(t.title).slice(0, 60)) : ''}</div>
                   </div>
-                  <button class="btn btn-secondary btn-sm" onclick="window.appQuickSearch('${esc(t)}')">สแกนต่อ →</button>
+                  <button class="btn btn-secondary btn-sm" onclick="window.appQuickSearch(${esc(jsArg(t.keyword))})">สแกนต่อ →</button>
                 </div>
               `).join('')}
             </div>
           </div>
         `;
       } catch (e) {
-        msg(e.message, 'error');
+        resultsBox.innerHTML = stateBox('error', 'ดึงหัวข้อกระแสไม่สำเร็จ: ' + e.message, null);
       }
     });
 
@@ -635,65 +666,84 @@
       if (!text) return msg('กรุณาวางข้อความก่อน', 'error');
       try {
         const res = await api('/api/my/shopee/preview', 'POST', { content: text });
+        window._aasPasteItem = res.items && res.items[0];
         const box = $('shopee-preview-box');
         box.hidden = false;
         box.innerHTML = `
           <div class="mf-card" style="border-color:var(--color-secondary);">
             <div style="display:flex; justify-content:space-between; align-items:center;">
               <div>
-                <strong>${esc(res.title || 'พบสินค้า Shopee')}</strong>
-                <div style="font-size:12px; color:var(--color-text-muted);">Extra Comm: ${res.extra_comm_rate ? res.extra_comm_rate + '%' : 'พร้อมนำเข้า'}</div>
+                <strong>${esc((res.items && res.items[0] && res.items[0].title) || 'พบสินค้า Shopee')}</strong>
+                <div style="font-size:12px; color:var(--color-text-muted);">ราคา: ${res.items && res.items[0] && res.items[0].price ? '฿' + res.items[0].price : 'ไม่ระบุ'} · ข้อมูลที่คัดลอกมา (ยังไม่ยืนยันกับ Shopee API)</div>
               </div>
-              <button class="btn btn-primary btn-sm" onclick="window.appSaveShopeeImport('${esc(res.title || text.slice(0, 40))}')">+ บันทึกเข้าสินค้าของฉัน</button>
+              <button class="btn btn-primary btn-sm" onclick="window.appSaveShopeeImport()">+ บันทึกเข้าสินค้าของฉัน</button>
             </div>
           </div>
         `;
-      } catch {
-        // Fallback parser
+      } catch (e) {
         const box = $('shopee-preview-box');
         box.hidden = false;
-        box.innerHTML = `
-          <div class="mf-card" style="border-color:var(--color-secondary);">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-              <div>
-                <strong>${esc(text.slice(0, 50))}</strong>
-                <div style="font-size:12px; color:var(--color-secondary);">ตรวจพบลิงก์สินค้า Affiliate สำเร็จ</div>
-              </div>
-              <button class="btn btn-primary btn-sm" onclick="window.appSaveShopeeImport('${esc(text.slice(0, 40))}')">+ บันทึกเข้าสินค้าของฉัน</button>
-            </div>
-          </div>
-        `;
+        box.innerHTML = stateBox('error', 'อ่านข้อมูลไม่สำเร็จ: ' + e.message, null);
       }
     });
   }
 
-  function renderRadarResults(items) {
+  async function runRadar() {
+    const q = ($('radar-query')?.value || '').trim();
     const resultsBox = $('radar-results');
-    if (!items || items.length === 0) {
-      resultsBox.innerHTML = `<div style="text-align:center; padding:24px; color:var(--color-text-muted);">ไม่พบผลลัพธ์ ลองค้นหาด้วยคำอื่น</div>`;
-      return;
+    if (q.length < 2) { resultsBox.innerHTML = stateBox('empty', 'พิมพ์ชื่อสินค้าอย่างน้อย 2 ตัวอักษร', null); return; }
+    const extraComm = $('extra-comm-mode')?.checked;
+    resultsBox.innerHTML = stateBox('loading', 'กำลังค้นหา "' + q + '"...', null);
+    let shopeeHtml = '';
+    try {
+      const st = await api('/api/shopee/status');
+      if (st.configured) {
+        const res = await api(`/api/shopee/search?keyword=${encodeURIComponent(q)}&sort=commission`);
+        shopeeHtml = window.AASv8 ? window.AASv8.radarShopeeCards(res.items || [], q) : '';
+      } else {
+        shopeeHtml = `<div class="v8-banner">💡 ใส่ Shopee Affiliate AppID/Secret ที่หน้า <button class="btn btn-primary btn-sm" onclick="window.appSwitchTab('products')">สินค้าของฉัน</button> เพื่อเห็นราคาและค่าคอมจริงจาก Shopee ตรงคำค้น</div>`;
+      }
+    } catch (e) {
+      shopeeHtml = stateBox('error', 'Shopee API: ' + e.message, null);
     }
-    resultsBox.innerHTML = `
-      <div style="display:flex; flex-direction:column; gap:12px;">
-        ${items.map((it, idx) => `
-          <div class="mf-card" style="display:flex; justify-content:space-between; align-items:center; gap:16px;">
-            <div style="flex:1;">
-              <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
-                <span class="chip chip-primary mono">${esc(it.platform || 'Shopee')}</span>
-                <span class="chip chip-success mono">Extra Comm ${esc(it.extra_comm || '18%')}</span>
-                <span class="mono" style="font-weight:700; color:var(--color-secondary);">${esc(it.price || '฿199 - ฿350')}</span>
-              </div>
-              <div style="font-weight:700; font-size:14px; margin-bottom:2px;">${esc(it.title)}</div>
-              <div style="font-size:12px; color:var(--color-text-muted);">ยอดขาย: ${esc(it.sold || '5K+ ชิ้น')} · ความน่าเชื่อถือ: ยืนยันแล้ว</div>
-            </div>
-            <div style="display:flex; gap:8px;">
-              <button class="btn btn-secondary btn-sm" onclick="window.appAddProduct('${esc(it.title)}', '${esc(it.platform || 'shopee')}')">+ เก็บสินค้า</button>
-              <button class="btn btn-primary btn-sm" onclick="window.appInstantDraft('${esc(it.title)}')">⚡ เขียนบททันที</button>
-            </div>
+    let webHtml = '';
+    try {
+      const res = await api(`/api/my/radar/search?q=${encodeURIComponent(q)}&extra_comm_only=${extraComm ? 'true' : 'false'}`);
+      webHtml = renderRadarResults(res);
+    } catch (e) {
+      webHtml = stateBox('error', 'ค้นเว็บไม่สำเร็จ: ' + e.message, 'radar');
+    }
+    resultsBox.innerHTML = shopeeHtml + webHtml;
+  }
+
+  function renderRadarResults(res) {
+    const items = Array.isArray(res) ? res : (res.items || []);
+    const unmatched = res.unmatched_count || 0;
+    const head = `<div style="margin:16px 0 8px; font-weight:700;">🌐 ลีดจากเว็บสาธารณะ <span style="font-weight:400; font-size:12px; color:var(--color-text-muted)">(${items.length} รายการ${unmatched ? ` · ${unmatched} รายการไม่มีคำค้นในชื่อ (อาจไม่ตรง)` : ''}) — ยังไม่ยืนยันราคา/ยอดขาย/ค่าคอม</span></div>`;
+    const sources = (res.sources || []).map(s => `<span class="chip mono" title="${esc(s.message || '')}">${esc(s.name)}: ${s.status === 'ok' ? s.found + ' ผล' : 'ไม่พร้อมใช้งาน'}</span>`).join(' ');
+    if (!items.length) {
+      return head + stateBox('empty', 'ไม่พบลีดจากเว็บที่ตรงกับคำค้นนี้', null) + `<div style="margin-top:6px">${sources}</div>`;
+    }
+    return head + `<div style="display:flex; flex-direction:column; gap:10px;">${items.map(it => {
+      let host = ''; try { host = new URL(it.url).hostname; } catch {}
+      return `
+      <div class="mf-card" style="display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;">
+        <div style="flex:1; min-width:220px;">
+          <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px; flex-wrap:wrap;">
+            <span class="chip chip-primary mono">${esc(it.platform === 'other' ? 'บทความ' : it.platform)}</span>
+            <span class="chip mono">${esc(it.kind === 'marketplace_candidate' ? 'หน้าสินค้า (อาจไม่ตรงรุ่น)' : 'ข่าว/รีวิว')}</span>
+            ${it.extra_comm_mentioned ? '<span class="chip mono">กล่าวถึง Extra Comm (ยังไม่ยืนยัน)</span>' : ''}
+            ${it.relevance === 'search_engine' ? '<span class="chip mono" style="color:var(--color-tertiary)">⚠ ไม่มีคำค้นในชื่อ อาจไม่ตรง</span>' : '<span class="chip chip-success mono">ตรงคำค้น</span>'}
           </div>
-        `).join('')}
-      </div>
-    `;
+          <a href="${esc(it.url)}" target="_blank" rel="noopener noreferrer" style="font-weight:700; font-size:14px;">${esc(it.title)}</a>
+          <div style="font-size:12px; color:var(--color-text-muted);">${esc(it.description || '')}</div>
+          <div style="font-size:11px; color:var(--color-text-subtle);">${esc(host)} · ${esc(it.source || '')}</div>
+        </div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          <button class="btn btn-secondary btn-sm" onclick="window.appAddProduct(${esc(jsArg(it.title))}, '${it.platform === 'tiktok' ? 'tiktok' : it.platform === 'shopee' ? 'shopee' : 'other'}', ${esc(jsArg(it.platform !== 'other' ? it.url : ''))})">+ เก็บสินค้า</button>
+          <button class="btn btn-primary btn-sm" onclick="window.AASv8 && window.AASv8.studioFromTitle(${esc(jsArg(it.title))}, '${it.platform === 'shopee' ? 'shopee' : 'other'}', ${esc(jsArg(it.platform !== 'other' ? it.url : ''))})">✨ สร้างบท & คลิป</button>
+        </div>
+      </div>`; }).join('')}</div><div style="margin-top:8px">${sources}</div>`;
   }
 
   // ==========================================
@@ -711,10 +761,11 @@
       }
 
       if (!prods.length) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:24px; color:var(--color-text-muted);">${i18n[currentLang].no_products}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:24px; color:var(--color-text-muted);">${i18n[currentLang].no_products}</td></tr>`;
         return;
       }
 
+      if (window.AASv8 && window.AASv8.productRows) { tbody.innerHTML = window.AASv8.productRows(prods); syncVideoProductSelect(); return; }
       tbody.innerHTML = prods.map(p => `
         <tr>
           <td class="mono" style="font-weight:600;">#${p.id}</td>
@@ -729,9 +780,9 @@
           <td class="mono" style="font-size:12px; color:var(--color-text-muted);">${(p.created_at || '').slice(0, 10)}</td>
           <td>
             <div style="display:flex; gap:6px;">
-              <button class="btn btn-secondary btn-sm" onclick="window.appSelectProductForDraft(${p.id}, '${esc(p.title)}')">✨ บทรีวิว</button>
-              <button class="btn btn-primary btn-sm" onclick="window.appSelectProductForVideo(${p.id}, '${esc(p.title)}')">🎬 ทำคลิป</button>
-              <button class="btn btn-ghost btn-sm" onclick="window.appScheduleProduct(${p.id}, '${esc(p.title)}')" title="วางแผนลงปฏิทิน">📅 วางแผน</button>
+              <button class="btn btn-secondary btn-sm" onclick="window.appSelectProductForDraft(${p.id}, ${esc(jsArg(p.title))})">✨ บทรีวิว</button>
+              <button class="btn btn-primary btn-sm" onclick="window.appSelectProductForVideo(${p.id}, ${esc(jsArg(p.title))})">🎬 ทำคลิป</button>
+              <button class="btn btn-ghost btn-sm" onclick="window.appScheduleProduct(${p.id}, ${esc(jsArg(p.title))})" title="วางแผนลงปฏิทิน">📅 วางแผน</button>
             </div>
           </td>
         </tr>
@@ -953,7 +1004,7 @@
   };
 
   let userCredits = parseInt(localStorage.getItem('aas_credits'), 10);
-  if (isNaN(userCredits)) userCredits = 200;
+  if (isNaN(userCredits)) userCredits = 0;
 
   function updateCreditDisplays() {
     const energyEl = $('topbarEnergy');
@@ -1145,12 +1196,7 @@
         msg(`🎉 เติมเครดิตสำเร็จ! เพิ่ม +${pendingCheckout.credits.toLocaleString()} เครดิตเข้าบัญชีจริงแล้ว (ยอดคงเหลือ ⚡ ${userCredits.toLocaleString()} เครดิต)`);
         pendingCheckout = null;
       } catch (err) {
-        userCredits += pendingCheckout.credits;
-        localStorage.setItem('aas_credits', userCredits);
-        updateCreditDisplays();
-        $('topupCheckoutModal').style.display = 'none';
-        msg(`🎉 เติมเครดิตสำเร็จ! ได้รับ +${pendingCheckout.credits.toLocaleString()} เครดิตแล้ว (ยอดคงเหลือ ⚡ ${userCredits.toLocaleString()} เครดิต)`);
-        pendingCheckout = null;
+        msg('เติมเครดิตไม่สำเร็จ: ' + err.message + ' — ยอดเครดิตไม่เปลี่ยนแปลง', 'error');
       }
     });
   }
@@ -1181,6 +1227,10 @@
 
   $('videojobform')?.addEventListener('submit', async e => {
     e.preventDefault();
+    // Phase 1: one engine with real credit charge/refund lives in the Studio; the old simulator faked renders and credits.
+    msg('การสร้างคลิปย้ายไปที่เมนู "สร้างคอนเทนต์ (เริ่มที่นี่)" — มีคลิปพรีวิวฟรี และคลิป AI ที่แสดงเครดิตก่อนสร้าง');
+    switchTab('studio');
+    return;
     const draftId = $('video-draft-select').value;
     if (!draftId) return msg('กรุณาเลือกบทรีวิวก่อน', 'error');
 
@@ -1382,6 +1432,7 @@
               <option value="needs_review" ${q.status === 'needs_review' ? 'selected' : ''}>รอตรวจทาน</option>
               <option value="ready_manual" ${q.status === 'ready_manual' ? 'selected' : ''}>พร้อมลงคลิป</option>
               <option value="completed_manual" ${q.status === 'completed_manual' ? 'selected' : ''}>เผยแพร่แล้ว ✓</option>
+              <option value="cancelled" ${q.status === 'cancelled' ? 'selected' : ''}>ยกเลิก</option>
             </select>
           </td>
           <td class="mono" style="font-size:12px; color:var(--color-text-muted);">${(q.created_at || '').slice(0, 10)}</td>
@@ -1414,45 +1465,35 @@
   // SALES TRACKER (ANALYTICS)
   // ==========================================
   async function loadTracking() {
+    const tbody = $('trackingTbody');
+    retryFns.tracking = loadTracking;
+    if (!tbody) return;
+    tbody.innerHTML = stateBox('loading', 'กำลังโหลดข้อมูลสถิติ...', null, 7);
     try {
-      const items = await api('/api/my/product-tracking');
-      const tbody = $('trackingTbody');
-      if (!items || !items.length) {
-        tbody.innerHTML = `
-          <tr>
-            <td style="font-weight:600;">พัดลมพกพาไร้สาย 360°</td>
-            <td class="mono">45,200</td>
-            <td class="mono">3,120</td>
-            <td class="mono">284</td>
-            <td class="mono">฿70,716</td>
-            <td class="mono" style="color:var(--color-secondary); font-weight:700;">฿12,728 (18%)</td>
-            <td><button class="btn btn-ghost btn-sm" onclick="msg('อัปเดตยอดสำเร็จ')">บันทึกยอด</button></td>
-          </tr>
-          <tr>
-            <td style="font-weight:600;">แก้วเก็บความเย็น สเตนเลส 316</td>
-            <td class="mono">97,300</td>
-            <td class="mono">5,840</td>
-            <td class="mono">558</td>
-            <td class="mono">฿217,062</td>
-            <td class="mono" style="color:var(--color-secondary); font-weight:700;">฿47,753 (22%)</td>
-            <td><button class="btn btn-ghost btn-sm" onclick="msg('อัปเดตยอดสำเร็จ')">บันทึกยอด</button></td>
-          </tr>
-        `;
+      const res = await api('/api/my/product-tracking');
+      const items = Array.isArray(res) ? res : (res.products || []);
+      if (!items.length) {
+        tbody.innerHTML = stateBox('empty', 'ยังไม่มีข้อมูลสถิติ — สร้างบทหรือคลิปจากสินค้าก่อน แล้วกลับมาบันทึกยอดวิว/ออเดอร์ที่นี่', null, 7);
         return;
       }
+      const baht = v => '฿' + ((v || 0) / 100).toLocaleString('th-TH', { maximumFractionDigits: 2 });
+      const sum = k => items.reduce((a, it) => a + (Number(it[k]) || 0), 0);
+      if ($('totalViewsMetric')) $('totalViewsMetric').textContent = sum('views').toLocaleString();
+      if ($('totalOrdersMetric')) $('totalOrdersMetric').textContent = sum('orders').toLocaleString();
+      if ($('totalCommMetric')) $('totalCommMetric').textContent = baht(sum('commission_satang'));
+      if ($('convRateMetric')) $('convRateMetric').textContent = sum('clicks') ? `อัตราซื้อ ${(sum('orders') / sum('clicks') * 100).toFixed(1)}% ของคลิก` : 'อัตราซื้อ -';
       tbody.innerHTML = items.map(it => `
         <tr>
-          <td style="font-weight:600;">${esc(it.title)}</td>
-          <td class="mono">${it.views || 0}</td>
-          <td class="mono">${it.clicks || 0}</td>
-          <td class="mono">${it.orders || 0}</td>
-          <td class="mono">฿${it.sales_baht || 0}</td>
-          <td class="mono" style="color:var(--color-secondary); font-weight:700;">฿${it.commission_baht || 0}</td>
-          <td><button class="btn btn-ghost btn-sm" onclick="msg('อัปเดตยอดสำเร็จ')">บันทึกยอด</button></td>
-        </tr>
-      `).join('');
+          <td style="font-weight:600;">${esc(it.title)}<div style="font-size:11px;color:var(--color-text-muted)">ใช้ทำคอนเทนต์ ${it.use_count || 0} ครั้ง · ${esc(it.performance_label || '')}</div></td>
+          <td class="mono">${(it.views || 0).toLocaleString()}</td>
+          <td class="mono">${(it.clicks || 0).toLocaleString()}</td>
+          <td class="mono">${(it.orders || 0).toLocaleString()}</td>
+          <td class="mono">${baht(it.sales_satang)}</td>
+          <td class="mono" style="color:var(--color-secondary); font-weight:700;">${baht(it.commission_satang)}</td>
+          <td><button class="btn btn-ghost btn-sm" onclick="window.appSwitchTab('drafts')">ดูบท/บันทึกยอด</button></td>
+        </tr>`).join('') + `<tr><td colspan="7" style="font-size:11px;color:var(--color-text-muted)">${esc(res.basis || 'ข้อมูลที่สมาชิกกรอกเอง')}</td></tr>`;
     } catch (e) {
-      console.warn('loadTracking warning:', e);
+      tbody.innerHTML = stateBox('error', 'โหลดสถิติไม่สำเร็จ: ' + e.message, 'tracking', 7);
     }
   }
 
@@ -1460,6 +1501,8 @@
   // COMMUNITY LAB & PROPOSALS
   // ==========================================
   async function loadIdeas() {
+    retryFns.ideas = loadIdeas;
+    if ($('feed')) $('feed').innerHTML = stateBox('loading', 'กำลังโหลดข้อเสนอชุมชน...');
     try {
       const order = $('sort')?.value || 'top';
       const list = await api(`/api/ideas?order=${order}`);
@@ -1489,7 +1532,7 @@
         </div>
       `).join('');
     } catch (e) {
-      console.warn('loadIdeas warning:', e);
+      if ($('feed')) $('feed').innerHTML = stateBox('error', 'โหลดข้อเสนอชุมชนไม่สำเร็จ: ' + e.message, 'ideas');
     }
   }
 
@@ -1555,12 +1598,15 @@
   }
 
   async function loadUsers() {
+    retryFns.users = loadUsers;
+    const tbody = $('userManagementTbody');
+    if (tbody) tbody.innerHTML = stateBox('loading', 'กำลังโหลดรายชื่อผู้ใช้...', null, 9);
     try {
-      const users = await api('/api/admin/users');
-      const tbody = $('userManagementTbody');
-      $('totalUsersCount').textContent = users.length;
+      const [users, cap] = await Promise.all([api('/api/admin/users'), api('/api/beta/capacity').catch(() => null)]);
+      if (!users.length) { tbody.innerHTML = stateBox('empty', 'ยังไม่มีผู้ใช้', null, 9); return; }
+      $('totalUsersCount').textContent = cap ? cap.registered : users.length;
       $('adminUsersCount').textContent = users.filter(u => u.role === 'admin').length;
-      $('remainingBetaSeats').textContent = Math.max(0, 100 - users.length);
+      $('remainingBetaSeats').textContent = cap ? `${cap.remaining} / ${cap.limit}` : '-';
 
       tbody.innerHTML = users.map(u => {
         let perms = {};
@@ -1594,7 +1640,7 @@
           <td>
             <div style="display:flex; align-items:center; gap:6px;">
               <strong class="mono" style="color:var(--color-primary); font-size:14px;">⚡ ${(u.credits || 200).toLocaleString()}</strong>
-              <button class="btn btn-ghost btn-sm" style="padding:2px 6px; font-size:11px;" onclick="window.appOpenCreditModal(${u.id}, '${esc(u.username)}', '${esc(u.email)}', ${u.credits || 200})">+ เติม</button>
+              <button class="btn btn-ghost btn-sm" style="padding:2px 6px; font-size:11px;" onclick="window.appOpenCreditModal(${u.id}, ${esc(jsArg(u.username))}, ${esc(jsArg(u.email))}, ${u.credits ?? 0})">+ เติม</button>
             </div>
           </td>
           <td>
@@ -1606,10 +1652,10 @@
           <td class="mono" style="font-size:12px; color:var(--color-text-muted);">${(u.created_at || '').slice(0, 10)}</td>
           <td>
             <div style="display:flex; gap:6px; flex-wrap:wrap;">
-              <button class="btn btn-primary btn-sm" onclick="window.appOpenCreditModal(${u.id}, '${esc(u.username)}', '${esc(u.email)}', ${u.credits || 200})">
+              <button class="btn btn-primary btn-sm" onclick="window.appOpenCreditModal(${u.id}, ${esc(jsArg(u.username))}, ${esc(jsArg(u.email))}, ${u.credits ?? 0})">
                 ⚡ เติมเครดิต
               </button>
-              <button class="btn btn-ghost btn-sm" onclick="window.appOpenPermModal(${u.id}, '${esc(u.username)}', '${esc(u.email)}', '${u.role}', '${encodeURIComponent(u.permissions || '')}')">
+              <button class="btn btn-ghost btn-sm" onclick="window.appOpenPermModal(${u.id}, ${esc(jsArg(u.username))}, ${esc(jsArg(u.email))}, '${u.role}', '${encodeURIComponent(u.permissions || '')}')">
                 🛡️ สิทธิ์
               </button>
               ${u.id !== me.id ? `<button class="btn btn-ghost btn-sm" style="color:var(--color-danger);" onclick="window.appDeleteUser(${u.id})">ลบ</button>` : ''}
@@ -1618,27 +1664,9 @@
         </tr>
       `;
       }).join('');
-    } catch {
-      // Fallback display if not logged in as admin yet
-      const tbody = $('userManagementTbody');
-      tbody.innerHTML = `
-        <tr>
-          <td class="mono" style="font-weight:600;">#1</td>
-          <td>
-            <div style="display:flex; align-items:center; gap:8px;">
-              <div class="user-avatar" style="width:28px; height:28px; font-size:11px;">K</div>
-              <strong>Kevin (You)</strong>
-            </div>
-          </td>
-          <td class="mono" style="font-size:13px;">candelaz28@gmail.com</td>
-          <td><span class="chip chip-primary mono">ADMIN</span></td>
-          <td><strong class="mono" style="color:var(--color-primary);">⚡ 1,200</strong></td>
-          <td><span class="perm-chip active">All Access</span></td>
-          <td class="mono">3 / 4 / 2</td>
-          <td class="mono" style="font-size:12px; color:var(--color-text-muted);">2026-10-20</td>
-          <td><span class="chip chip-success mono">ACTIVE</span></td>
-        </tr>
-      `;
+    } catch (e) {
+      ['totalUsersCount', 'adminUsersCount', 'remainingBetaSeats'].forEach(id => { if ($(id)) $(id).textContent = '—'; });
+      if (tbody) tbody.innerHTML = stateBox('error', e.message.includes('ผู้ดูแล') || e.message.includes('403') ? 'เฉพาะผู้ดูแลระบบ (Admin) เท่านั้น' : 'โหลดรายชื่อผู้ใช้ไม่สำเร็จ: ' + e.message, 'users', 9);
     }
   }
 
@@ -1890,7 +1918,7 @@
     try {
       const res = await api('/api/login', 'POST', val(e.target));
       me = res;
-      updateUserUI();
+      await checkSession();
       $('authModal').hidden = true;
       msg('เข้าสู่ระบบสำเร็จ');
       await refreshDashboard();
@@ -1904,7 +1932,7 @@
     try {
       const res = await api('/api/register', 'POST', val(e.target));
       me = res;
-      updateUserUI();
+      await checkSession();
       $('authModal').hidden = true;
       msg('สมัครสมาชิกสำเร็จ ยินดีต้อนรับสู่ Beta');
       await refreshDashboard();
@@ -2012,7 +2040,7 @@
 
   // Notification Button
   $('notifBtn')?.addEventListener('click', () => {
-    msg('การแจ้งเตือน: มี 1 บทรีวิวพร้อมสร้างคลิป และระบบ Shopee Extra Comm เปิดให้ใช้งานแล้ว');
+    if (window.AASv8) window.AASv8.showNotifications(); else msg('ยังไม่มีการแจ้งเตือนใหม่');
   });
 
   // Refresh Recent Activity Button
@@ -2041,6 +2069,7 @@
   // GLOBAL WINDOW EXPORTS (FOR INLINE ACTIONS)
   // ==========================================
   window.appSwitchTab = switchTab;
+  window.AAS = { api, msg, esc, switchTab, getMe: () => me, reloadProducts: () => loadProducts(), reloadChannels: () => loadChannels() };
 
   window.appQuickSearch = keyword => {
     switchTab('radar');
@@ -2048,9 +2077,11 @@
     $('radarform')?.requestSubmit();
   };
 
-  window.appAddProduct = async (title, platform) => {
+  window.appAddProduct = async (title, platform, url = '') => {
     try {
-      await api('/api/my/products', 'POST', { title, platform, url: '' });
+      title = (prompt('ชื่อสินค้าที่จะบันทึก (แก้ให้เหลือชื่อสินค้าได้)', String(title).replace(/\s+[-|–]\s+[^-|–]+$/, '').trim()) || '').trim();
+      if (!title) return;
+      await api('/api/my/products', 'POST', { title: title.slice(0, 200), platform, url: url && url.startsWith('https://') ? url : '' });
       msg(`บันทึก "${title}" เรียบร้อย`);
       await loadProducts();
       await refreshDashboard();
@@ -2059,11 +2090,19 @@
     }
   };
 
-  window.appSaveShopeeImport = async title => {
+  window.appSaveShopeeImport = async () => {
+    const it = window._aasPasteItem;
+    if (!it) return msg('สแกนข้อความก่อน', 'error');
     try {
-      await api('/api/my/products', 'POST', { title, platform: 'shopee', url: 'https://shopee.co.th' });
-      msg(`นำเข้า Shopee "${title}" เรียบร้อย`);
-      switchTab('products');
+      const fd = new FormData();
+      fd.append('title', it.title); fd.append('platform', 'shopee'); fd.append('url', it.url || '');
+      if (it.price != null) fd.append('price', String(it.price));
+      const r = await fetch('/api/my/products/manual', { method: 'POST', body: fd, credentials: 'same-origin', headers: { 'X-CSRF-Token': me.csrf } });
+      const body = await r.json().catch(() => ({}));
+      if (!r.ok) throw Error(typeof body.detail === 'string' ? body.detail : 'บันทึกไม่สำเร็จ ' + r.status);
+      msg(`นำเข้า "${it.title}" ${it.price != null ? '(฿' + it.price + ') ' : ''}เรียบร้อย — ดูได้ที่ "สินค้าของฉัน"`);
+      window._aasPasteItem = null;
+      await loadProducts();
     } catch (err) {
       msg(err.message, 'error');
     }
@@ -2071,8 +2110,7 @@
 
   window.appInstantDraft = title => {
     switchTab('drafts');
-    $('draft-script-input').value = `ใครที่กำลังเล็ง ${title} อยู่ อยากบอกว่าโปรโมชัน Extra Comm รอบนี้คุ้มมาก! วัสดุพรีเมียม สัมผัสดี ลมแรงสะใจ จิ้มตะกร้าซ้ายล่างเลยจ้า`;
-    $('draft-prompt-input').value = `9:16 vertical commercial of ${title}, ultra realistic cinematic studio lighting, 4K`;
+    if (window.AASv8) return window.AASv8.studioFromTitle(title, 'other');
   };
 
   window.appSelectProductForDraft = (prodId, prodTitle) => {
@@ -2182,14 +2220,14 @@
 
     const platformsDef = [
       { id: 'facebook', name: 'Facebook Pages & Reels', icon: '📘', badge: 'Reels / Multi-Page', desc: 'รองรับการเชื่อมต่อหลายเพจพร้อมกัน โพสต์ Reels และวิดีโอเข้าเพจ Meta อัตโนมัติ' },
-      { id: 'tiktok', name: 'TikTok', icon: '🎵', badge: 'Creator / Shop', desc: 'Auto-Post วิดีโอแนวตั้ง 9:16 ลง TikTok พร้อมแฮชแท็กและสินค้าปักตะกร้า' },
-      { id: 'shopee', name: 'Shopee', icon: '🛒', badge: 'Shopee Video', desc: 'Auto-Post คลิปสั้นลง Shopee Video พร้อมแนบลิงก์สินค้า Affiliate ทันที' },
+      { id: 'tiktok', name: 'TikTok', icon: '🎵', badge: 'Creator / Shop', desc: 'ยังไม่เชื่อม API — ดาวน์โหลดคลิป 9:16 + คัดลอกแคปชั่น แล้วอัปโหลดเอง' },
+      { id: 'shopee', name: 'Shopee', icon: '🛒', badge: 'Shopee Video', desc: 'ยังไม่เชื่อม API — อัปโหลดคลิปเองใน Shopee Video' },
       { id: 'instagram', name: 'Instagram', icon: '📸', badge: 'Reels / Feed', desc: 'Auto-Post วิดีโอสั้น Reels และรูปภาพโปรโมตลง Instagram Creator' },
       { id: 'x', name: 'X (Twitter)', icon: '🐦', badge: 'Auto-Broadcast', desc: 'โพสต์ทวีตโปรโมชัน ดีลลดราคา และลิงก์สินค้าแบบอัตโนมัติ' },
       { id: 'line_oa', name: 'LINE Official Account', icon: '💬', badge: 'Push Alert', desc: 'ส่งการแจ้งเตือน Real-time เมื่อสร้างคลิปเสร็จ หรือมีคลิปพร้อมโพสต์' }
     ];
 
-    container.innerHTML = platformsDef.map(p => {
+    container.innerHTML = platformsDef.filter(p => !['facebook', 'instagram', 'line_oa'].includes(p.id)).map(p => {
       const chList = userChannels.filter(c => c.platform.toLowerCase() === p.id);
       const isConnected = chList.length > 0;
 
@@ -2205,7 +2243,7 @@
                 </div>
               </div>
               <span class="chip ${isConnected ? 'chip-success' : 'chip-muted'} mono">
-                ${isConnected ? `🟢 เชื่อมต่อแล้ว (${chList.length})` : '⚪ ยังไม่เชื่อมต่อ'}
+                ${isConnected ? `📝 บันทึกบัญชีไว้ ${chList.length} (ยังไม่เชื่อม API · โพสต์เอง)` : '⚪ ยังไม่เชื่อมต่อ (โพสต์เอง)'}
               </span>
             </div>
 
@@ -2220,7 +2258,7 @@
                         <span style="font-size:14px;">${p.icon}</span>
                         <strong class="mono" style="color:var(--color-text-main); font-size:13px;">${esc(ch.account_name)}</strong>
                       </div>
-                      <button class="btn btn-ghost btn-sm" style="color:var(--color-danger); padding:2px 6px; font-size:11px;" onclick="window.appDisconnectChannel(${ch.id}, '${esc(ch.account_name)}')" title="ตัดการเชื่อมต่อบัญชีนี้">
+                      <button class="btn btn-ghost btn-sm" style="color:var(--color-danger); padding:2px 6px; font-size:11px;" onclick="window.appDisconnectChannel(${ch.id}, ${esc(jsArg(ch.account_name))})" title="ตัดการเชื่อมต่อบัญชีนี้">
                         ✕ Disconnect
                       </button>
                     </div>
@@ -2232,7 +2270,7 @@
 
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; padding-top:8px; border-top:1px dashed var(--color-border);">
                       <div style="display:flex; align-items:center; gap:6px;">
-                        <span style="font-size:11px; font-weight:700;">⚡ Auto-Post:</span>
+                        <span style="font-size:11px; font-weight:700;">แผนโพสต์:</span>
                         <label class="switch-label" style="margin:0; transform:scale(0.85); transform-origin:left center;">
                           <input type="checkbox" ${ch.auto_post_enabled ? 'checked' : ''} onchange="window.appToggleChannelAutoPost(${ch.id})">
                           <span class="switch-track"></span>
@@ -2247,7 +2285,7 @@
               </div>
             ` : `
               <div style="padding:16px 12px; border:1px dashed var(--color-border); border-radius:var(--radius-md); text-align:center; margin-bottom:14px;">
-                <span style="font-size:12px; color:var(--color-text-muted);">กดปุ่มด้านล่างเพื่อผูกบัญชีและเริ่มใช้ Auto-Post</span>
+                <span style="font-size:12px; color:var(--color-text-muted);">ยังไม่รองรับการเชื่อม API — โพสต์เองโดยดาวน์โหลดคลิปจากเมนู สร้างคอนเทนต์</span>
               </div>
             `}
           </div>
@@ -2263,8 +2301,8 @@
                 + เพิ่มเพจ/บัญชีอีก
               </button>
             ` : `
-              <button class="btn btn-primary btn-sm" style="width:100%;" onclick="window.appTriggerOAuth('${p.id}')">
-                ⚡ เชื่อมต่อ ${p.name}
+              <button class="btn btn-ghost btn-sm" style="width:100%;" onclick="window.appTriggerOAuth('${p.id}')">
+                ℹ️ ${p.name}: ยังไม่รองรับการเชื่อม API (โพสต์เอง)
               </button>
             `}
           </div>
@@ -2296,7 +2334,7 @@
           <span class="chip ${ch.auto_post_enabled ? 'chip-success' : 'chip-muted'} mono" style="font-size:9px; padding:2px 6px;">
             ${ch.auto_post_enabled ? 'Auto' : 'Off'}
           </span>
-          <button class="btn btn-ghost btn-sm" style="color:var(--color-danger); padding:1px 5px; font-size:11px;" onclick="window.appDisconnectChannel(${ch.id}, '${esc(ch.account_name)}')" title="Disconnect">
+          <button class="btn btn-ghost btn-sm" style="color:var(--color-danger); padding:1px 5px; font-size:11px;" onclick="window.appDisconnectChannel(${ch.id}, ${esc(jsArg(ch.account_name))})" title="Disconnect">
             ✕
           </button>
         </div>
@@ -2350,6 +2388,8 @@
   };
 
   window.appOpenConnectModal = platform => {
+    if (['facebook', 'instagram', 'line_oa'].includes(platform)) { switchTab('connectors'); return; }
+    window.appTriggerOAuth(platform); return;
     const modal = $('connectChannelModal');
     if (!modal) return;
     modal.hidden = false;
@@ -2426,6 +2466,11 @@
   }
 
   window.appTriggerOAuth = async platform => {
+    if ($('oauthModal')) $('oauthModal').hidden = true;
+    if (['facebook', 'instagram', 'line_oa'].includes(platform)) { switchTab('connectors'); return; }
+    // No official posting API is connected for TikTok / Shopee / X yet — never create a pretend account.
+    msg(`${String(platform).toUpperCase()} ยังไม่มีการเชื่อม API จริงใน Phase 1 — ใช้การโพสต์เอง (ดาวน์โหลดคลิป + คัดลอกแคปชั่น จากเมนู "สร้างคอนเทนต์")`, 'error');
+    return;
     const box = $('oauthHandshakeBox');
     const title = $('oauthHandshakeTitle');
     const desc = $('oauthHandshakeDesc');
@@ -2514,7 +2559,11 @@
   async function loadCalendar() {
     try {
       const res = await api('/api/my/calendar');
-      calendarData = res.schedules || [];
+      calendarData = (res.schedules || []).map(it => ({
+        ...it,
+        platforms: Array.isArray(it.platforms) ? it.platforms : [it.platform || 'tiktok'],
+        title: it.title || it.product_title || (it.caption || '').split('\n')[0].slice(0, 60) || `โพสต์ #${it.id}`,
+      }));
       renderCalendar();
       renderUpcomingList();
     } catch (err) {
@@ -2568,7 +2617,7 @@
       });
 
       const eventsHtml = dayEvents.map(ev => {
-        const isPublished = ev.status === 'published';
+        const isPublished = ['published', 'completed_manual'].includes(ev.status);
         const primaryPlat = (Array.isArray(ev.platforms) ? ev.platforms[0] : 'tiktok') || 'tiktok';
         const badgeColor = primaryPlat === 'tiktok' ? '#00f2fe' : primaryPlat === 'shopee' ? '#ee4d2d' : '#1877f2';
 
@@ -2626,7 +2675,7 @@
     }
 
     list.innerHTML = items.map(it => {
-      const isPublished = it.status === 'published';
+      const isPublished = ['published', 'completed_manual'].includes(it.status);
       const plats = Array.isArray(it.platforms) ? it.platforms : ['tiktok'];
       const icons = { tiktok: '🎵', shopee: '🛒', facebook: '📘' };
 
@@ -2635,7 +2684,7 @@
           <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:6px;">
             <strong style="color:var(--color-text-main); font-size:13px; line-height:1.4;">${esc(it.title)}</strong>
             <span class="chip ${isPublished ? 'chip-success' : 'chip-primary'} mono" style="font-size:10px; white-space:nowrap;">
-              ${isPublished ? '✅ เผยแพร่แล้ว' : '🕒 กำหนดการ'}
+              ${isPublished ? '✅ โพสต์เองแล้ว' : it.status === 'cancelled' ? '✕ ยกเลิก' : '🕒 รอโพสต์เอง'}
             </span>
           </div>
 
@@ -2654,11 +2703,11 @@
           <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
             <div>
               ${!isPublished ? `
-                <button class="btn btn-primary btn-xs" onclick="window.appPublishScheduleNow(${it.id})" title="Auto-Post ทันที">
-                  🚀 Auto-Post ทันที
+                <button class="btn btn-secondary btn-xs" onclick="window.appPublishScheduleNow(${it.id})" title="กดหลังจากอัปโหลดคลิปเองแล้ว">
+                  ✓ ทำเครื่องหมายว่าโพสต์แล้ว
                 </button>
               ` : `
-                <span class="mono" style="font-size:11px; color:var(--color-secondary);">Auto-Posted สำเร็จ</span>
+                <span class="mono" style="font-size:11px; color:var(--color-secondary);">โพสต์เองแล้ว ✓</span>
               `}
             </div>
             <div style="display:flex; gap:4px;">
@@ -2675,7 +2724,7 @@
   window.appPublishScheduleNow = async scheduleId => {
     try {
       const res = await api(`/api/my/calendar/${scheduleId}/publish-now`, 'POST');
-      msg(res.message || '🚀 Auto-Post สำเร็จทุกแพลตฟอร์ม!');
+      msg(res.message || 'อัปเดตสถานะแล้ว');
       await loadCalendar();
       await loadChannels();
     } catch (e) {
@@ -2716,10 +2765,10 @@
   window.appViewSchedule = scheduleId => {
     const item = calendarData.find(i => i.id === scheduleId);
     if (!item) return;
-    if (item.status === 'published') {
+    if (['published', 'completed_manual'].includes(item.status)) {
       alert(`📌 ${item.title}\n\nสถานะ: เผยแพร่แล้วเมื่อ ${(item.published_at || '').replace('T', ' ')}\nผลลัพธ์: ${item.result_log || 'สำเร็จ'}`);
     } else {
-      if (confirm(`📌 ${item.title}\nกำหนดการ: ${item.scheduled_at.replace('T', ' ')}\n\nต้องการ Auto-Post ไปยัง ${(item.platforms || []).join(', ')} ตอนนี้เลยหรือไม่?`)) {
+      if (confirm(`📌 ${item.title}\nกำหนดการ: ${item.scheduled_at.replace('T', ' ')}\n\nโพสต์ ${(item.platforms || []).join(', ')} เองเรียบร้อยแล้วหรือยัง? (กดตกลงเพื่อทำเครื่องหมายว่าโพสต์แล้ว)`)) {
         window.appPublishScheduleNow(scheduleId);
       }
     }
@@ -2734,7 +2783,7 @@
     e.preventDefault();
     const f = e.target;
     const plats = Array.from(f.querySelectorAll('input[name="sched_platforms"]:checked')).map(cb => cb.value);
-    if (!plats.length) return msg('กรุณาเลือกอย่างน้อย 1 แพลตฟอร์มสำหรับ Auto-Post', 'error');
+    if (!plats.length) return msg('กรุณาเลือกอย่างน้อย 1 แพลตฟอร์ม', 'error');
 
     const payload = {
       title: f.title.value.trim(),
@@ -2748,7 +2797,7 @@
 
     try {
       await api('/api/my/calendar', 'POST', payload);
-      msg('📅 บันทึกกำหนดการและตั้งเวลา Auto-Post สำเร็จ!');
+      msg('📅 บันทึกแผนโพสต์แล้ว (TikTok/Shopee เป็นการโพสต์เอง ระบบจะไม่โพสต์อัตโนมัติ)');
       $('scheduleModal').hidden = true;
       f.reset();
       await loadCalendar();

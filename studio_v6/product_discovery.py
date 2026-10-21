@@ -171,8 +171,17 @@ def discover(query, token=None, extra_comm_only=False):
             if hit['url'] not in unique:
                 unique[hit['url']]=hit
         items=list(unique.values())
-        items.sort(key=lambda i: 0 if i['kind']=='marketplace_candidate' else 1)
-        output={'query':query,'items':items[:35], 'sources':brave_sources+public_sources,
+        # Rank hits that literally mention the query first; label the rest so the UI never implies a match.
+        q_fold=query.casefold()
+        tokens=[t for t in re.split(r'\s+',q_fold) if len(t)>=2] or [q_fold]
+        def relevance(i):
+            hay=f"{i['title']} {i.get('description','')}".casefold()
+            return 'exact' if q_fold in hay else 'all_terms' if all(t in hay for t in tokens) else 'search_engine'
+        rank={'exact':0,'all_terms':1,'search_engine':2}
+        for i in items: i['relevance']=relevance(i)
+        items.sort(key=lambda i:(0 if i['kind']=='marketplace_candidate' else 1, rank[i['relevance']]))
+        unmatched=sum(1 for i in items[:35] if i['relevance']=='search_engine')
+        output={'query':query,'items':items[:35], 'unmatched_count':unmatched, 'sources':brave_sources+public_sources,
                 'listing_candidates':sum(i['kind']=='marketplace_candidate' for i in items[:35]),
                 'note':'ผลจากเว็บเป็นเพียงลิงก์สินค้าอาจตรงรุ่น/ข่าวรีวิว ไม่ยืนยันยอดขาย ราคา ค่าคอม หรือสิทธิ์ Affiliate',
                 'has_brave_key':bool(token),'cached':False, 'extra_comm_mode':bool(extra_comm_only),

@@ -49,6 +49,11 @@ def pasted_preview(content: str):
     lines = [re.sub(r'\s+', ' ', x.strip()) for x in content.splitlines() if x.strip()]
     title = next((line[:200] for line in lines if len(line)>2 and not line.startswith(('http:', 'https:'))
             and not re.match(r'^(?:ราคา|฿|extra\s*comm|ค่าคอม|ลิงก์|ยอดขาย|จำนวนขาย|รีวิว|ร้านค้า|\d+[.,]?\d*\s*%)', line, re.I)), '')
+    if title:
+        # Strip pasted URLs and price fragments that share the title line.
+        title = re.sub(r'https?://\S+', '', title)
+        title = re.sub(r'(?:ราคา\s*[:：]?\s*)?฿\s*[\d,]+(?:\.\d{1,2})?', '', title)
+        title = re.sub(r'\s+', ' ', title).strip(' -|·,') or ''
     if not title and url:
         title = 'สินค้า Shopee — กรุณาแก้ชื่อหลังนำเข้า'
     if not title:

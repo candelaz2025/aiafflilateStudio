@@ -355,6 +355,12 @@ def create_app(data_dir=None, secret_key=None):
         ''')
         db.execute('CREATE INDEX IF NOT EXISTS queue_owner ON publishing_queue(user_id,id DESC);')
 
+        pq_cols = {r[1] for r in db.execute('PRAGMA table_info(publishing_queue)').fetchall()}
+        if 'caption' not in pq_cols:
+            db.execute("ALTER TABLE publishing_queue ADD COLUMN caption TEXT NOT NULL DEFAULT ''")
+        if 'scheduled_at' not in pq_cols:
+            db.execute("ALTER TABLE publishing_queue ADD COLUMN scheduled_at TEXT")
+
         # Auto migration of connected_channels to support multiple pages/accounts per platform
         tbl_info = db.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='connected_channels';").fetchone()
         if tbl_info and 'UNIQUE(user_id, platform)' in tbl_info[0]:
@@ -539,7 +545,10 @@ def create_app(data_dir=None, secret_key=None):
     @app.get('/api/beta/capacity')
     def beta_capacity():
         n = read('SELECT COUNT(*) AS n FROM users',one=True)['n']
-        return {'limit':MAX_BETA_USERS,'registered':n,'remaining':max(0,MAX_BETA_USERS-n),
+        remaining=max(0,MAX_BETA_USERS-n)
+        # Aliases keep every page (landing/community/admin) reading the same single source of truth.
+        return {'limit':MAX_BETA_USERS,'registered':n,'remaining':remaining,
+                'max':MAX_BETA_USERS,'capacity':MAX_BETA_USERS,'available':remaining,
                 'invite_only':bool(REQUIRE_INVITE)}
 
     @app.post('/api/register')
@@ -748,6 +757,9 @@ def create_app(data_dir=None, secret_key=None):
 
     @app.post('/api/quick-login')
     def quick_login(body: QuickLoginIn, req: Request, response: Response):
+        # Passwordless admin login: dev-only, OFF unless explicitly enabled on a non-public deployment.
+        if PUBLIC_MODE or os.getenv('ALLOW_QUICK_LOGIN', '0') != '1':
+            raise HTTPException(404, 'Not Found')
         target_role = body.role
         user = read("SELECT id, username, email, role, credits, permissions FROM users WHERE role=? ORDER BY id ASC LIMIT 1", (target_role,), one=True)
         if not user:
@@ -759,33 +771,9 @@ def create_app(data_dir=None, secret_key=None):
     @app.get('/api/my/channels')
     def list_my_channels(req: Request):
         u = require_user(req)
-        channels = read('SELECT * FROM connected_channels WHERE user_id=? ORDER BY id ASC', (u['id'],))
-        if not channels:
-            with connect() as c:
-                now_str = now()
-                c.execute('''INSERT OR IGNORE INTO connected_channels(user_id, platform, account_name, account_id, auto_post_enabled, status, last_synced_at, created_at)
-                             VALUES (?, 'tiktok', '@affiliate.creator.th', 'TT-98124', 1, 'connected', ?, ?)''',
-                          (u['id'], now_str, now_str))
-                c.execute('''INSERT OR IGNORE INTO connected_channels(user_id, platform, account_name, account_id, auto_post_enabled, status, last_synced_at, created_at)
-                             VALUES (?, 'shopee', 'Shopee Official Creator #TH-8821', 'SP-65432', 1, 'connected', ?, ?)''',
-                          (u['id'], now_str, now_str))
-                c.execute('''INSERT OR IGNORE INTO connected_channels(user_id, platform, account_name, account_id, auto_post_enabled, status, last_synced_at, created_at)
-                             VALUES (?, 'facebook', 'Affiliate Deals Thailand (Page 1)', 'FB-PAGE-1092', 1, 'connected', ?, ?)''',
-                          (u['id'], now_str, now_str))
-                c.execute('''INSERT OR IGNORE INTO connected_channels(user_id, platform, account_name, account_id, auto_post_enabled, status, last_synced_at, created_at)
-                             VALUES (?, 'facebook', 'เพจรีวิวของใช้ในบ้าน (Page 2)', 'FB-PAGE-8871', 1, 'connected', ?, ?)''',
-                          (u['id'], now_str, now_str))
-                c.execute('''INSERT OR IGNORE INTO connected_channels(user_id, platform, account_name, account_id, auto_post_enabled, status, last_synced_at, created_at)
-                             VALUES (?, 'instagram', '@affiliate_daily_th', 'IG-77610', 1, 'connected', ?, ?)''',
-                          (u['id'], now_str, now_str))
-                c.execute('''INSERT OR IGNORE INTO connected_channels(user_id, platform, account_name, account_id, auto_post_enabled, status, last_synced_at, created_at)
-                             VALUES (?, 'x', '@deals_thai_bot', 'X-33129', 1, 'connected', ?, ?)''',
-                          (u['id'], now_str, now_str))
-                c.execute('''INSERT OR IGNORE INTO connected_channels(user_id, platform, account_name, account_id, auto_post_enabled, status, last_synced_at, created_at)
-                             VALUES (?, 'line_oa', '@AffiliateStudioTH', '@AffiliateStudioTH', 1, 'connected', ?, ?)''',
-                          (u['id'], now_str, now_str))
-            channels = read('SELECT * FROM connected_channels WHERE user_id=? ORDER BY id ASC', (u['id'],))
-        return {'channels': channels}
+        rows = read('SELECT * FROM connected_channels WHERE user_id=? ORDER BY id ASC', (u['id'],))
+        safe = ('id','platform','account_name','account_id','auto_post_enabled','status','last_synced_at','created_at','kind','verified_at','last_error')
+        return {'channels': [{k: r.get(k) for k in safe} for r in rows]}
 
     @app.post('/api/my/channels/connect')
     def connect_channel(body: ChannelConnectIn, req: Request, x_csrf_token: str | None = Header(default=None)):
@@ -793,13 +781,15 @@ def create_app(data_dir=None, secret_key=None):
         plat = body.platform.lower().strip()
         if plat not in ('tiktok', 'shopee', 'facebook', 'instagram', 'x', 'line_oa'):
             raise HTTPException(400, 'แพลตฟอร์มที่ระบุไม่รองรับ')
+        if plat in ('facebook', 'instagram', 'line_oa'):
+            raise HTTPException(400, 'Facebook / Instagram / LINE OA ต้องเชื่อมผ่านเมนู Connectors (ล็อกอินจริงกับผู้ให้บริการ)')
         acc_token_enc = None
         if body.access_token:
             acc_token_enc = cipher.encrypt(body.access_token.strip().encode()).decode()
         with connect() as c:
             now_str = now()
             c.execute('''INSERT INTO connected_channels(user_id, platform, account_name, account_id, access_token_encrypted, auto_post_enabled, status, last_synced_at, created_at)
-                         VALUES (?, ?, ?, ?, ?, ?, 'connected', ?, ?)
+                         VALUES (?, ?, ?, ?, ?, ?, 'manual', ?, ?)
                          ON CONFLICT(user_id, platform, account_id) DO UPDATE SET
                          account_name=excluded.account_name,
                          access_token_encrypted=COALESCE(excluded.access_token_encrypted, connected_channels.access_token_encrypted),
@@ -855,9 +845,11 @@ def create_app(data_dir=None, secret_key=None):
         u = mutation(req, x_csrf_token)
         with connect() as c:
             if channel_ref.isdigit():
-                c.execute('DELETE FROM connected_channels WHERE user_id=? AND id=?', (u['id'], int(channel_ref)))
+                n = c.execute('DELETE FROM connected_channels WHERE user_id=? AND id=?', (u['id'], int(channel_ref))).rowcount
             else:
-                c.execute('DELETE FROM connected_channels WHERE user_id=? AND platform=?', (u['id'], channel_ref.lower()))
+                n = c.execute('DELETE FROM connected_channels WHERE user_id=? AND platform=?', (u['id'], channel_ref.lower())).rowcount
+        if not n:
+            raise HTTPException(404, 'ไม่พบช่องทางนี้ในบัญชีของคุณ')
         return {'ok': True, 'message': f'ตัดการเชื่อมต่อช่องทางเรียบร้อยแล้ว'}
 
     @app.post('/api/my/line-oa/test-alert')
@@ -879,34 +871,6 @@ def create_app(data_dir=None, secret_key=None):
                      LEFT JOIN drafts d ON q.draft_id=d.id
                      LEFT JOIN products p ON d.product_id=p.id
                      WHERE q.user_id=? ORDER BY q.scheduled_at ASC''', (u['id'],))
-        if not items:
-            with connect() as c:
-                p_row = c.execute('SELECT id FROM products WHERE user_id=? LIMIT 1', (u['id'],)).fetchone()
-                p_id = p_row[0] if p_row else None
-                if not p_id:
-                    c.execute("INSERT INTO products(user_id, title, platform, price, commission_rate, extra_comm_rate, created_at) VALUES(?, 'Sample Product', 'shopee', 299, 5.0, 10.0, ?)",
-                              (u['id'], now()))
-                    p_id = c.execute('SELECT last_insert_rowid()').fetchone()[0]
-                d_row = c.execute('SELECT id FROM drafts WHERE user_id=? LIMIT 1', (u['id'],)).fetchone()
-                d_id = d_row[0] if d_row else None
-                if not d_id:
-                    c.execute("INSERT INTO drafts(user_id, product_id, style, script, prompt, created_at) VALUES(?, ?, 'pov', 'Sample script', 'Sample prompt', ?)",
-                              (u['id'], p_id, now()))
-                    d_id = c.execute('SELECT last_insert_rowid()').fetchone()[0]
-                tomorrow = (datetime.now(timezone.utc) + timedelta(days=1)).strftime('%Y-%m-%d 18:30:00')
-                day_after = (datetime.now(timezone.utc) + timedelta(days=2)).strftime('%Y-%m-%d 20:00:00')
-                c.execute('''INSERT INTO publishing_queue(user_id, draft_id, platform, caption, scheduled_at, status, created_at)
-                             VALUES (?, ?, 'tiktok', 'รีวิวสุดปัง ช้อปเลยที่ตะกร้า! #TikTokMadeMeBuyIt', ?, 'scheduled', ?)''',
-                          (u['id'], d_id, tomorrow, now()))
-                c.execute('''INSERT INTO publishing_queue(user_id, draft_id, platform, caption, scheduled_at, status, created_at)
-                             VALUES (?, ?, 'shopee', 'ดีลเด็ด Shopee Video ลด 50%! #ShopeeTH', ?, 'scheduled', ?)''',
-                          (u['id'], d_id, day_after, now()))
-            items = read('''SELECT q.id, q.draft_id, q.platform, q.video_url, q.caption, q.scheduled_at, q.status, q.created_at,
-                                d.product_id, p.title as product_title, p.price, p.url as product_url
-                         FROM publishing_queue q
-                         LEFT JOIN drafts d ON q.draft_id=d.id
-                         LEFT JOIN products p ON d.product_id=p.id
-                         WHERE q.user_id=? ORDER BY q.scheduled_at ASC''', (u['id'],))
         return {'schedules': items}
 
     @app.post('/api/my/calendar')
@@ -918,28 +882,44 @@ def create_app(data_dir=None, secret_key=None):
                 d_row = c.execute('SELECT id FROM drafts WHERE user_id=? AND product_id=? LIMIT 1', (u['id'], body.product_id)).fetchone()
                 if d_row:
                     d_id = d_row[0]
+                else:
+                    if not c.execute('SELECT 1 FROM products WHERE id=? AND user_id=?', (body.product_id, u['id'])).fetchone():
+                        raise HTTPException(404, 'ไม่พบสินค้าของบัญชีนี้')
+                    # Plan belongs to the chosen product: create its draft instead of borrowing another product's.
+                    c.execute("INSERT INTO drafts(user_id, product_id, style, script, prompt, created_at) VALUES(?, ?, 'plan', ?, ?, ?)",
+                              (u['id'], body.product_id, body.caption or body.title, body.title, now()))
+                    d_id = c.execute('SELECT last_insert_rowid()').fetchone()[0]
             if not d_id:
                 d_row = c.execute('SELECT id FROM drafts WHERE user_id=? LIMIT 1', (u['id'],)).fetchone()
                 if d_row:
                     d_id = d_row[0]
                 else:
                     p_row = c.execute('SELECT id FROM products WHERE user_id=? LIMIT 1', (u['id'],)).fetchone()
-                    p_id = p_row[0] if p_row else 1
+                    if not p_row:
+                        raise HTTPException(400, 'ยังไม่มีสินค้า — เพิ่มสินค้าก่อนวางแผนโพสต์')
+                    p_id = p_row[0]
                     c.execute("INSERT INTO drafts(user_id, product_id, style, script, prompt, created_at) VALUES(?, ?, 'pov', ?, ?, ?)",
                               (u['id'], p_id, body.caption or body.title, body.title, now()))
                     d_id = c.execute('SELECT last_insert_rowid()').fetchone()[0]
             created_ids = []
             full_caption = f"{body.caption} {body.hashtags}".strip()
-            for plat in body.platforms:
+            plats = [x.lower().strip() for x in body.platforms]
+            bad = [x for x in plats if x not in ('tiktok', 'shopee')]
+            if bad or not plats:
+                raise HTTPException(400, 'ปฏิทินรองรับ TikTok / Shopee (โพสต์เอง) — Facebook/IG/LINE ใช้ปุ่ม 📤 โพสต์ ที่สินค้า')
+            status = body.status if body.status in ('needs_review', 'ready_manual', 'completed_manual', 'cancelled') else 'needs_review'
+            for plat in plats:
                 cur = c.execute('''INSERT INTO publishing_queue(user_id, draft_id, platform, caption, scheduled_at, status, created_at)
                                  VALUES (?, ?, ?, ?, ?, ?, ?)''',
-                              (u['id'], d_id, plat.lower().strip(), full_caption, body.scheduled_at, body.status, now()))
+                              (u['id'], d_id, plat, full_caption, body.scheduled_at, status, now()))
                 created_ids.append(cur.lastrowid)
         return {'ok': True, 'schedule_ids': created_ids, 'message': f'วางแผนโพสต์ {len(created_ids)} แพลตฟอร์มสำเร็จ'}
 
     @app.patch('/api/my/calendar/{schedule_id}')
     def update_calendar_event(schedule_id: int, body: ScheduleUpdateIn, req: Request, x_csrf_token: str | None = Header(default=None)):
         u = mutation(req, x_csrf_token)
+        if body.status not in ('needs_review', 'ready_manual', 'completed_manual', 'cancelled'):
+            raise HTTPException(400, 'สถานะไม่ถูกต้อง')
         with connect() as c:
             r = c.execute('UPDATE publishing_queue SET status=? WHERE id=? AND user_id=?', (body.status, schedule_id, u['id']))
             if r.rowcount < 1:
@@ -952,15 +932,16 @@ def create_app(data_dir=None, secret_key=None):
         item = read('SELECT * FROM publishing_queue WHERE id=? AND user_id=?', (schedule_id, u['id']), one=True)
         if not item:
             raise HTTPException(404, 'ไม่พบรายการคอนเทนต์')
+        # No TikTok/Shopee posting API is connected: never claim an automatic post happened.
         with connect() as c:
-            c.execute('UPDATE publishing_queue SET status="published" WHERE id=? AND user_id=?', (schedule_id, u['id']))
+            c.execute("UPDATE publishing_queue SET status='completed_manual' WHERE id=? AND user_id=?", (schedule_id, u['id']))
         return {
             'ok': True,
             'schedule_id': schedule_id,
             'platform': item['platform'],
-            'status': 'published',
-            'published_at': now(),
-            'message': f'ส่งคลิป Auto-Post ไปยัง {item["platform"].upper()} สำเร็จเรียบร้อย!'
+            'status': 'completed_manual',
+            'auto_posted': False,
+            'message': f'ทำเครื่องหมายว่าโพสต์ {item["platform"].upper()} เองแล้ว (ยังไม่ได้เชื่อม API โพสต์อัตโนมัติของแพลตฟอร์มนี้)'
         }
 
     @app.delete('/api/my/calendar/{schedule_id}')
@@ -1564,7 +1545,11 @@ def create_app(data_dir=None, secret_key=None):
     @app.get('/api/my/products')
     def my_products(req:Request):
         u=require_user(req)
-        return read('SELECT id,title,url,platform,created_at,extra_comm_checked,extra_comm_rate,extra_comm_checked_at FROM products WHERE user_id=? ORDER BY id DESC LIMIT 200',(u['id'],))
+        return read('''SELECT id,title,url,platform,created_at,extra_comm_checked,extra_comm_rate,extra_comm_checked_at,
+                       price,price_min,price_max,commission_rate,seller_comm_rate,shopee_comm_rate,commission_baht,image_url,
+                       CASE WHEN image_file!='' THEN '/media/products/'||image_file ELSE '' END AS image_path,
+                       shop_name,item_id,shop_id,offer_link,sales,rating,source,synced_at
+                       FROM products WHERE user_id=? ORDER BY id DESC LIMIT 200''',(u['id'],))
 
     @app.post('/api/my/products')
     def add_product(body:ProductIn,req:Request,x_csrf_token:str|None=Header(default=None)):
@@ -1706,7 +1691,7 @@ def create_app(data_dir=None, secret_key=None):
     @app.get('/api/my/queue')
     def my_queue(req: Request):
         u=require_user(req)
-        return read('''SELECT q.id,q.platform,q.video_url,q.status,q.created_at,d.script,p.title
+        return read('''SELECT q.id,q.platform,q.video_url,q.status,q.created_at,d.script,p.title,p.title AS product_title
                     FROM publishing_queue q JOIN drafts d ON q.draft_id=d.id
                     JOIN products p ON d.product_id=p.id
                     WHERE q.user_id=? ORDER BY q.id DESC LIMIT 100''',(u['id'],))
@@ -1772,6 +1757,22 @@ def create_app(data_dir=None, secret_key=None):
     # into community.db. Never publish this combined prototype to the internet.
     if PUBLIC_MODE:
         return app
+    import features_v8
+    features_v8.register(app, connect=connect, read=read, require_user=require_user, mutation=mutation,
+                         cipher=cipher, now=now, data_dir=data, public_mode=PUBLIC_MODE)
+    import studio_v8
+    studio_v8.register(app, connect=connect, read=read, require_user=require_user, mutation=mutation, now=now, data_dir=data)
+    app.state.studio_set_decrypt(lambda v: cipher.decrypt(v.encode()).decode())
+    import scheduler_v8
+
+    def _dec(v):
+        try:
+            return cipher.decrypt(v.encode()).decode() if v else ''
+        except InvalidToken:
+            return ''
+    scheduler_v8.register(app, connect=connect, read=read, require_user=require_user, mutation=mutation, now=now,
+                          data_dir=data, decrypt=_dec, base_url_for=app.state.v8_base_url)
+
     import sys, importlib.util
     studio_path=(ROOT/'studio_v6').resolve()
     if str(studio_path) not in sys.path: sys.path.insert(0, str(studio_path))

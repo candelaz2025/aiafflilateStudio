@@ -40,6 +40,15 @@
         <div class="nav-group-title" data-i18n="nav_group_main">เวิร์กโฟลว์หลัก</div>
         <ul class="nav-list">
           <li>
+            <button class="nav-item-btn v8-nav-studio" data-tab="studio">
+              <span class="nav-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+              </span>
+              <span class="nav-label">สร้างคอนเทนต์ (เริ่มที่นี่)</span>
+              <span class="nav-badge" style="background:#F59E0B;color:#fff;">STEP</span>
+            </button>
+          </li>
+          <li>
             <button class="nav-item-btn active" data-tab="dash">
               <span class="nav-icon">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
@@ -90,12 +99,21 @@
             </button>
           </li>
           <li>
+            <button class="nav-item-btn" data-tab="connectors">
+              <span class="nav-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7V2"></path><path d="M15 7V2"></path><path d="M6 7h12v5a6 6 0 0 1-12 0z"></path><path d="M12 18v4"></path></svg>
+              </span>
+              <span class="nav-label">Connectors (FB · IG · LINE)</span>
+              <span class="nav-badge mono" id="badge-connectors-count">0</span>
+            </button>
+          </li>
+          <li>
             <button class="nav-item-btn" data-tab="calendar">
               <span class="nav-icon">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
               </span>
-              <span class="nav-label">ปฏิทินคอนเทนต์ & Auto-Post</span>
-              <span class="nav-badge" style="background:#10B981; color:#fff;">AUTO</span>
+              <span class="nav-label">ปฏิทินคอนเทนต์</span>
+              <span class="nav-badge mono">PLAN</span>
             </button>
           </li>
           <li>
@@ -161,6 +179,22 @@
               </span>
               <span class="nav-label">ศูนย์อัปเดตระบบ ↗</span>
             </a>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Section: Help -->
+      <div>
+        <div class="nav-group-title">ช่วยเหลือ (Help)</div>
+        <ul class="nav-list">
+          <li>
+            <button class="nav-item-btn" data-tab="help" id="navHelpBtn">
+              <span class="nav-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+              </span>
+              <span class="nav-label">ช่วยเหลือ & สอนใช้งาน</span>
+              <span class="nav-badge v8-live-badge" id="badge-help-unread">LIVE</span>
+            </button>
           </li>
         </ul>
       </div>
@@ -254,7 +288,7 @@
         <!-- Notification Bell -->
         <button class="notif-btn" id="notifBtn" title="การแจ้งเตือน" aria-label="Notifications">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-          <span class="notif-badge">3</span>
+          <span class="notif-badge" id="v8NotifBadge" hidden>0</span>
         </button>
 
         <!-- User Quick Status / Switch -->
@@ -473,7 +507,7 @@
            ========================================== -->
       <section id="radar" class="tab-section">
         <h2 class="page-title" data-i18n="radar_page_title">⌕ Product Radar & Shopee Scanner</h2>
-        <p class="page-subtitle" data-i18n="radar_page_desc">ค้นหาสินค้ากระแสจริง ข้อมูลยืนยันได้ พร้อมตรวจค่า Extra Commission</p>
+        <p class="page-subtitle" data-i18n="radar_page_desc">หาไอเดียสินค้าจากแหล่งสาธารณะ + ราคา/ค่าคอมจริงจาก Shopee Affiliate API (เมื่อเชื่อมคีย์)</p>
 
         <!-- Search Bar Card -->
         <div class="mf-card" style="margin-bottom:20px;">
@@ -550,32 +584,61 @@
             <h2 class="page-title" data-i18n="products_page_title">📋 สินค้าของฉัน (My Products)</h2>
             <p class="page-subtitle" data-i18n="products_page_desc">รายการสินค้าที่คุณเลือกสำหรับทำคลิปวิดีโอและติดตามผลงาน</p>
           </div>
-          <button class="btn btn-primary" id="addNewProductBtn" data-i18n="btn_add_product">+ เพิ่มสินค้าใหม่</button>
+          <button class="btn btn-secondary" id="addNewProductBtn">+ เพิ่มสินค้าเอง</button>
+        </div>
+
+        <!-- V8: Shopee Affiliate import -->
+        <div class="mf-card v8-shopee" id="v8ShopeeCard">
+          <div class="v8-card-head">
+            <div><span class="chip chip-primary mono">SHOPEE AFFILIATE OPEN API</span>
+            <h3>🛒 ดึงสินค้าจาก Shopee (รูป · ราคา · ค่าคอมจริง)</h3>
+            <p class="v8-muted" id="v8ShopeeStatus">กำลังตรวจสถานะ…</p></div>
+            <button class="btn btn-ghost btn-sm" data-help-article="shopee-credentials">วิธีขอ AppID / Secret</button>
+          </div>
+          <form id="v8ShopeeCredForm" class="v8-form-grid" autocomplete="off" hidden>
+            <label>Shopee Affiliate AppID<input class="form-input" name="app_id" inputmode="numeric" required minlength="4" maxlength="40" pattern="[0-9]+" title="AppID เป็นตัวเลข" placeholder="เช่น 15012345678"></label>
+            <label>Secret<input class="form-input" name="secret" type="password" required minlength="8" maxlength="128" placeholder="••••••••"></label>
+            <div class="v8-span2" style="display:flex; gap:8px; justify-content:flex-end">
+              <button type="button" class="btn btn-ghost" id="v8ShopeeCredCancel" hidden>ยกเลิก</button>
+              <button class="btn btn-primary" type="submit">บันทึก & ทดสอบ</button>
+            </div>
+          </form>
+          <div id="v8ShopeeTools" hidden>
+            <form id="v8ShopeeLinkForm" class="v8-inline-form">
+              <input class="form-input" name="url" type="url" required placeholder="วางลิงก์สินค้า Shopee เช่น https://shopee.co.th/…-i.123.456 หรือ https://s.shopee.co.th/…" aria-label="ลิงก์สินค้า Shopee">
+              <button class="btn btn-primary" type="submit">ดึงข้อมูล</button>
+            </form>
+            <form id="v8ShopeeSearchForm" class="v8-inline-form">
+              <input class="form-input" name="keyword" required minlength="2" placeholder="หรือค้นหาด้วยคีย์เวิร์ด เช่น พัดลมพกพา" aria-label="คีย์เวิร์ด">
+              <select class="form-select" name="sort" aria-label="เรียงตาม">
+                <option value="commission">ค่าคอมสูงสุด</option><option value="sales">ขายดี</option>
+                <option value="relevance">เกี่ยวข้องที่สุด</option><option value="price_asc">ราคาต่ำ→สูง</option><option value="price_desc">ราคาสูง→ต่ำ</option>
+              </select>
+              <button class="btn btn-secondary" type="submit">ค้นหา</button>
+            </form>
+            <div id="v8ShopeeResults" class="v8-product-grid"></div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px">
+              <button class="btn btn-ghost btn-sm" id="v8ShopeeMore" hidden>โหลดเพิ่ม</button>
+              <button class="btn btn-ghost btn-sm" id="v8ShopeeEditCred">เปลี่ยน AppID/Secret</button>
+            </div>
+          </div>
         </div>
 
         <!-- Add Product Form Card (Collapsible) -->
         <div class="mf-card" id="addProductCard" style="display:none; margin-bottom:20px;">
-          <h3 style="font-size:15px; font-weight:700; margin-bottom:12px;" data-i18n="add_product_title">เพิ่มสินค้าเข้ารายการ</h3>
-          <form id="productform">
-            <div style="display:grid; grid-template-columns:2fr 2fr 1fr; gap:12px; margin-bottom:12px;">
-              <div>
-                <label class="form-label" data-i18n="label_product_title">ชื่อสินค้า</label>
-                <input name="title" class="form-input" required placeholder="เช่น พัดลมพกพาไร้ใบพัด หมุนได้ 360 องศา">
-              </div>
-              <div>
-                <label class="form-label" data-i18n="label_product_url">ลิงก์สินค้า Affiliate (ถ้ามี)</label>
-                <input name="url" type="url" class="form-input" placeholder="https://s.shopee.co.th/...">
-              </div>
-              <div>
-                <label class="form-label" data-i18n="label_platform">แพลตฟอร์ม</label>
-                <select name="platform" class="form-select">
-                  <option value="shopee">Shopee</option>
-                  <option value="tiktok">TikTok</option>
-                  <option value="other">อื่น ๆ</option>
-                </select>
-              </div>
+          <h3 style="font-size:15px; font-weight:700; margin-bottom:6px;">เพิ่มสินค้าเอง (Manual)</h3>
+          <p class="v8-muted" style="margin-bottom:10px">ไม่มีคีย์ Shopee? กรอกข้อมูลเองได้ (ระบบจะติดป้าย "กรอกเอง")</p>
+          <form id="productform" enctype="multipart/form-data">
+            <div class="v8-form-grid v8-grid-3">
+              <label class="v8-span2">ชื่อสินค้า<input name="title" class="form-input" required minlength="3" maxlength="200" placeholder="เช่น พัดลมพกพาไร้ใบพัด หมุนได้ 360 องศา"></label>
+              <label>แพลตฟอร์ม<select name="platform" class="form-select"><option value="shopee">Shopee</option><option value="tiktok">TikTok</option><option value="other">อื่น ๆ</option></select></label>
+              <label class="v8-span2">ลิงก์สินค้า Affiliate<input name="url" type="url" class="form-input" placeholder="https://s.shopee.co.th/..."></label>
+              <label>ราคา (฿)<input name="price" class="form-input" inputmode="decimal" placeholder="199"></label>
+              <label>ค่าคอม (%)<input name="commission_rate" class="form-input" inputmode="decimal" placeholder="10"></label>
+              <label>ลิงก์รูป (https)<input name="image_url" type="url" class="form-input" placeholder="https://..."></label>
+              <label>หรืออัปโหลดรูป<input name="image" type="file" accept="image/png,image/jpeg,image/webp" class="form-input"></label>
             </div>
-            <div style="display:flex; justify-content:flex-end; gap:8px;">
+            <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px">
               <button type="button" class="btn btn-ghost" id="cancelAddProductBtn" data-i18n="btn_cancel">ยกเลิก</button>
               <button type="submit" class="btn btn-primary" data-i18n="btn_save_product">บันทึกสินค้า</button>
             </div>
@@ -587,17 +650,18 @@
           <table class="data-table">
             <thead>
               <tr>
-                <th data-i18n="col_id">ID</th>
-                <th data-i18n="col_product_name">ชื่อสินค้า</th>
-                <th data-i18n="col_platform">แพลตฟอร์ม</th>
+                <th>สินค้า</th>
+                <th>ราคา</th>
+                <th>ค่าคอม</th>
+                <th>ยอดขาย/เรตติ้ง</th>
                 <th data-i18n="col_extra_comm">Extra Comm</th>
-                <th data-i18n="col_created">เพิ่มเมื่อ</th>
+                <th>ที่มา</th>
                 <th data-i18n="col_actions">การทำงาน</th>
               </tr>
             </thead>
             <tbody id="productlist">
               <tr>
-                <td colspan="6" style="text-align:center; padding:24px; color:var(--color-text-muted);" data-i18n="no_products">ยังไม่มีสินค้าในรายการ ลองเพิ่มสินค้าแรกได้เลย</td>
+                <td colspan="7" style="text-align:center; padding:24px; color:var(--color-text-muted);" data-i18n="no_products">ยังไม่มีสินค้าในรายการ ลองเพิ่มสินค้าแรกได้เลย</td>
               </tr>
             </tbody>
           </table>
@@ -944,14 +1008,11 @@
       <section id="calendar" class="tab-section">
         <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:18px; flex-wrap:wrap; gap:14px;">
           <div>
-            <h2 class="page-title">📅 ปฏิทินวางแผนคอนเทนต์ & Auto-Post</h2>
-            <p class="page-subtitle">จัดการกำหนดการเผยแพร่อัตโนมัติไปยัง TikTok, Shopee Video และ Facebook Reels</p>
+            <h2 class="page-title">📅 ปฏิทินวางแผนคอนเทนต์</h2>
+            <p class="page-subtitle">วางแผนวัน-เวลาโพสต์ TikTok / Shopee Video (โพสต์เอง) · Facebook / IG / LINE โพสต์จริงได้จากปุ่ม 📤 ในสินค้าเมื่อเชื่อม Connectors แล้ว</p>
           </div>
           <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-            <div class="autopost-bot-status" id="autoPostBotBadge" style="cursor:pointer;" onclick="window.appOpenOAuthModal()" title="คลิกเพื่อจัดการระบบ Auto-Post">
-              <span class="status-dot-pulse"></span>
-              <span>Auto-Post Bot: <strong>ทำงานอัตโนมัติ (Active)</strong></span>
-            </div>
+            <div class="v8-platform-pills" id="v8CalPlatformStatus" title="สถานะการเชื่อมต่อจริงแยกตามแพลตฟอร์ม"></div>
             <button class="btn btn-secondary btn-sm" id="calOAuthConnectBtn" onclick="window.appOpenOAuthModal()" style="font-weight:700;">
               <span>🔗 เชื่อมต่อ OAuth</span>
             </button>
@@ -1010,7 +1071,7 @@
             <!-- Connected Channels Quick Status -->
             <div class="mf-card" style="padding:18px; margin-bottom:16px;">
               <h4 style="font-size:14px; font-weight:700; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
-                <span>🔗 ช่องทางที่พร้อม Auto-Post</span>
+                <span>🔗 ช่องทางที่บันทึกไว้</span>
                 <button type="button" class="btn btn-ghost btn-xs" id="btnCalGoToSettings" onclick="window.appOpenOAuthModal()" style="color:var(--color-primary); font-weight:700;">⚙️ ตั้งค่า OAuth &rarr;</button>
               </h4>
               <div id="calConnectedChannelsList" style="display:flex; flex-direction:column; gap:8px;">
@@ -1103,18 +1164,18 @@
         <div class="kpi-row" style="margin-bottom:24px;">
           <div class="kpi-card">
             <div class="kpi-title" data-i18n="metric_total_views">👁 ยอดวิวสะสม</div>
-            <div class="kpi-value mono" id="totalViewsMetric">142,500</div>
-            <span class="chip chip-success mono">+28.4% สัปดาห์นี้</span>
+            <div class="kpi-value mono" id="totalViewsMetric">0</div>
+            <span class="chip mono">ตามที่คุณบันทึก</span>
           </div>
           <div class="kpi-card">
             <div class="kpi-title" data-i18n="metric_total_orders">📦 คำสั่งซื้อสำเร็จ</div>
-            <div class="kpi-value mono" id="totalOrdersMetric">842</div>
-            <span class="chip chip-primary mono">อัตราซื้อ 5.9%</span>
+            <div class="kpi-value mono" id="totalOrdersMetric">0</div>
+            <span class="chip mono" id="convRateMetric">อัตราซื้อ -</span>
           </div>
           <div class="kpi-card">
             <div class="kpi-title" data-i18n="metric_total_comm">💰 ค่าคอมมิชชันรวม</div>
-            <div class="kpi-value mono" style="color:var(--color-secondary);" id="totalCommMetric">฿18,450.00</div>
-            <span class="chip chip-success mono">รวม Extra Comm</span>
+            <div class="kpi-value mono" style="color:var(--color-secondary);" id="totalCommMetric">฿0</div>
+            <span class="chip mono">ข้อมูลที่กรอกเอง</span>
           </div>
         </div>
 
@@ -1382,21 +1443,18 @@
         <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:18px; flex-wrap:wrap; gap:12px;">
           <div>
             <h2 class="page-title">⚙️ การเชื่อมต่อระบบ & API Keys (TikTok / Shopee / Facebook / AI)</h2>
-            <p class="page-subtitle">จัดการการเชื่อมต่อช่องทางโซเชียลเพื่อเปิดระบบ Auto-Post และตั้งค่า API สำหรับสร้างคลิป AI</p>
+            <p class="page-subtitle">ตั้งค่า API key สำหรับ AI และค้นหา · การเชื่อม Facebook / IG / LINE อยู่ที่เมนู Connectors</p>
           </div>
-          <span class="autopost-bot-status">
-            <span class="status-dot-pulse"></span>
-            <span>Real-time OAuth & Webhook Ready</span>
-          </span>
+
         </div>
 
         <!-- Section 1: Social & E-commerce Channels (TikTok, Shopee, Facebook, IG, X, LINE OA) -->
         <div class="mf-card" style="margin-bottom:24px;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
             <div>
-              <span class="chip chip-primary mono" style="margin-bottom:4px;">AUTO-POST PLATFORMS</span>
+              <span class="chip mono" style="margin-bottom:4px;">MANUAL PLATFORMS</span>
               <h3 style="font-size:17px; font-weight:800;">1. เชื่อมต่อ Social Media & E-commerce (Facebook / TikTok / Shopee / IG / X / LINE OA)</h3>
-              <p style="font-size:13px; color:var(--color-text-muted);">เชื่อมต่อเพื่อเปิดระบบโพสต์อัตโนมัติ (Auto-Post) รองรับหลายเพจ Facebook, แพลตฟอร์มโซเชียลหลัก และแจ้งเตือนผ่าน LINE OA</p>
+              <p style="font-size:13px; color:var(--color-text-muted);">TikTok / Shopee Video / X ยังไม่มีการเชื่อม API โพสต์อัตโนมัติ — ใช้การโพสต์เอง</p>
             </div>
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
               <button class="btn btn-secondary btn-sm" onclick="window.appOpenOAuthModal()">
@@ -1409,6 +1467,7 @@
             </div>
           </div>
 
+          <div class="v8-banner">Facebook Page · Instagram · LINE OA ย้ายไปเชื่อมต่อแบบจริงที่เมนู <button class="btn btn-primary btn-sm" data-tab-go="connectors">🔌 Connectors</button> — ด้านล่างคือช่องทางที่ยังเป็นการโพสต์เอง (manual)</div>
           <!-- Channel Cards Grid -->
           <div id="socialChannelsList" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:16px;">
             <!-- Populated dynamically by JS -->
@@ -1434,6 +1493,208 @@
             <li><strong>Google Gemini / Veo:</strong> รับคีย์ได้จาก <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer">Google AI Studio ↗</a></li>
             <li><strong>xAI Grok:</strong> รับคีย์ได้จาก <a href="https://console.x.ai" target="_blank" rel="noopener noreferrer">xAI Console ↗</a></li>
           </ul>
+        </div>
+      </section>
+
+
+      <!-- ==========================================
+           V8 PHASE 1: GUIDED STUDIO (product → UGC script → preview → save/post)
+           ========================================== -->
+      <section id="studio" class="tab-section">
+        <div class="section-header-row">
+          <div>
+            <h2 class="page-title">🚀 สร้างคอนเทนต์ TikTok แบบ UGC</h2>
+            <p class="page-subtitle">4 ขั้นตอนจบในหน้าเดียว: เลือกสินค้า → สร้างบท UGC → ดูคลิปตัวอย่าง → บันทึก/ดาวน์โหลด & โพสต์</p>
+          </div>
+          <button class="btn btn-ghost btn-sm" data-help-article="quickstart">📘 คู่มือเริ่มต้น</button>
+        </div>
+        <ol class="v8-stepper" id="v8Stepper" aria-label="ขั้นตอน">
+          <li data-step="1"><span class="v8-step-num">1</span><div><strong>เลือกสินค้า</strong><small data-step-status="1">รอเลือก</small></div></li>
+          <li data-step="2"><span class="v8-step-num">2</span><div><strong>บท UGC</strong><small data-step-status="2">รอสร้าง</small></div></li>
+          <li data-step="3"><span class="v8-step-num">3</span><div><strong>ดูตัวอย่างคลิป</strong><small data-step-status="3">รอสร้าง</small></div></li>
+          <li data-step="4"><span class="v8-step-num">4</span><div><strong>บันทึก & Auto-Post</strong><small data-step-status="4">รอคลิป</small></div></li>
+        </ol>
+        <div class="v8-engine" id="v8Engine"></div>
+
+        <div class="mf-card v8-step-card" id="v8Step1">
+          <div class="v8-card-head"><h3>1 · เลือกสินค้า</h3>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <button class="btn btn-ghost btn-sm" data-tab-go="products">🛒 ดึงจาก Shopee</button>
+              <button class="btn btn-ghost btn-sm" data-tab-go="radar">📡 หาจาก Radar</button>
+            </div>
+          </div>
+          <form id="v8QuickProduct" class="v8-inline-form">
+            <input class="form-input" name="title" minlength="3" maxlength="200" required placeholder="หรือพิมพ์ชื่อสินค้าเร็วๆ เช่น แก้วเก็บความเย็น 30oz" aria-label="ชื่อสินค้า">
+            <button class="btn btn-secondary" type="submit">+ เพิ่ม</button>
+          </form>
+          <div id="v8StudioProducts" class="v8-product-grid"></div>
+        </div>
+
+        <div class="mf-card v8-step-card" id="v8Step2">
+          <div class="v8-card-head"><h3>2 · เลือกสไตล์ UGC & สร้างบท</h3><span class="chip mono" id="v8SelectedProductChip">ยังไม่ได้เลือกสินค้า</span></div>
+          <div id="v8Styles" class="v8-style-grid" role="radiogroup" aria-label="สไตล์ UGC"></div>
+          <div style="display:flex;justify-content:flex-end;margin-top:10px"><button class="btn btn-primary" id="v8MakeScript" disabled>✨ สร้างบทอัตโนมัติ</button></div>
+          <div id="v8ScriptEditor" hidden>
+            <div class="data-table-container"><table class="data-table v8-script-table"><thead><tr><th>เวลา</th><th>ภาพ</th><th>ตัวหนังสือบนจอ</th><th>เสียงพากย์</th></tr></thead><tbody id="v8ScriptRows"></tbody></table></div>
+            <label class="form-label" for="v8Caption" style="margin-top:10px">แคปชั่น TikTok + แฮชแท็ก</label>
+            <textarea id="v8Caption" class="form-input" rows="3" maxlength="600"></textarea>
+            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;flex-wrap:wrap">
+              <button class="btn btn-ghost" id="v8Regenerate">🎲 สุ่มบทใหม่</button>
+              <button class="btn btn-secondary" id="v8SaveScript">💾 บันทึกบท</button>
+              <button class="btn btn-primary" id="v8GotoPreview">ต่อไป: ดูตัวอย่างคลิป →</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="mf-card v8-step-card" id="v8Step3">
+          <div class="v8-card-head"><h3>3 · ดูตัวอย่างคลิป (9:16)</h3><span class="v8-status" id="v8Step3Status" aria-live="polite"></span></div>
+          <div class="v8-preview-layout">
+            <div class="v8-phone"><canvas id="v8Canvas" width="540" height="960" aria-label="พรีวิวคลิป"></canvas>
+              <video id="v8Video" controls playsinline hidden></video></div>
+            <div class="v8-preview-side">
+              <div class="v8-option">
+                <h4>A. คลิปพรีวิว UGC (ฟรี · 0 เครดิต)</h4>
+                <p class="v8-muted">สร้างในเบราว์เซอร์จากรูปสินค้า + บท ได้ไฟล์วิดีโอ 9:16 ~13 วินาที ใช้โพสต์ได้ทันที</p>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                  <button class="btn btn-secondary" id="v8PlayPreview">▶ เล่นพรีวิว</button>
+                  <button class="btn btn-primary" id="v8RecordPreview">⏺ สร้างไฟล์คลิปพรีวิว</button>
+                </div>
+                <div class="v8-progress" id="v8RecordProgress" hidden><div></div></div>
+              </div>
+              <div class="v8-option" id="v8AiOption">
+                <h4>B. คลิป AI จริง</h4>
+                <div id="v8AiInfo" class="v8-muted"></div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+                  <button class="btn btn-primary" id="v8AiClip">🎬 สร้างคลิป AI</button>
+                  <button class="btn btn-ghost" id="v8AiRetry" hidden>↻ ลองใหม่</button>
+                </div>
+                <div id="v8AiStatus" class="v8-status-box" aria-live="polite"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mf-card v8-step-card" id="v8Step4">
+          <div class="v8-card-head"><h3>4 · บันทึก / ดาวน์โหลด & โพสต์</h3><span class="v8-status" id="v8Step4Status"></span></div>
+          <div class="v8-final-grid">
+            <div>
+              <h4>ไฟล์คลิป</h4>
+              <div id="v8Downloads" class="v8-muted">ยังไม่มีคลิป — ทำขั้นตอนที่ 3 ก่อน</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+                <button class="btn btn-secondary" id="v8SaveLibrary" disabled>💾 บันทึกลงคลัง</button>
+                <button class="btn btn-ghost" id="v8CopyCaption">📋 คัดลอกแคปชั่น</button>
+              </div>
+            </div>
+            <div>
+              <h4>ช่องทางเผยแพร่</h4>
+              <div id="v8PlatformStatus"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mf-card v8-step-card" id="v8AutoPost">
+          <div class="v8-card-head"><div><h3>⏰ Auto-Post ตั้งเวลา — Facebook · Instagram · LINE</h3>
+            <p class="v8-muted v8-small">เลือกช่องทาง + เวลา แล้วระบบโพสต์คลิป/รูป + แคปชั่น + ลิงก์ Affiliate ให้อัตโนมัติ · Facebook ที่ตั้งล่วงหน้า ≥ 15 นาที จะฝากคิวไว้ที่ Facebook โดยตรง</p></div>
+            <button class="btn btn-ghost btn-sm" data-help-article="autopost">📘 วิธีใช้</button></div>
+          <div id="v8ApChannels" class="v8-ap-channels"></div>
+          <div class="v8-ap-when">
+            <label class="form-label" for="v8ApWhen">เวลาโพสต์ (เวลาไทย)</label>
+            <div class="v8-inline-form">
+              <input type="datetime-local" id="v8ApWhen" class="form-input" aria-label="เวลาโพสต์">
+              <button type="button" class="v8-chip" data-ap-quick="now">ตอนนี้</button>
+              <button type="button" class="v8-chip" data-ap-quick="1h">+1 ชม.</button>
+              <button type="button" class="v8-chip" data-ap-quick="tonight">คืนนี้ 20:00</button>
+              <button type="button" class="v8-chip" data-ap-quick="tomorrow">พรุ่งนี้ 12:00</button>
+            </div>
+          </div>
+          <label class="v8-small" style="display:flex;gap:6px;align-items:center;margin:4px 0"><input type="checkbox" id="v8ApVideo" checked> แนบคลิปของโปรเจกต์นี้ (Facebook = วิดีโอ · IG = Reels เมื่อไฟล์เป็น MP4 และเว็บเป็น https · ถ้าไม่มีคลิปจะโพสต์รูปสินค้า)</label>
+          <div id="v8ApLine" class="v8-line-mode" hidden>
+            <label><input type="radio" name="v8aplinemode" value="broadcast" checked> LINE: Broadcast หาเพื่อนทุกคน (นับโควต้า)</label>
+            <label><input type="radio" name="v8aplinemode" value="push"> LINE: Push หาผู้รับล่าสุด (ทดสอบ)</label>
+          </div>
+          <p class="v8-muted v8-small">แคปชั่นใช้จากขั้นตอนที่ 2 (แก้ได้ที่ช่อง "แคปชั่น TikTok + แฮชแท็ก")</p>
+          <div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap"><button class="btn btn-primary" id="v8ApSubmit">⏰ ตั้งเวลาโพสต์</button></div>
+          <div class="data-table-container" style="margin-top:12px"><table class="data-table"><thead><tr><th>เวลา</th><th>สินค้า</th><th>ช่องทาง & สถานะ</th><th>สถานะรวม</th><th></th></tr></thead>
+          <tbody id="v8ApList"></tbody></table></div>
+        </div>
+
+        <div class="mf-card">
+          <div class="v8-card-head"><h3>📁 โปรเจกต์ของฉัน</h3><button class="btn btn-ghost btn-sm" id="v8ReloadProjects">รีเฟรช</button></div>
+          <div class="data-table-container"><table class="data-table"><thead><tr><th>#</th><th>สินค้า</th><th>สไตล์</th><th>สถานะ</th><th>อัปเดต</th><th></th></tr></thead>
+          <tbody id="v8Projects"></tbody></table></div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           V8: CONNECTORS (REAL FB / IG / LINE OA)
+           ========================================== -->
+      <section id="connectors" class="tab-section">
+        <div class="section-header-row">
+          <div>
+            <h2 class="page-title">🔌 Connectors — Facebook · Instagram · LINE OA</h2>
+            <p class="page-subtitle">เชื่อมบัญชีจริงผ่านเว็บ (OAuth / Messaging API) แล้วโพสต์สินค้าได้ทันที ระบบไม่เคยเห็นรหัสผ่านของคุณ</p>
+          </div>
+          <button class="btn btn-ghost btn-sm" data-help-article="connect-facebook">📘 ดูวิธีเชื่อมต่อ</button>
+        </div>
+        <div id="v8ConnectorCards" class="v8-connector-grid" aria-live="polite"></div>
+        <div class="mf-card v8-admin-card" id="v8AdminIntegrations" hidden>
+          <div class="v8-card-head">
+            <div><span class="chip chip-primary mono">ADMIN</span><h3>ตั้งค่าแอป Meta / Instagram (ทำครั้งเดียวต่อเซิร์ฟเวอร์)</h3>
+            <p class="v8-muted">ค่าจาก ENV จะมีลำดับสูงกว่าค่าที่บันทึกที่นี่ · Secret เก็บแบบเข้ารหัสและจะไม่แสดงกลับ</p></div>
+            <button class="btn btn-ghost btn-sm" data-help-article="admin-meta-app">วิธีสร้าง Meta App</button>
+          </div>
+          <form id="v8IntegrationForm" class="v8-form-grid" autocomplete="off">
+            <label>Meta App ID<input class="form-input" name="meta_app_id" inputmode="numeric" placeholder="เช่น 1234567890"></label>
+            <label>Meta App Secret<input class="form-input" name="meta_app_secret" type="password" placeholder="••••• (เว้นว่าง = ไม่เปลี่ยน)"></label>
+            <label>Instagram App ID<input class="form-input" name="ig_app_id" inputmode="numeric"></label>
+            <label>Instagram App Secret<input class="form-input" name="ig_app_secret" type="password" placeholder="••••• (เว้นว่าง = ไม่เปลี่ยน)"></label>
+            <label class="v8-span2">PUBLIC_BASE_URL (โดเมน https ที่ผู้ใช้เปิด)<input class="form-input" name="public_base_url" placeholder="https://studio.example.com"></label>
+            <div class="v8-span2 v8-redirects" id="v8RedirectInfo"></div>
+            <div class="v8-span2" style="display:flex;justify-content:flex-end"><button class="btn btn-primary" type="submit">บันทึกการตั้งค่าแอป</button></div>
+          </form>
+        </div>
+        <div class="mf-card">
+          <div class="v8-card-head"><h3>📜 ประวัติการโพสต์ล่าสุด</h3><button class="btn btn-ghost btn-sm" id="v8ReloadLogs">รีเฟรช</button></div>
+          <div class="data-table-container"><table class="data-table"><thead><tr><th>เวลา</th><th>ช่องทาง</th><th>สินค้า</th><th>ผล</th><th>รายละเอียด</th></tr></thead>
+          <tbody id="v8PublishLogs"><tr><td colspan="5" class="v8-empty">ยังไม่มีการโพสต์</td></tr></tbody></table></div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           V8: HELP CENTER + REALTIME CHAT
+           ========================================== -->
+      <section id="help" class="tab-section">
+        <div class="section-header-row">
+          <div>
+            <h2 class="page-title">🛟 ศูนย์ช่วยเหลือ & สอนใช้งาน</h2>
+            <p class="page-subtitle">คู่มือทีละขั้นตอนทุกฟีเจอร์ + แชทถามทีมงานแบบ Real-time</p>
+          </div>
+        </div>
+        <div class="v8-help-layout">
+          <div class="v8-help-main">
+            <div class="v8-help-search">
+              <input id="v8HelpSearch" class="form-input" type="search" placeholder="ค้นหาคู่มือ เช่น เชื่อม LINE, ค่าคอม, ทำคลิป…" aria-label="ค้นหาคู่มือ">
+            </div>
+            <div id="v8HelpCats" class="v8-chip-row" role="tablist" aria-label="หมวดคู่มือ"></div>
+            <div id="v8HelpArticles" class="v8-articles"></div>
+          </div>
+          <aside class="v8-chat" id="v8Chat" aria-label="แชทซัพพอร์ต">
+            <div class="v8-chat-head">
+              <div><strong id="v8ChatTitle">แชทกับทีมงาน</strong><div class="v8-chat-status"><span class="v8-dot" id="v8ChatDot"></span><span id="v8ChatStatus">กำลังเชื่อมต่อ…</span></div></div>
+              <div class="v8-chat-actions" id="v8ChatAdminActions" hidden>
+                <button class="btn btn-ghost btn-sm" id="v8ChatBack" title="กลับไปรายการแชท">← รายการ</button>
+                <button class="btn btn-ghost btn-sm" id="v8ChatResolve">✓ ปิดเคส</button>
+              </div>
+            </div>
+            <div class="v8-thread-list" id="v8ThreadList" hidden></div>
+            <div class="v8-chat-body" id="v8ChatBody" aria-live="polite"></div>
+            <div class="v8-typing" id="v8Typing" hidden>กำลังพิมพ์…</div>
+            <form class="v8-chat-form" id="v8ChatForm">
+              <textarea id="v8ChatInput" rows="2" maxlength="2000" placeholder="พิมพ์คำถาม แล้วกด Enter (Shift+Enter ขึ้นบรรทัดใหม่)" aria-label="ข้อความ"></textarea>
+              <button class="btn btn-primary" type="submit" id="v8ChatSend">ส่ง</button>
+            </form>
+            <p class="v8-chat-note">อย่าส่งรหัสผ่าน / Secret / Token ในแชท</p>
+          </aside>
         </div>
       </section>
 
@@ -1500,7 +1761,7 @@
       <button type="submit" class="btn btn-primary" style="width:100%; margin-top:10px;" data-i18n="btn_login_submit">เข้าสู่ระบบ</button>
       
       <!-- One-Click Quick Real Logins -->
-      <div style="margin-top:16px; padding-top:16px; border-top:1px dashed var(--color-border); text-align:center;">
+      <div hidden style="margin-top:16px; padding-top:16px; border-top:1px dashed var(--color-border); text-align:center;">
         <p style="font-size:12px; color:var(--color-text-muted); margin-bottom:8px;">หรือเข้าใช้งานจริงทันทีด้วย 1-Click (ไม่ต้องพิมพ์):</p>
         <div style="display:flex; flex-direction:column; gap:8px;">
           <button type="button" class="btn btn-secondary btn-sm" id="quickAdminLoginBtn" style="width:100%; font-weight:700;">
@@ -1542,10 +1803,10 @@
     <button class="modal-close-btn" id="closeScheduleModalBtn" aria-label="Close modal">&times;</button>
     <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
       <span class="chip chip-primary mono">CONTENT SCHEDULER</span>
-      <span class="chip chip-success mono">AUTO-POST READY</span>
+      <span class="chip mono">โพสต์เอง (MANUAL)</span>
     </div>
-    <h3 style="font-size:20px; font-weight:700; margin-bottom:6px;">📅 วางแผนคอนเทนต์ & ตั้งเวลา Auto-Post</h3>
-    <p style="font-size:13px; color:var(--color-text-muted); margin-bottom:18px;">ระบบจะทำการเผยแพร่คลิปไปยังช่องทางที่เลือกโดยอัตโนมัติตามวันและเวลาที่กำหนด</p>
+    <h3 style="font-size:20px; font-weight:700; margin-bottom:6px;">📅 วางแผนคอนเทนต์</h3>
+    <p style="font-size:13px; color:var(--color-text-muted); margin-bottom:18px;">บันทึกแผนวัน-เวลาโพสต์ TikTok / Shopee Video (ยังไม่เชื่อม API: ระบบจะไม่โพสต์ให้อัตโนมัติ) ต้องมีสินค้าในคลังอย่างน้อย 1 ชิ้น · Facebook/IG/LINE โพสต์จริงได้จากปุ่ม 📤 ที่สินค้า</p>
 
     <form id="scheduleContentForm">
       <div class="form-group">
@@ -1567,7 +1828,7 @@
       </div>
 
       <div class="form-group">
-        <label class="form-label">แพลตฟอร์มที่ต้องการ Auto-Post *</label>
+        <label class="form-label">แพลตฟอร์ม (โพสต์เอง) *</label>
         <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin-top:6px;">
           <label class="channel-select-card">
             <input type="checkbox" name="sched_platforms" value="tiktok" checked>
@@ -1585,8 +1846,8 @@
               <small>Shopee Video</small>
             </div>
           </label>
-          <label class="channel-select-card">
-            <input type="checkbox" name="sched_platforms" value="facebook" checked>
+          <label class="channel-select-card" hidden>
+            <input type="checkbox" name="sched_platforms" value="facebook">
             <div class="channel-card-body">
               <span style="font-size:20px;">📘</span>
               <strong>Facebook</strong>
@@ -1608,7 +1869,7 @@
 
       <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:16px;">
         <button type="button" class="btn btn-ghost" id="cancelScheduleBtn">ยกเลิก</button>
-        <button type="submit" class="btn btn-primary" id="saveScheduleSubmitBtn">⚡ บันทึกลงปฏิทิน & เปิด Auto-Post</button>
+        <button type="submit" class="btn btn-primary" id="saveScheduleSubmitBtn">📅 บันทึกแผนลงปฏิทิน</button>
       </div>
     </form>
   </div>
@@ -1677,9 +1938,9 @@
       <span class="chip chip-primary mono">OAUTH 2.0 & WEB LOGIN</span>
       <span class="chip chip-success mono">MULTI-PLATFORM READY</span>
     </div>
-    <h3 style="font-size:20px; font-weight:800; margin-bottom:6px;">🔗 เชื่อมต่อบัญชีโซเชียล & Auto-Post</h3>
+    <h3 style="font-size:20px; font-weight:800; margin-bottom:6px;">🔗 เชื่อมต่อบัญชีโซเชียล</h3>
     <p style="font-size:13px; color:var(--color-text-muted); margin-bottom:20px;">
-      เชื่อมต่อผ่านระบบ Web Account Login / OAuth 2.0 รองรับการเชื่อมต่อหลายเพจ Facebook, TikTok, Shopee, IG, X และรับการแจ้งเตือนผ่าน LINE OA
+      Facebook / Instagram / LINE OA เชื่อมจริงได้ที่เมนู Connectors · TikTok / Shopee / X ยังไม่มี API เชื่อมต่อ (โพสต์เอง)
     </p>
 
     <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:20px;">
@@ -2293,6 +2554,35 @@
   </div>
 </div>
 
+
+<!-- V8: Publish product modal -->
+<div class="modal-backdrop" id="v8PublishModal" hidden>
+  <div class="modal-content" style="max-width:560px;" role="dialog" aria-modal="true" aria-labelledby="v8PublishTitle">
+    <button class="modal-close-btn" data-close="v8PublishModal" aria-label="ปิด">&times;</button>
+    <h2 id="v8PublishTitle" style="font-size:20px;font-weight:800;margin-bottom:6px">📤 โพสต์สินค้า</h2>
+    <div id="v8PublishProduct" class="v8-publish-product"></div>
+    <label class="form-label" for="v8PublishCaption">แคปชั่น</label>
+    <textarea id="v8PublishCaption" class="form-input" rows="6" maxlength="2000"></textarea>
+    <div class="form-label" style="margin-top:12px">ส่งไปยัง</div>
+    <div id="v8PublishChannels" class="v8-publish-channels"></div>
+    <div id="v8LineMode" class="v8-line-mode" hidden>
+      <label><input type="radio" name="v8linemode" value="push" checked> LINE: Push หาผู้รับล่าสุด (ทดสอบ)</label>
+      <label><input type="radio" name="v8linemode" value="broadcast"> LINE: Broadcast หาเพื่อนทุกคน (นับโควต้า)</label>
+    </div>
+    <div id="v8PublishResults" class="v8-results"></div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
+      <button class="btn btn-ghost" data-close="v8PublishModal">ปิด</button>
+      <button class="btn btn-primary" id="v8PublishSubmit">ส่งโพสต์</button>
+    </div>
+  </div>
+</div>
+
+<!-- V8: Floating support chat launcher -->
+<button class="v8-chat-fab" id="v8ChatFab" aria-label="แชทกับทีมงาน" title="แชทกับทีมงาน">💬<span class="v8-fab-badge" id="v8FabBadge" hidden>0</span></button>
+<div id="v8Toast" class="v8-toast" role="status" aria-live="polite" hidden></div>
+
+<link rel="stylesheet" href="/static/v8.css?v=20261021-001">
 <script src="/static/app.js?v=20261020-002" defer></script>
+<script src="/static/v8.js?v=20261021-001" defer></script>
 </body>
 </html>

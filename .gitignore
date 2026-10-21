@@ -21,3 +21,4 @@ community.db
 # Local Netlify folder
 .netlify
 public/
+_sync/
