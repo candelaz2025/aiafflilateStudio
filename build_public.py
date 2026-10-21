@@ -115,6 +115,24 @@ def main():
 """
     (PUBLIC / "_headers").write_text(headers_content, encoding="utf-8")
 
+    # 10. Cache-bust: .js/.css are cached for a year (immutable), so every HTML reference
+    # gets ?v=<content hash>. A changed file always gets a new URL; unchanged files stay cached.
+    import hashlib, re as _re
+    ref = _re.compile(r'((?:/static/|/)[\w./-]+\.(?:js|css))(?:\?v=[\w.-]*)?(?=["\'])')
+    def _bust(m):
+        path = m.group(1)
+        f = PUBLIC / path.lstrip('/')
+        if not f.is_file():
+            return m.group(0)
+        return f"{path}?v={hashlib.sha256(f.read_bytes()).hexdigest()[:10]}"
+    busted = 0
+    for html in PUBLIC.rglob('*.html'):
+        text = html.read_text(encoding='utf-8')
+        new = ref.sub(_bust, text)
+        if new != text:
+            html.write_text(new, encoding='utf-8'); busted += 1
+    print(f"Cache-busted asset URLs in {busted} HTML files.")
+
     print(f"Public build directory ready at {PUBLIC} with {len(list(PUBLIC.rglob('*')))} files.")
 
 if __name__ == "__main__":
