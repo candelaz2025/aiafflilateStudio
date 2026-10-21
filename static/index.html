@@ -294,6 +294,24 @@
 
         <!-- User Quick Status / Switch -->
         <button class="btn btn-secondary btn-sm" id="authModalTriggerBtn" data-i18n="btn_login_register">เข้าสู่ระบบ / สลับบัญชี</button>
+        <div class="v8-profile" id="v8Profile" hidden>
+          <button class="v8-profile-btn" id="v8ProfileBtn" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="v8ProfileMenu">
+            <span class="v8-pf-av" id="v8PfAv" aria-hidden="true">?</span>
+            <span class="v8-pf-text"><strong id="v8PfName">-</strong><small id="v8PfRole">MEMBER</small></span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </button>
+          <div class="v8-profile-menu" id="v8ProfileMenu" role="menu" aria-labelledby="v8ProfileBtn" hidden>
+            <div class="v8-pm-head">
+              <span class="v8-pf-av v8-pf-av-lg" id="v8PmAv" aria-hidden="true">?</span>
+              <div class="v8-pm-id"><strong id="v8PmName">-</strong><small id="v8PmEmail">-</small><span class="v8-pm-credit" id="v8PmCredit">⚡ 0 เครดิต</span></div>
+            </div>
+            <button class="v8-pm-item" role="menuitem" data-pm="members"><span aria-hidden="true">👥</span><span data-i18n="pm_members">จัดการสมาชิก</span></button>
+            <button class="v8-pm-item" role="menuitem" data-pm="topup"><span aria-hidden="true">💳</span><span data-i18n="pm_topup">เติมเงิน</span></button>
+            <button class="v8-pm-item" role="menuitem" data-pm="report"><span aria-hidden="true">📊</span><span data-i18n="pm_report">ดูรายงานล่าสุด</span></button>
+            <div class="v8-pm-sep" role="separator"></div>
+            <button class="v8-pm-item v8-pm-danger" role="menuitem" data-pm="logout"><span aria-hidden="true">🚪</span><span data-i18n="pm_logout">ออกจากระบบ</span></button>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -2566,6 +2584,14 @@
 </div>
 
 
+<!-- V8: Member account modal (profile menu → จัดการสมาชิก) -->
+<div class="modal-backdrop" id="v8Account" hidden>
+  <div class="modal-content v8-acc" role="dialog" aria-modal="true" aria-labelledby="v8AccTitle">
+    <button class="modal-close-btn" id="v8AccClose" aria-label="ปิด">&times;</button>
+    <h2 id="v8AccTitle" class="v8-onb-title">👤 บัญชีสมาชิกของฉัน</h2>
+    <div id="v8AccBody"></div>
+  </div>
+</div>
 <!-- V8: First-visit onboarding + beta notice -->
 <div class="modal-backdrop v8-onb-backdrop" id="v8Onboard" hidden>
   <div class="modal-content v8-onb" role="dialog" aria-modal="true" aria-labelledby="v8OnbTitle">
@@ -2583,8 +2609,8 @@
 </div>
 <div id="v8Toast" class="v8-toast" role="status" aria-live="polite" hidden></div>
 
-<link rel="stylesheet" href="/static/v8.css?v=20261021-003">
-<script src="/static/app.js?v=20261021-003" defer></script>
-<script src="/static/v8.js?v=20261021-003" defer></script>
+<link rel="stylesheet" href="/static/v8.css?v=20261021-004">
+<script src="/static/app.js?v=20261021-004" defer></script>
+<script src="/static/v8.js?v=20261021-004" defer></script>
 </body>
 </html>

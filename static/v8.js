@@ -1208,6 +1208,63 @@
   };
 
 
+
+  // =========================================================== PROFILE MENU (top-right)
+  const Profile = {
+    paint() {
+      const me = AAS.getMe() || {}, on = !!me.id;
+      $('v8Profile').hidden = !on;
+      const trig = $('authModalTriggerBtn'); if (trig) trig.hidden = on;
+      if (!on) { this.close(); return; }
+      const name = me.username || '-', ini = name.slice(0, 1).toUpperCase();
+      $('v8PfAv').textContent = ini; $('v8PmAv').textContent = ini;
+      $('v8PfName').textContent = name; $('v8PmName').textContent = name;
+      $('v8PfRole').textContent = me.role === 'admin' ? 'ADMIN' : 'MEMBER';
+      $('v8PmEmail').textContent = me.email || '';
+      $('v8PmCredit').textContent = `⚡ ${Number(me.credits || 0).toLocaleString('th-TH')} เครดิต`;
+    },
+    open() { $('v8ProfileMenu').hidden = false; $('v8ProfileBtn').setAttribute('aria-expanded', 'true'); $('v8ProfileMenu').querySelector('[data-pm]')?.focus(); },
+    close() { const m = $('v8ProfileMenu'); if (m && !m.hidden) { m.hidden = true; $('v8ProfileBtn').setAttribute('aria-expanded', 'false'); } },
+    async account() {
+      const box = $('v8AccBody'); $('v8Account').hidden = false;
+      box.innerHTML = stateBox('loading', 'กำลังโหลดข้อมูลบัญชี…');
+      try {
+        const me = await api('/api/me');
+        const row = (k, v) => `<tr><th>${k}</th><td>${v}</td></tr>`;
+        box.innerHTML = `<table class="v8-onb-table v8-acc-table"><tbody>
+          ${row('ชื่อผู้ใช้', esc(me.username))}${row('อีเมล', esc(me.email || '-'))}
+          ${row('สถานะ', me.role === 'admin' ? '<span class="chip chip-success">ผู้ดูแลระบบ</span>' : '<span class="chip">สมาชิก Beta</span>')}
+          ${row('เครดิตคงเหลือ', `⚡ ${Number(me.credits || 0).toLocaleString('th-TH')} เครดิต`)}
+        </tbody></table>
+        <p class="v8-muted v8-small">ต้องการเปลี่ยนรหัสผ่านหรือลบบัญชี แจ้งทีมงานที่เมนู "เสนอไอเดีย / แจ้งปัญหา" — ช่วง Beta ผู้ดูแลจะดำเนินการให้</p>
+        <div class="v8-onb-nav"><button class="btn btn-secondary btn-sm" data-acc="topup">💳 เติมเงิน</button><button class="btn btn-ghost btn-sm" data-acc="logout">🚪 ออกจากระบบ</button></div>`;
+        box.querySelector('[data-acc=topup]').addEventListener('click', () => { $('v8Account').hidden = true; AAS.openTopup(); });
+        box.querySelector('[data-acc=logout]').addEventListener('click', () => AAS.logout());
+      } catch (e) { box.innerHTML = stateBox('error', 'โหลดข้อมูลบัญชีไม่สำเร็จ: ' + e.message, null); }
+    },
+    act(k) {
+      this.close();
+      const me = AAS.getMe() || {};
+      if (k === 'members') return me.role === 'admin' ? AAS.switchTab('users_mgmt') : this.account();
+      if (k === 'topup') return AAS.openTopup();
+      if (k === 'report') return AAS.switchTab('tracking');
+      if (k === 'logout') return AAS.logout();
+    },
+    bind() {
+      $('v8ProfileBtn')?.addEventListener('click', e => { e.stopPropagation(); $('v8ProfileMenu').hidden ? this.open() : this.close(); });
+      $('v8ProfileMenu')?.addEventListener('click', e => { const b = e.target.closest('[data-pm]'); if (b) this.act(b.dataset.pm); });
+      $('v8ProfileMenu')?.addEventListener('keydown', e => {
+        const items = [...$('v8ProfileMenu').querySelectorAll('[data-pm]')], i = items.indexOf(document.activeElement);
+        if (e.key === 'ArrowDown') { e.preventDefault(); items[(i + 1) % items.length].focus(); }
+        if (e.key === 'ArrowUp') { e.preventDefault(); items[(i - 1 + items.length) % items.length].focus(); }
+      });
+      document.addEventListener('click', e => { if (!e.target.closest('#v8Profile')) this.close(); });
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') { if (!$('v8ProfileMenu').hidden) { this.close(); $('v8ProfileBtn').focus(); } $('v8Account').hidden = true; } });
+      $('v8AccClose')?.addEventListener('click', () => { $('v8Account').hidden = true; });
+      $('v8Account')?.addEventListener('click', e => { if (e.target.id === 'v8Account') $('v8Account').hidden = true; });
+      this.paint();
+    },
+  };
   // =========================================================== ONBOARDING (first visit)
   const ONB_KEY = 'aas_onboarding_v8_hide';
   const Onboard = {
@@ -1431,6 +1488,7 @@
   };
 
   document.addEventListener('aas:auth', () => {
+    Profile.paint();
     // Login/logout changes who the chat belongs to: restart it cleanly.
     Chat.stop(); Studio.boot = null; Studio.project = null;
     if (document.querySelector('#help.active')) Help.load();
@@ -1450,7 +1508,7 @@
   });
 
   function init() {
-    Shopee.bind(); Conn.bind(); Studio.bind(); AutoPost.bind(); Onboard.bind();
+    Shopee.bind(); Conn.bind(); Studio.bind(); AutoPost.bind(); Onboard.bind(); Profile.bind();
     if (!new URLSearchParams(location.search).get('oauth')) setTimeout(() => Onboard.open(false), 700);
     document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => { $(b.dataset.close).hidden = true; }));
     $('v8PublishSubmit')?.addEventListener('click', () => Publish.submit());

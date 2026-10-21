@@ -479,6 +479,7 @@
     nav_donate: 'สนับสนุนโครงการ ↗', nav_updates: 'ศูนย์อัปเดตระบบ ↗',
     nav_group_help: 'ช่วยเหลือ', nav_help: 'ช่วยเหลือและคำถามที่พบบ่อย',
     nav_group_system: 'ระบบและการตั้งค่า', nav_users: 'จัดการผู้ใช้', nav_keys: 'คีย์และการตั้งค่า',
+    pm_members: 'จัดการสมาชิก', pm_topup: 'เติมเงิน', pm_report: 'ดูรายงานล่าสุด', pm_logout: 'ออกจากระบบ',
     badge_step: 'เริ่ม', badge_hot: 'มาแรง', badge_gen: 'สร้าง', badge_plan: 'แผน', badge_faq: 'คำถาม', badge_admin: 'แอดมิน',
   });
   Object.assign(i18n.en, {
@@ -490,6 +491,7 @@
     nav_donate: 'Support the Project ↗', nav_updates: 'Update Center ↗',
     nav_group_help: 'HELP', nav_help: 'Help & FAQ',
     nav_group_system: 'SYSTEM & SETTINGS', nav_users: 'User Management', nav_keys: 'Keys & Settings',
+    pm_members: 'Manage Members', pm_topup: 'Top Up', pm_report: 'Latest Report', pm_logout: 'Sign Out',
     badge_step: 'START', badge_hot: 'HOT', badge_gen: 'NEW', badge_plan: 'PLAN', badge_faq: 'FAQ', badge_admin: 'ADMIN',
   });
 
@@ -2091,7 +2093,7 @@
   // GLOBAL WINDOW EXPORTS (FOR INLINE ACTIONS)
   // ==========================================
   window.appSwitchTab = switchTab;
-  window.AAS = { api, msg, esc, switchTab, getMe: () => me, reloadProducts: () => loadProducts(), reloadChannels: () => loadChannels() };
+  window.AAS = { api, msg, esc, switchTab, logout: () => doLogout(), openTopup: () => openTopupModal(), getMe: () => me, reloadProducts: () => loadProducts(), reloadChannels: () => loadChannels() };
 
   window.appQuickSearch = keyword => {
     switchTab('radar');
