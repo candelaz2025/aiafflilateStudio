@@ -22,3 +22,5 @@ community.db
 .netlify
 public/
 _sync/
+.deploy_retry.sh
+.deploy_retry.log
