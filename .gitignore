@@ -24,3 +24,4 @@ public/
 _sync/
 .deploy_retry.sh
 .deploy_retry.log
+auto_studio/output/
