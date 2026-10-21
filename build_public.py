@@ -30,6 +30,12 @@ def main():
             if item.is_file():
                 shutil.copy2(item, public_static / item.name)
 
+    # 2b. Sub-folders of static/ (e.g. static/samples) for both URL styles
+    for item in static_src.iterdir() if static_src.exists() else []:
+        if item.is_dir():
+            shutil.copytree(item, PUBLIC / item.name, dirs_exist_ok=True)
+            shutil.copytree(item, public_static / item.name, dirs_exist_ok=True)
+
     # 3. Copy Logo Design to public/Logo Design and public/static/Logo Design
     logo_src = ROOT / "Logo Design"
     if logo_src.exists():
@@ -73,6 +79,20 @@ def main():
 # Fallback static routing
 /static/*       /static/:splat      200
 """
+    # Netlify cannot run the Python backend: proxy API traffic to it (e.g. Railway).
+    # Set API_ORIGIN=https://<backend>.up.railway.app in Netlify build env, and PUBLIC_BASE_URL=<this Netlify URL> on the backend.
+    import os
+    api_origin = os.getenv("API_ORIGIN", "").strip().rstrip("/")
+    if api_origin:
+        if not api_origin.startswith("https://"):
+            raise SystemExit("API_ORIGIN must start with https://")
+        proxy = "\n".join(f"{path}  {api_origin}{target}  200!" for path, target in [
+            ("/api/*", "/api/:splat"), ("/media/*", "/media/:splat"), ("/health", "/health"),
+            ("/studio/*", "/studio/:splat"), ("/ws/*", "/ws/:splat")])
+        # Proxy rules must come first so they win over static files.
+        redirects_content = "# Backend proxy (API_ORIGIN)\n" + proxy + "\n/  /index.html  200\n\n" + redirects_content
+    else:
+        print("WARNING: API_ORIGIN not set - the dashboard will load but login/API calls will fail.")
     (PUBLIC / "_redirects").write_text(redirects_content, encoding="utf-8")
 
     # 9. Create Netlify _headers file
