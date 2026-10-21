@@ -16,7 +16,7 @@ CATEGORIES = [
 ARTICLES = [
     {
         'id': 'studio', 'category': 'content', 'title': 'สร้างคลิป TikTok แบบ UGC ใน 4 ขั้นตอน (เริ่มที่นี่)', 'goto': 'studio',
-        'summary': 'เมนู "สร้างคอนเทนต์ (เริ่มที่นี่)" — มีสินค้าและบทตัวอย่างให้ลองทันที ไม่ต้องตั้งค่าอะไร',
+        'summary': 'เมนู "สร้างคอนเทนต์" — มีสินค้าและบทตัวอย่างให้ลองทันที ไม่ต้องตั้งค่าอะไร',
         'steps': [
             'ขั้นที่ 1 เลือกสินค้า: กดการ์ดสินค้า (มี "สินค้าตัวอย่าง" ให้แล้ว) หรือพิมพ์ชื่อสินค้าในช่องด้านบนแล้วกด "+ เพิ่ม" / ดึงจาก Shopee / หาจาก Radar',
             'ขั้นที่ 2 เลือกสไตล์ UGC (POV ใช้จริง, แกะกล่องรีวิว, ปัญหา → ทางออก, ก่อน / หลัง, 3 เหตุผลที่ควรมี, ของดีงบน้อย) แล้วกด "✨ สร้างบทอัตโนมัติ"',
@@ -34,14 +34,14 @@ ARTICLES = [
         'id': 'quickstart', 'category': 'start', 'title': 'เริ่มใช้งานใน 10 นาที (ภาพรวมทั้งระบบ)', 'goto': 'dash',
         'summary': 'ลำดับงานที่แนะนำ: เชื่อม Shopee API → เพิ่มสินค้า → สร้างบทรีวิว → ทำคลิป → เชื่อมเพจ → โพสต์/ตั้งเวลา → บันทึกยอด',
         'steps': [
-            'อยากลองทันที: เปิดเมนู "สร้างคอนเทนต์ (เริ่มที่นี่)" มีสินค้าและบทตัวอย่างพร้อมใช้ ไม่ต้องตั้งค่า',
+            'อยากลองทันที: เปิดเมนู "สร้างคอนเทนต์" มีสินค้าและบทตัวอย่างพร้อมใช้ ไม่ต้องตั้งค่า',
             'สมัครสมาชิกด้วยอีเมล + รหัสผ่าน (อย่างน้อย 12 ตัว มีทั้งตัวอักษรและตัวเลข) แล้วเข้าสู่ระบบ',
             'ไปที่เมนู "สินค้าของฉัน" → กล่อง "ดึงสินค้าจาก Shopee" → ใส่ Shopee Affiliate AppID / Secret ของคุณ (ดูบทความ "ขอ AppID/Secret") แล้วกด "บันทึก & ทดสอบ"',
             'วางลิงก์สินค้า Shopee หรือค้นหาด้วยคีย์เวิร์ด ระบบจะดึงรูป ราคา และ % ค่าคอมมิชชั่นจริงจาก Shopee ให้ จากนั้นกด "เพิ่มสินค้า"',
             'กดปุ่ม "✨ บท & คลิป" ที่แถวสินค้า ระบบพาไปเมนู "สร้างคอนเทนต์" เพื่อสร้างบท UGC และคลิป 9:16',
-            'ไปที่เมนู "Connectors" เชื่อม Facebook Page / Instagram / LINE OA ด้วยปุ่ม Connect (ล็อกอินกับ Meta/LINE โดยตรง ระบบไม่เห็นรหัสผ่านคุณ)',
+            'ไปที่เมนู "เชื่อมต่อช่องทาง" เชื่อม Facebook Page / Instagram / LINE OA ด้วยปุ่ม Connect (ล็อกอินกับ Meta/LINE โดยตรง ระบบไม่เห็นรหัสผ่านคุณ)',
             'กด "📤 โพสต์" ที่สินค้า เพื่อโพสต์รูป+แคปชั่น+ลิงก์ Affiliate ไปยังเพจ/IG/LINE ที่เลือกได้ทันที หรือวางแผนในปฏิทิน',
-            'หลังโพสต์ ไปที่ "ติดตามยอดขาย & สถิติ" เพื่อบันทึกยอดวิว คลิก ออเดอร์ และค่าคอมจริงจากรายงาน Shopee',
+            'หลังโพสต์ ไปที่ "ติดตามยอดขายและสถิติ" เพื่อบันทึกยอดวิว คลิก ออเดอร์ และค่าคอมจริงจากรายงาน Shopee',
         ],
         'tips': ['ติดขัดตรงไหน กดแท็บแชทขวามือในหน้านี้ ถามทีมงานได้แบบ Real-time',
                  'ทุกคีย์และ token ถูกเข้ารหัส (Fernet) และไม่ถูกส่งกลับไปที่หน้าเว็บ'],
@@ -51,13 +51,13 @@ ARTICLES = [
         'id': 'navigation', 'category': 'start', 'title': 'รู้จักเมนูทั้งหมดใน Sidebar', 'goto': 'dash',
         'summary': 'แต่ละเมนูทำอะไร และควรใช้ตอนไหน',
         'steps': [
-            'สร้างคอนเทนต์ (เริ่มที่นี่): เส้นทางหลัก 4 ขั้นตอน สินค้า → บท UGC → คลิปพรีวิว → บันทึก/โพสต์',
-            'ภาพรวม (Overview): สรุปสินค้า บท คิว และ Quick actions',
-            'Product Radar: หาไอเดียสินค้ากระแสจากแหล่งสาธารณะ + สแกนข้อความ/CSV ที่คัดลอกจาก Shopee',
-            'AI Video Factory: เขียนบทรีวิวสั้นจากสินค้า (POV, Before/After, Unboxing ฯลฯ)',
-            'สร้างคลิป AI & Mockup: ส่งบท + รูปไปสร้างวิดีโอกับ Veo/Grok/OpenRouter (ใช้คีย์ของคุณเอง)',
+            'สร้างคอนเทนต์: เส้นทางหลัก 4 ขั้นตอน สินค้า → บท UGC → คลิปพรีวิว → บันทึก/โพสต์',
+            'ภาพรวม: สรุปสินค้า บท คิว และ Quick actions',
+            'เรดาร์สินค้ามาแรง: หาไอเดียสินค้ากระแสจากแหล่งสาธารณะ + สแกนข้อความ/CSV ที่คัดลอกจาก Shopee',
+            'โรงงานบทรีวิว: เขียนบทรีวิวสั้นจากสินค้า (POV, Before/After, Unboxing ฯลฯ)',
+            'สร้างคลิปวิดีโอ: ส่งบท + รูปไปสร้างวิดีโอกับ Veo/Grok/OpenRouter (ใช้คีย์ของคุณเอง)',
             'สินค้าของฉัน: คลังสินค้าพร้อมรูป ราคา ค่าคอม ดึงจาก Shopee Affiliate API ได้จริง',
-            'Connectors: เชื่อม Facebook Page, Instagram, LINE OA สำหรับโพสต์/บรอดแคสต์จริง',
+            'เชื่อมต่อช่องทาง: เชื่อม Facebook Page, Instagram, LINE OA สำหรับโพสต์/บรอดแคสต์จริง',
             'ปฏิทิน & คิวโพสต์: วางแผนวัน-เวลาโพสต์ ติดตามสถานะ',
             'ติดตามยอดขาย: บันทึกผลลัพธ์รายคลิปเพื่อดูว่าสินค้าไหนทำเงิน',
             'ช่วยเหลือ: คู่มือละเอียด + แชทสด กับทีมงาน',
@@ -95,7 +95,7 @@ ARTICLES = [
         'keywords': ['เพิ่มสินค้า', 'ลิงก์', 'รูปสินค้า', 'ราคา', 'ค่าคอม', 'commission', 'ดึงรูป', 'import', 'shopee'],
     },
     {
-        'id': 'radar', 'category': 'products', 'title': 'Product Radar & สแกนข้อมูลที่คัดลอกจาก Shopee', 'goto': 'radar',
+        'id': 'radar', 'category': 'products', 'title': 'เรดาร์สินค้ามาแรง & สแกนข้อมูลที่คัดลอกจาก Shopee', 'goto': 'radar',
         'summary': 'หาไอเดียสินค้ากระแส และนำเข้าข้อความ/CSV รายงาน Affiliate ที่คุณส่งออกเอง',
         'steps': [
             'พิมพ์คีย์เวิร์ดในช่อง Radar หรือกด "ค้นหาอัตโนมัติ" เพื่อดูหัวข้อมาแรง',
@@ -106,10 +106,10 @@ ARTICLES = [
         'keywords': ['radar', 'กระแส', 'csv', 'สแกน', 'เทรนด์'],
     },
     {
-        'id': 'scripts', 'category': 'content', 'title': 'สร้างบทรีวิว (AI Video Factory)', 'goto': 'drafts',
+        'id': 'scripts', 'category': 'content', 'title': 'สร้างบทรีวิว (โรงงานบทรีวิว)', 'goto': 'drafts',
         'summary': 'เลือกสินค้า + สไตล์ → ได้บทพูดและ prompt พร้อมใช้ทำคลิป',
         'steps': [
-            'เปิด "AI Video Factory" → เลือกสินค้าจากรายการ',
+            'เปิด "โรงงานบทรีวิว" → เลือกสินค้าจากรายการ',
             'เลือกสไตล์บท เช่น POV, รีวิวตรงไปตรงมา, Before/After, Unboxing',
             'กด "สร้างบท" ระบบจะบันทึกบทและ prompt ไว้ในรายการด้านล่าง',
             'กด "ส่งไปทำคลิป" เพื่อพาไปหน้า "สร้างคลิป AI" พร้อมบทที่เลือก',
@@ -121,7 +121,7 @@ ARTICLES = [
         'id': 'video', 'category': 'content', 'title': 'สร้างคลิป AI (Veo / Grok / OpenRouter)', 'goto': 'video',
         'summary': 'ใช้คีย์ของคุณเองสร้างวิดีโอแนวตั้ง 9:16',
         'steps': [
-            'ไปที่ "API Keys & การเชื่อมต่อ" บันทึกคีย์ Gemini (Veo), xAI (Grok) หรือ OpenRouter อย่างน้อยหนึ่งตัว',
+            'ไปที่ "คีย์และการตั้งค่า" บันทึกคีย์ Gemini (Veo), xAI (Grok) หรือ OpenRouter อย่างน้อยหนึ่งตัว',
             'เปิด "สร้างคลิป AI" → เลือกบท → เลือกโมเดล ความยาว และอัตราส่วน',
             'แนบรูปสินค้าเดี่ยวที่คุณมีสิทธิ์ใช้ (PNG/JPEG ≤ 5MB) — ห้ามใช้ภาพ screenshot หน้าร้าน',
             'ติ๊กยอมรับค่าใช้จ่าย → กดสร้าง → กด "ตรวจสถานะ" จนได้ MP4',
@@ -135,15 +135,15 @@ ARTICLES = [
         'id': 'connect-facebook', 'category': 'connectors', 'title': 'เชื่อม Facebook Page (ล็อกอินผ่าน Meta จริง)', 'goto': 'connectors',
         'summary': 'กด Connect → ล็อกอิน Facebook → เลือกเพจที่อนุญาต → ระบบบันทึก Page token แบบเข้ารหัส และพบ IG ที่ผูกกับเพจอัตโนมัติ',
         'steps': [
-            'เปิดเมนู "Connectors" → การ์ด Facebook → กด "Connect with Facebook"',
+            'เปิดเมนู "เชื่อมต่อช่องทาง" → การ์ด Facebook → กด "Connect with Facebook"',
             'หน้าต่าง Facebook จะถามสิทธิ์: pages_show_list, pages_read_engagement, pages_manage_posts (โพสต์ในเพจ) และ instagram_basic / instagram_content_publish (สำหรับ IG ที่ผูกเพจ)',
             'เลือกเพจที่ต้องการให้ระบบโพสต์ได้ แล้วกด Continue/Save',
-            'ระบบพากลับมาหน้า Connectors และแสดงรายชื่อเพจที่เชื่อมแล้ว (เชื่อมได้หลายเพจ)',
+            'ระบบพากลับมาหน้า เชื่อมต่อช่องทาง และแสดงรายชื่อเพจที่เชื่อมแล้ว (เชื่อมได้หลายเพจ)',
             'กด "📡 ตรวจสอบ" เพื่อเรียก Graph API ดูชื่อเพจ/ผู้ติดตามจริง และ "📤 ทดสอบโพสต์" เพื่อโพสต์ข้อความทดสอบ (ลบได้ภายหลังในเพจ)',
         ],
         'tips': ['ต้องเป็น Admin หรือมีสิทธิ์ Full control ของเพจ',
                  'ถ้าไม่เห็นเพจในรายการ ให้กด Connect ใหม่แล้วเลือก "Edit settings" เพื่อติ๊กเพจเพิ่ม',
-                 'สำหรับผู้ดูแลระบบ: ต้องตั้ง Meta App ID/Secret ในหน้า Connectors → "ตั้งค่าแอป (Admin)" และใส่ Redirect URI ที่ระบบแสดงใน Meta App → Facebook Login → Settings'],
+                 'สำหรับผู้ดูแลระบบ: ต้องตั้ง Meta App ID/Secret ในหน้า เชื่อมต่อช่องทาง → "ตั้งค่าแอป (Admin)" และใส่ Redirect URI ที่ระบบแสดงใน Meta App → Facebook Login → Settings'],
         'keywords': ['facebook', 'เพจ', 'page', 'meta', 'fb', 'เชื่อมเพจ', 'oauth'],
     },
     {
@@ -153,7 +153,7 @@ ARTICLES = [
             'บัญชี IG ต้องเป็น Professional (Business หรือ Creator) — ตั้งได้ในแอป IG: Settings → Account type and tools',
             'ทางที่ 1: เชื่อม Facebook Page ที่ผูก IG ไว้ ระบบจะเพิ่ม IG ให้อัตโนมัติ',
             'ทางที่ 2: กด "Connect with Instagram" → ล็อกอิน IG → อนุญาต instagram_business_basic และ instagram_business_content_publish',
-            'กลับมาที่ Connectors จะเห็นบัญชี @username พร้อมรูปโปรไฟล์',
+            'กลับมาที่ เชื่อมต่อช่องทาง จะเห็นบัญชี @username พร้อมรูปโปรไฟล์',
             'การโพสต์ IG ต้องมีรูป (ระบบใช้รูปสินค้าจาก Shopee ให้อัตโนมัติ) และลิงก์ในแคปชั่น IG จะคลิกไม่ได้ ให้ใช้ลิงก์ใน Bio',
         ],
         'tips': ['Token ของ Instagram Login อายุ ~60 วัน ระบบจะต่ออายุให้เมื่อกด "ตรวจสอบ" หากใกล้หมดอายุ'],
@@ -167,7 +167,7 @@ ARTICLES = [
             'เข้า https://developers.line.biz/console → เลือก Provider → เลือก Channel ของ OA',
             'แท็บ Basic settings: คัดลอก Channel ID และ Channel secret',
             'แท็บ Messaging API: เลื่อนลงล่างสุด กด Issue ที่ "Channel access token (long-lived)" แล้วคัดลอก (ถ้าไม่ใส่ ระบบจะออก token อายุ 30 วันให้จาก ID+Secret)',
-            'กลับมาที่ Connectors → การ์ด LINE OA → กรอก 3 ช่อง → กด "เชื่อมต่อ & ตรวจสอบ" ระบบจะแสดงชื่อ OA, @Basic ID และโควต้าข้อความ',
+            'กลับมาที่ เชื่อมต่อช่องทาง → การ์ด LINE OA → กรอก 3 ช่อง → กด "เชื่อมต่อ & ตรวจสอบ" ระบบจะแสดงชื่อ OA, @Basic ID และโควต้าข้อความ',
             'ระบบตั้ง Webhook URL ให้อัตโนมัติ (ถ้าเว็บเป็น https สาธารณะ) — ใน Console ให้เปิด "Use webhook" ไว้',
             'ให้แอดเพื่อน OA ด้วย LINE ของคุณและพิมพ์ข้อความ 1 ครั้ง ระบบจะจำ User ID เพื่อใช้ "ทดสอบส่งข้อความ (Push)" ได้ทันที',
         ],
@@ -180,9 +180,9 @@ ARTICLES = [
         'summary': 'ทำครั้งเดียวต่อเซิร์ฟเวอร์ ให้สมาชิกทุกคนกด Connect Facebook/Instagram ได้',
         'steps': [
             'เข้า https://developers.facebook.com/apps → Create app → Use case: "Manage everything on your Page" และ "Manage messaging & content on Instagram"',
-            'Facebook Login for Business → Settings → Valid OAuth Redirect URIs: ใส่ URL ที่หน้า Connectors แสดง (ลงท้าย /api/oauth/facebook/callback)',
+            'Facebook Login for Business → Settings → Valid OAuth Redirect URIs: ใส่ URL ที่หน้า เชื่อมต่อช่องทาง แสดง (ลงท้าย /api/oauth/facebook/callback)',
             'Instagram → API setup with Instagram login → Business login settings → Redirect URL: ใส่ URL ลงท้าย /api/oauth/instagram/callback',
-            'คัดลอก App ID/App Secret (และ Instagram App ID/Secret) ไปใส่ใน Connectors → "ตั้งค่าแอป (Admin)" หรือกำหนดเป็น ENV: META_APP_ID, META_APP_SECRET, IG_APP_ID, IG_APP_SECRET, PUBLIC_BASE_URL',
+            'คัดลอก App ID/App Secret (และ Instagram App ID/Secret) ไปใส่ใน เชื่อมต่อช่องทาง → "ตั้งค่าแอป (Admin)" หรือกำหนดเป็น ENV: META_APP_ID, META_APP_SECRET, IG_APP_ID, IG_APP_SECRET, PUBLIC_BASE_URL',
             'ระหว่างแอปยังเป็น Development mode จะใช้ได้เฉพาะบัญชีที่เป็น Admin/Developer/Tester ของแอป — ส่ง App Review สิทธิ์ pages_manage_posts, instagram_business_content_publish เพื่อเปิดให้ทุกคน',
         ],
         'tips': ['PUBLIC_BASE_URL ต้องเป็น https และตรงกับโดเมนที่ผู้ใช้เปิดอยู่จริง'],
@@ -206,7 +206,7 @@ ARTICLES = [
         'steps': [
             'เปิด "ปฏิทินคอนเทนต์ & Auto-Post" → กดวันที่ต้องการ',
             'เลือกสินค้า แพลตฟอร์ม เวลา และแคปชั่น/แฮชแท็ก → บันทึก',
-            'ดูรายการทั้งหมดใน "คิวโพสต์ & ตารางงาน" เปลี่ยนสถานะได้ (รอตรวจ → พร้อมโพสต์ → โพสต์แล้ว)',
+            'ดูรายการทั้งหมดใน "คิวโพสต์และตารางงาน" เปลี่ยนสถานะได้ (รอตรวจ → พร้อมโพสต์ → โพสต์แล้ว)',
         ],
         'tips': ['TikTok / Shopee Video ยังเป็นการโพสต์เอง (manual) จนกว่าจะได้สิทธิ์ API อย่างเป็นทางการ'],
         'keywords': ['ปฏิทิน', 'calendar', 'คิว', 'queue', 'ตั้งเวลา', 'schedule'],
@@ -227,7 +227,7 @@ ARTICLES = [
         'steps': [
             'การเชื่อม Facebook/Instagram ใช้ OAuth: คุณล็อกอินกับ Meta โดยตรง ระบบได้รับเพียง token ตามสิทธิ์ที่คุณอนุญาต',
             'API key / token / Channel secret ทั้งหมดเข้ารหัสก่อนเก็บ และไม่ถูกส่งกลับมาที่หน้าเว็บ',
-            'ตัดการเชื่อมต่อได้ทุกเมื่อในหน้า Connectors และควรถอนสิทธิ์แอปใน Facebook Settings → Business integrations ด้วย',
+            'ตัดการเชื่อมต่อได้ทุกเมื่อในหน้า เชื่อมต่อช่องทาง และควรถอนสิทธิ์แอปใน Facebook Settings → Business integrations ด้วย',
             'เปลี่ยนรหัสผ่านที่เมนูบัญชี ระบบจะออกจากระบบอุปกรณ์อื่นทั้งหมดให้อัตโนมัติ',
         ],
         'tips': ['ห้ามส่ง Secret/Token ในแชทซัพพอร์ต ทีมงานไม่จำเป็นต้องใช้'],
@@ -250,7 +250,7 @@ ARTICLES = [
             'ไม่ได้เลือกเพจตอนอนุญาต → กด Connect ใหม่ เลือก "Edit settings" แล้วติ๊กเพจ',
             'บัญชีไม่ได้เป็น Admin ของเพจ หรือเพจอยู่ใน Business Manager ที่ไม่ได้ให้สิทธิ์ → ขอสิทธิ์ Full control',
             'แอปยังอยู่ Development mode และบัญชีคุณไม่ได้เป็น Tester → แจ้งผู้ดูแลระบบให้เพิ่มเป็น Tester',
-            'ขึ้น "redirect_uri ไม่ตรง" → ผู้ดูแลต้องใส่ Redirect URI ใน Meta App ให้ตรงกับที่หน้า Connectors แสดง',
+            'ขึ้น "redirect_uri ไม่ตรง" → ผู้ดูแลต้องใส่ Redirect URI ใน Meta App ให้ตรงกับที่หน้า เชื่อมต่อช่องทาง แสดง',
         ],
         'tips': [], 'keywords': ['ไม่เจอเพจ', 'error', 'redirect_uri', 'facebook ไม่ได้', 'เชื่อมไม่ได้'],
     },
@@ -280,7 +280,7 @@ ARTICLES = [
         'id': 'support-chat', 'category': 'start', 'title': 'แชทสอบถามทีมงานแบบ Real-time', 'goto': 'help',
         'summary': 'พิมพ์คำถามในกล่องแชทขวามือของหน้าช่วยเหลือ (หรือปุ่มแชทลอยมุมขวาล่าง)',
         'steps': [
-            'เปิดเมนู "ช่วยเหลือ & สอนใช้งาน" หรือกดปุ่ม 💬 มุมขวาล่าง',
+            'เปิดเมนู "ช่วยเหลือและคำถามที่พบบ่อย" หรือกดปุ่ม 💬 มุมขวาล่าง',
             'พิมพ์คำถามแล้วกด Enter — ผู้ช่วยอัตโนมัติจะแนะนำบทความที่เกี่ยวข้องทันที',
             'ทีมงานจะตอบกลับในแชทเดียวกันแบบ Real-time และมีตัวเลขแจ้งเตือนข้อความใหม่ที่เมนู',
         ],
@@ -334,11 +334,11 @@ def bot_reply(text: str) -> str:
 # V8 accuracy pass: wording below matches the actual button labels in the UI.
 _OVERRIDES = {
     'scripts': {
-        'title': 'บทรีวิวแบบเดิม (AI Video Factory) และบท UGC ใหม่',
-        'summary': 'แนะนำให้ใช้เมนู "สร้างคอนเทนต์ (เริ่มที่นี่)" ซึ่งมีบท UGC 6 สไตล์ แก้ไขได้ทุกฉาก — หน้า AI Video Factory ยังใช้ร่างบทแบบเดิมได้',
+        'title': 'บทรีวิวแบบเดิม (โรงงานบทรีวิว) และบท UGC ใหม่',
+        'summary': 'แนะนำให้ใช้เมนู "สร้างคอนเทนต์" ซึ่งมีบท UGC 6 สไตล์ แก้ไขได้ทุกฉาก — หน้า โรงงานบทรีวิว ยังใช้ร่างบทแบบเดิมได้',
         'steps': [
             'วิธีที่แนะนำ: สินค้าของฉัน → กด "✨ บท & คลิป" หรือเปิดเมนู "สร้างคอนเทนต์" → เลือกสไตล์ → "✨ สร้างบทอัตโนมัติ"',
-            'หน้า AI Video Factory (แบบเดิม): เลือกสินค้า → เลือกสไตล์ (สายป้ายยาเร็ว / Pain Point / 7 วัน / เปรียบเทียบ) → "✦ ให้ AI ร่างบทอัตโนมัติ" → "บันทึกบทรีวิวนี้"',
+            'หน้า โรงงานบทรีวิว (แบบเดิม): เลือกสินค้า → เลือกสไตล์ (สายป้ายยาเร็ว / Pain Point / 7 วัน / เปรียบเทียบ) → "✦ ให้ AI ร่างบทอัตโนมัติ" → "บันทึกบทรีวิวนี้"',
             'บทที่บันทึกแล้วนับเป็นการใช้สินค้าทำคอนเทนต์ 1 ครั้ง (ดูได้ในหน้า ติดตามยอดขาย)',
         ],
     },
@@ -355,7 +355,7 @@ _OVERRIDES = {
             'เครดิตไม่พอ: ปุ่มจะถูกปิดพร้อมปุ่ม "⚡ เติมเครดิต" — หรือใช้ "คลิปพรีวิว UGC" ที่ฟรี 0 เครดิต',
             'ถ้ายังไม่มีเอนจิน AI ที่ใช้งานได้ การ์ดจะบอกว่า "ยังไม่ได้เชื่อม AI" — บันทึกคีย์ OpenRouter ของคุณเองได้ (ไม่ใช้เครดิตระบบ ค่าใช้จ่ายคิดกับบัญชี OpenRouter)',
         ],
-        'tips': ['เมนู "สร้างคลิป AI & Mockup" แบบเดิมจะพาไปหน้า "สร้างคอนเทนต์" อัตโนมัติ'],
+        'tips': ['เมนู "สร้างคลิปวิดีโอ" แบบเดิมจะพาไปหน้า "สร้างคอนเทนต์" อัตโนมัติ'],
     },
     'credits': {
         'steps': [
@@ -386,10 +386,10 @@ _OVERRIDES = {
     },
     'connect-facebook': {
         'steps': [
-            'เปิดเมนู "Connectors" → การ์ด Facebook Pages → กด "Connect with Facebook"',
+            'เปิดเมนู "เชื่อมต่อช่องทาง" → การ์ด Facebook Pages → กด "Connect with Facebook"',
             'หน้า Facebook จะขอสิทธิ์ pages_show_list, pages_read_engagement, pages_manage_posts และ instagram_basic / instagram_content_publish',
             'เลือกเพจที่ต้องการให้ระบบโพสต์ได้ แล้วกด Continue/Save',
-            'ระบบพากลับมาหน้า Connectors พร้อมรายชื่อเพจ (และ IG ที่ผูกกับเพจ)',
+            'ระบบพากลับมาหน้า เชื่อมต่อช่องทาง พร้อมรายชื่อเพจ (และ IG ที่ผูกกับเพจ)',
             'กด "📡 ตรวจสอบ" เพื่อเช็กกับ Graph API จริง และ "📤 ทดสอบส่ง" เพื่อโพสต์ข้อความทดสอบ (ลบได้ภายหลังในเพจ)',
         ],
     },
@@ -399,7 +399,7 @@ _OVERRIDES = {
             'เข้า https://developers.line.biz/console → เลือก Provider → Channel ของ OA',
             'แท็บ Basic settings: คัดลอก Channel ID และ Channel secret',
             'แท็บ Messaging API: กด Issue ที่ "Channel access token (long-lived)" แล้วคัดลอก (ไม่ใส่ได้ ระบบจะออก token อายุ 30 วันให้)',
-            'เมนู Connectors → การ์ด LINE Official Account → กรอกช่อง → "เชื่อมต่อ & ตรวจสอบ" ระบบแสดงชื่อ OA, @Basic ID และโควต้า',
+            'เมนู เชื่อมต่อช่องทาง → การ์ด LINE Official Account → กรอกช่อง → "เชื่อมต่อ & ตรวจสอบ" ระบบแสดงชื่อ OA, @Basic ID และโควต้า',
             'ถ้าเว็บเป็น https สาธารณะ ระบบตั้ง Webhook ให้อัตโนมัติ ถ้าไม่ใช่ ให้กด "คัดลอก" Webhook URL ในการ์ดไปวางใน Console เอง และเปิด "Use webhook" (URL ไม่เปลี่ยนแม้เชื่อมต่อใหม่)',
             'แอดเพื่อน OA แล้วพิมพ์ข้อความ 1 ครั้ง จากนั้นกด "📤 ทดสอบส่ง" (Push หาคุณ) หรือ "📣 Broadcast" (หาเพื่อนทุกคน ต้องยืนยัน)',
         ],
@@ -407,7 +407,7 @@ _OVERRIDES = {
     'admin-meta-app': {
         'steps': [
             'เข้า https://developers.facebook.com/apps → Create app → use case "Manage everything on your Page" และ "Manage messaging & content on Instagram"',
-            'Facebook Login for Business → Settings → Valid OAuth Redirect URIs: วาง URL จากกล่อง "ตั้งค่าแอป Meta / Instagram" ในหน้า Connectors (ลงท้าย /api/oauth/facebook/callback)',
+            'Facebook Login for Business → Settings → Valid OAuth Redirect URIs: วาง URL จากกล่อง "ตั้งค่าแอป Meta / Instagram" ในหน้า เชื่อมต่อช่องทาง (ลงท้าย /api/oauth/facebook/callback)',
             'Instagram → API setup with Instagram login → Business login settings → Redirect URL (ลงท้าย /api/oauth/instagram/callback)',
             'ใส่ App ID/Secret ในกล่อง "ตั้งค่าแอป Meta / Instagram" (เห็นเฉพาะ Admin) หรือ ENV: META_APP_ID, META_APP_SECRET, IG_APP_ID, IG_APP_SECRET, PUBLIC_BASE_URL',
             'Development mode ใช้ได้เฉพาะ Admin/Developer/Tester ของแอป — ส่ง App Review สิทธิ์ pages_manage_posts, instagram_business_content_publish ก่อนเปิดให้ทุกคน',
@@ -418,24 +418,24 @@ _OVERRIDES = {
         'steps': [
             'Facebook/Instagram เชื่อมด้วย OAuth: คุณล็อกอินกับ Meta โดยตรง ระบบได้รับเพียง token ตามสิทธิ์ที่อนุญาต',
             'API key / token / Channel secret ทั้งหมดเข้ารหัสก่อนเก็บ และไม่ถูกส่งกลับมาที่หน้าเว็บ',
-            'ตัดการเชื่อมต่อได้ทุกเมื่อในหน้า Connectors และควรถอนสิทธิ์แอปใน Facebook Settings → Business integrations ด้วย',
+            'ตัดการเชื่อมต่อได้ทุกเมื่อในหน้า เชื่อมต่อช่องทาง และควรถอนสิทธิ์แอปใน Facebook Settings → Business integrations ด้วย',
             'ออกจากระบบด้วยปุ่มมุมล่างซ้ายของ Sidebar — การเชื่อมต่อแชทจะถูกปิดตามไปด้วย',
         ],
     },
     'shopee-credentials': {'keywords': ['appid', 'open api', 'shopee api', 'คีย์ shopee', 'affiliate secret', 'ขอคีย์']},
     'navigation': {
         'steps': [
-            'สร้างคอนเทนต์ (เริ่มที่นี่): เส้นทางหลัก 4 ขั้นตอน สินค้า → บท UGC → คลิปพรีวิว/คลิป AI → บันทึก/โพสต์',
+            'สร้างคอนเทนต์: เส้นทางหลัก 4 ขั้นตอน สินค้า → บท UGC → คลิปพรีวิว/คลิป AI → บันทึก/โพสต์',
             'ภาพรวม: สรุปสินค้า บท คิว และทางลัด',
-            'Product Radar: หาไอเดียสินค้า + ผลจริงจาก Shopee Affiliate API',
-            'AI Video Factory / สร้างคลิป AI & Mockup: หน้าแบบเดิม (การสร้างคลิปย้ายไปที่ "สร้างคอนเทนต์")',
+            'เรดาร์สินค้ามาแรง: หาไอเดียสินค้า + ผลจริงจาก Shopee Affiliate API',
+            'โรงงานบทรีวิว / สร้างคลิปวิดีโอ: หน้าแบบเดิม (การสร้างคลิปย้ายไปที่ "สร้างคอนเทนต์")',
             'สินค้าของฉัน: คลังสินค้าพร้อมรูป ราคา ค่าคอม + ปุ่ม ✨ บท & คลิป / 📤 โพสต์',
-            'Connectors: เชื่อม Facebook Page, Instagram, LINE OA แบบจริง',
-            'ปฏิทินคอนเทนต์ / คิวโพสต์ & ตารางงาน: วางแผนและติดตามการโพสต์เอง (TikTok/Shopee)',
-            'ติดตามยอดขาย & สถิติ: บันทึกผลลัพธ์รายคลิป',
-            'Community Lab / เสนอฟีเจอร์ / แจ้งบั๊ก: โหวตและส่งความคิดเห็น',
-            'API Keys & การเชื่อมต่อ: คีย์ AI (Gemini, xAI, OpenRouter, Brave) · จัดการผู้ใช้: เฉพาะ Admin',
-            'ช่วยเหลือ & สอนใช้งาน: คู่มือ + แชทสดกับทีมงาน',
+            'เชื่อมต่อช่องทาง: เชื่อม Facebook Page, Instagram, LINE OA แบบจริง',
+            'ปฏิทินคอนเทนต์ / คิวโพสต์และตารางงาน: วางแผนและติดตามการโพสต์เอง (TikTok/Shopee)',
+            'ติดตามยอดขายและสถิติ: บันทึกผลลัพธ์รายคลิป',
+            'Community Lab / เสนอไอเดีย / แจ้งปัญหา: โหวตและส่งความคิดเห็น',
+            'คีย์และการตั้งค่า: คีย์ AI (Gemini, xAI, OpenRouter, Brave) · จัดการผู้ใช้: เฉพาะ Admin',
+            'ช่วยเหลือและคำถามที่พบบ่อย: คู่มือ + แชทสดกับทีมงาน',
         ],
     },
 }
@@ -448,7 +448,7 @@ ARTICLES.insert(1, {
     'steps': [
         'ทำขั้นตอนที่ 1–3 ให้มีบทและคลิป (คลิปพรีวิวหรือคลิป AI) — ถ้าไม่มีคลิป ระบบจะโพสต์รูปสินค้า + แคปชั่นแทน',
         'ยังไม่ได้เชื่อม Facebook: กด "Connect with Facebook" ในกล่อง Auto-Post → ล็อกอิน → เลือกเพจ → ระบบพากลับมาหน้านี้',
-        'ติ๊กเพจ/บัญชีที่ต้องการ (Facebook, Instagram, LINE OA) — เพิ่ม IG/LINE ได้ที่เมนู Connectors',
+        'ติ๊กเพจ/บัญชีที่ต้องการ (Facebook, Instagram, LINE OA) — เพิ่ม IG/LINE ได้ที่เมนู เชื่อมต่อช่องทาง',
         'เลือกเวลา (เวลาไทย) หรือกดปุ่มลัด "ตอนนี้", "+1 ชม.", "คืนนี้ 20:00", "พรุ่งนี้ 12:00"',
         'กด "⏰ ตั้งเวลาโพสต์" (หรือ "📤 โพสต์ทันที" เมื่อเลือก "ตอนนี้") — แคปชั่นใช้จากช่องแคปชั่นในขั้นตอนที่ 2',
         'ดูสถานะในตารางด้านล่าง: ⏳ รอเวลา · 🗓 ฝากคิวที่ Facebook แล้ว · ✅ โพสต์แล้ว · ❌ ล้มเหลว (พร้อมสาเหตุ) — กด "ยกเลิก" หรือ "↻ ลองใหม่" ได้',

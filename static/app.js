@@ -100,7 +100,7 @@
       nav_tracking: 'ติดตามยอดขาย & สถิติ',
       nav_group_community: 'ชุมชน (Community)',
       nav_ideas: 'Community Lab',
-      nav_new: 'เสนอฟีเจอร์ / แจ้งบั๊ก',
+      nav_new: 'เสนอไอเดีย / แจ้งปัญหา',
       nav_donate: 'สนับสนุน / Donate ↗',
       nav_group_system: 'ระบบ & ตั้งค่า (System)',
       nav_users: 'จัดการผู้ใช้ (User Mgmt)',
@@ -468,6 +468,31 @@
     }
   };
 
+
+  // Sidebar labels: one language per mode — Thai mode is all Thai, English mode is all English.
+  Object.assign(i18n.th, {
+    nav_group_main: 'เวิร์กโฟลว์หลัก', nav_studio: 'สร้างคอนเทนต์', nav_dash: 'ภาพรวม', nav_radar: 'เรดาร์สินค้ามาแรง',
+    nav_drafts: 'โรงงานบทรีวิว', nav_video: 'สร้างคลิปวิดีโอ',
+    nav_group_mgmt: 'การจัดการ', nav_products: 'สินค้าของฉัน', nav_connectors: 'เชื่อมต่อช่องทาง', nav_calendar: 'ปฏิทินคอนเทนต์',
+    nav_queue: 'คิวโพสต์และตารางงาน', nav_tracking: 'ติดตามยอดขายและสถิติ',
+    nav_group_community: 'ชุมชนและหน้าอื่น ๆ', nav_landing: 'หน้าแรก ↗', nav_ideas: 'ห้องทดลองชุมชน', nav_new: 'เสนอไอเดีย / แจ้งปัญหา',
+    nav_donate: 'สนับสนุนโครงการ ↗', nav_updates: 'ศูนย์อัปเดตระบบ ↗',
+    nav_group_help: 'ช่วยเหลือ', nav_help: 'ช่วยเหลือและคำถามที่พบบ่อย',
+    nav_group_system: 'ระบบและการตั้งค่า', nav_users: 'จัดการผู้ใช้', nav_keys: 'คีย์และการตั้งค่า',
+    badge_step: 'เริ่ม', badge_hot: 'มาแรง', badge_gen: 'สร้าง', badge_plan: 'แผน', badge_faq: 'คำถาม', badge_admin: 'แอดมิน',
+  });
+  Object.assign(i18n.en, {
+    nav_group_main: 'MAIN WORKFLOW', nav_studio: 'Create Content', nav_dash: 'Overview', nav_radar: 'Product Radar',
+    nav_drafts: 'Review Script Factory', nav_video: 'Create Video Clip',
+    nav_group_mgmt: 'MANAGEMENT', nav_products: 'My Products', nav_connectors: 'Channel Connections', nav_calendar: 'Content Calendar',
+    nav_queue: 'Post Queue & Schedule', nav_tracking: 'Sales & Analytics',
+    nav_group_community: 'COMMUNITY & PAGES', nav_landing: 'Home Page ↗', nav_ideas: 'Community Lab', nav_new: 'Ideas / Report a Bug',
+    nav_donate: 'Support the Project ↗', nav_updates: 'Update Center ↗',
+    nav_group_help: 'HELP', nav_help: 'Help & FAQ',
+    nav_group_system: 'SYSTEM & SETTINGS', nav_users: 'User Management', nav_keys: 'Keys & Settings',
+    badge_step: 'START', badge_hot: 'HOT', badge_gen: 'NEW', badge_plan: 'PLAN', badge_faq: 'FAQ', badge_admin: 'ADMIN',
+  });
+
   function applyLanguage(lang) {
     currentLang = lang;
     document.querySelectorAll('[data-i18n]').forEach(el => {
@@ -560,7 +585,7 @@
     $('userName').textContent = me.username || 'Kevin';
     $('userAvatar').textContent = (me.username || 'K').slice(0, 1).toUpperCase();
     $('userRole').textContent = (me.role || 'MEMBER').toUpperCase();
-    if ($('authModalTriggerBtn')) $('authModalTriggerBtn').textContent = me.id ? 'สลับบัญชี / ออกจากระบบ' : 'เข้าสู่ระบบ / สมัคร';
+    if ($('authModalTriggerBtn')) $('authModalTriggerBtn').textContent = me.id ? 'ออกจากระบบ' : 'เข้าสู่ระบบ / สมัครสมาชิก';
     $('heroUserName').textContent = (me.username || 'KEVIN').toUpperCase();
 
     // Set time-based greeting
@@ -1893,6 +1918,7 @@
   // AUTH MODAL & QUICK LOGIN
   // ==========================================
   $('authModalTriggerBtn')?.addEventListener('click', () => {
+    if (me && me.id) { if (confirm('ออกจากระบบตอนนี้?')) doLogout(); return; }
     $('authModal').hidden = false;
   });
   $('closeAuthModalBtn')?.addEventListener('click', () => {
@@ -1968,21 +1994,17 @@
   $('quickMemberLoginBtn')?.addEventListener('click', () => doQuickLogin('member'));
 
   $('quickDemoLoginBtn')?.addEventListener('click', async () => {
-    me = { id: 1, username: 'Kevin', role: 'admin', csrf: 'demo-csrf-token' };
-    updateUserUI();
-    $('authModal').hidden = true;
-    msg('เข้าใช้งานในโหมด Admin (Demo) สำเร็จ ✨');
-    await refreshDashboard();
+    msg('โหมดเดโมถูกปิดแล้ว กรุณาสมัครสมาชิกหรือเข้าสู่ระบบ', 'error');
   });
 
-  $('sidebarLogoutBtn')?.addEventListener('click', async () => {
-    try {
-      await api('/api/logout', 'POST');
-    } catch {}
-    me = { id: 1, username: 'Guest', role: 'member', csrf: '' };
-    updateUserUI();
+  async function doLogout() {
+    try { await api('/api/logout', 'POST'); } catch {}
+    try { localStorage.removeItem('aas_credits'); } catch {}
     msg('ออกจากระบบแล้ว');
-  });
+    // Full reload clears every per-user view (products, studio, queue) in one go.
+    setTimeout(() => location.reload(), 400);
+  }
+  $('sidebarLogoutBtn')?.addEventListener('click', doLogout);
 
   // ==========================================
   // EVENT LISTENERS & GLOBAL SHORTCUTS

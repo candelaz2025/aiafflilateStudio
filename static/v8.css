@@ -208,3 +208,4 @@ body:not(.is-admin) [data-tab="users_mgmt"]{display:none}
 .v8-beta-chip{border:1px solid var(--color-tertiary-border);background:var(--color-tertiary-subtle);color:var(--color-tertiary-hover);border-radius:999px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
 @media (max-width:600px){.v8-onb-table td:last-child{white-space:normal}.v8-beta-chip{font-size:11px;padding:3px 8px}}
 .v8-chip-wait{background:var(--color-tertiary-subtle);color:var(--color-tertiary-hover);border:1px solid var(--color-tertiary-border)}
+.v8-help-layout{grid-template-columns:1fr!important}.v8-help-main{max-width:920px}

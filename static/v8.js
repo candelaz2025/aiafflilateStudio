@@ -366,13 +366,63 @@
   };
 
   // =========================================================== HELP CENTER + CHAT
+
+  // =========================================================== FAQ (replaces live chat)
+  const FAQ_Q = {
+    quickstart: 'เริ่มใช้งานครั้งแรกต้องทำอะไรบ้าง?',
+    navigation: 'แต่ละเมนูใน Sidebar ใช้ทำอะไร?',
+    studio: 'สร้างคลิป TikTok แบบ UGC ได้อย่างไร?',
+    autopost: 'ตั้งเวลา Auto-Post ไป Facebook / Instagram / LINE ได้อย่างไร?',
+    'shopee-credentials': 'จะขอ Shopee Affiliate AppID / Secret ได้จากที่ไหน?',
+    'shopee-add-product': 'เพิ่มสินค้าจาก Shopee พร้อมรูป ราคา และค่าคอมได้อย่างไร?',
+    radar: 'Product Radar ใช้ค้นหาสินค้าอย่างไร?',
+    scripts: 'บทรีวิวแบบเดิม (AI Video Factory) ต่างจากบท UGC ใหม่อย่างไร?',
+    video: 'คลิป AI ใช้เครดิตเท่าไร และดูสถานะงานได้ที่ไหน?',
+    'connect-facebook': 'เชื่อม Facebook Page ได้อย่างไร?',
+    'connect-instagram': 'เชื่อม Instagram ได้อย่างไร?',
+    'connect-line': 'เชื่อม LINE Official Account ได้อย่างไร?',
+    'admin-meta-app': '(ผู้ดูแลระบบ) ตั้งค่า Meta App ให้ปุ่ม Connect ใช้ได้อย่างไร?',
+    'publish-now': 'โพสต์สินค้าไปเพจ / IG / LINE ทันทีได้อย่างไร?',
+    calendar: 'ปฏิทินคอนเทนต์และคิวโพสต์ TikTok / Shopee ใช้อย่างไร?',
+    tracking: 'บันทึกยอดขายและวัดผลรายคลิปได้อย่างไร?',
+    security: 'ข้อมูลบัญชี คีย์ และ Token ปลอดภัยแค่ไหน?',
+    credits: 'เครดิตคืออะไร และมีค่าใช้จ่ายไหม?',
+    'faq-fb-no-pages': 'เชื่อม Facebook แล้วไม่เจอเพจ หรือขึ้น error ต้องทำอย่างไร?',
+    'faq-line': 'LINE OA ส่งข้อความไม่ได้ / ไม่มี User ID ให้ทดสอบ ต้องทำอย่างไร?',
+    'faq-shopee': 'ดึงสินค้า Shopee ไม่ได้ หรือไม่มีค่าคอม ต้องทำอย่างไร?',
+  };
+  const FAQ_EXTRA = [
+    { id: 'beta-status', category: 'beta', title: 'ระบบนี้ใช้งานจริงได้แล้วหรือยัง?',
+      summary: 'ตอนนี้เป็นระบบทดสอบ (Beta) อยู่ระหว่างการพัฒนา ยังใช้งานจริงไม่ได้ทั้งหมด',
+      steps: ['Phase 1 ใช้ได้ทันที: สร้างบท UGC 6 สไตล์, คลิปพรีวิว 9:16 (ดาวน์โหลดได้), สินค้าตัวอย่าง/เพิ่มสินค้าเอง และหน้า FAQ นี้',
+              'ใช้ได้เมื่อตั้งค่าแล้ว: ดึงสินค้าจาก Shopee (ต้องใส่ AppID/Secret ของคุณ), เชื่อม Facebook / Instagram / LINE OA และ Auto-Post (ต้องให้ผู้ดูแลตั้งค่า Meta App), คลิป AI จริง (ต้องเปิดเอนจิน AI)',
+              'ยังไม่รองรับ: โพสต์ TikTok / Shopee Video อัตโนมัติ — ดาวน์โหลดคลิปไปโพสต์เองก่อน'],
+      tips: ['ข้อมูลในช่วงทดสอบอาจถูกรีเซ็ต — อย่าเก็บงานสำคัญไว้ที่นี่ที่เดียว'], keywords: ['beta', 'ทดสอบ', 'phase 1', 'ใช้ได้'], goto: 'studio' },
+    { id: 'beta-free', category: 'beta', title: 'ใช้ฟรีไหม?',
+      summary: 'ช่วง Beta ใช้ฟรีด้วยรหัสเชิญ (จำกัด 100 ที่นั่ง)',
+      steps: ['สร้างบทและคลิปพรีวิวไม่ใช้เครดิต', 'คลิป AI จริงใช้เครดิต และคืนเครดิตอัตโนมัติถ้างานล้มเหลว', 'ยังไม่มีระบบเติมเงินในช่วงนี้'],
+      tips: [], keywords: ['ฟรี', 'ราคา', 'เครดิต', 'invite', 'รหัสเชิญ'], goto: 'studio' },
+    { id: 'beta-data', category: 'beta', title: 'ข้อมูลที่ใส่ในระบบจะหายไหม?',
+      summary: 'ในช่วงทดสอบ ข้อมูลอาจถูกรีเซ็ตเมื่อมีการอัปเดตใหญ่',
+      steps: ['ดาวน์โหลดคลิปที่ต้องการเก็บไว้ในเครื่อง', 'อย่าใส่รหัสผ่านของแพลตฟอร์มอื่นในช่องข้อความใด ๆ', 'Token และ Secret ที่เชื่อมต่อจะถูกเข้ารหัสก่อนบันทึก'],
+      tips: [], keywords: ['ข้อมูล', 'หาย', 'รีเซ็ต', 'privacy'], goto: '' },
+    { id: 'beta-feedback', category: 'beta', title: 'เจอบั๊กหรืออยากได้ฟีเจอร์ แจ้งได้ที่ไหน?',
+      summary: 'แจ้งผ่านเมนู "เสนอไอเดีย / แจ้งปัญหา" ใน Sidebar',
+      steps: ['เปิดเมนู เสนอไอเดีย / แจ้งปัญหา', 'เลือกประเภท "แจ้งบั๊ก / ปัญหา" หรือ "เสนอฟีเจอร์"', 'อธิบายขั้นตอนที่ทำ ผลที่เกิด และผลที่คาดหวัง แล้วกดส่ง'],
+      tips: ['แนบหน้าที่เกิดปัญหาและเวลาโดยประมาณ จะช่วยให้แก้ได้เร็วขึ้น'], keywords: ['บั๊ก', 'bug', 'ติดต่อ', 'feedback', 'ทีมงาน'], goto: 'ideas' },
+  ];
   const Help = {
     data: null, cat: 'all', loaded: false,
     async load() {
       if (!this.loaded) {
         const box = $('v8HelpArticles');
         box.innerHTML = stateBox('loading', 'กำลังโหลดคู่มือ…');
-        try { this.data = await api('/api/help/articles'); this.loaded = true; }
+        try {
+          const d = await api('/api/help/articles');
+          const arts = d.articles.filter(a => a.id !== 'support-chat').map(a => ({ ...a, title: FAQ_Q[a.id] || a.title }));
+          this.data = { categories: [{ id: 'beta', label: 'ระบบ Beta & ทั่วไป', icon: '🧪' }, ...d.categories.map(c => c.id === 'faq' ? { ...c, label: 'แก้ปัญหา' } : c)], articles: [...FAQ_EXTRA, ...arts] };
+          this.loaded = true;
+        }
         catch (e) { box.innerHTML = stateBox('error', 'โหลดคู่มือไม่สำเร็จ: ' + e.message, null) + '<button class="btn btn-secondary btn-sm" onclick="AASv8.loadHelp()">ลองใหม่</button>'; return; }
         $('v8HelpCats').innerHTML = [{ id: 'all', label: 'ทั้งหมด', icon: '📚' }, ...this.data.categories].map(c =>
           `<button class="v8-chip ${c.id === 'all' ? 'is-on' : ''}" role="tab" aria-selected="${c.id === 'all'}" data-cat="${c.id}">${c.icon} ${esc(c.label)}</button>`).join('');
@@ -383,23 +433,21 @@
         }));
       }
       this.render();
-      Chat.start();
     },
     render() {
       const q = ($('v8HelpSearch').value || '').trim().toLowerCase();
       const list = this.data.articles.filter(a => (this.cat === 'all' || a.category === this.cat) &&
         (!q || (a.title + ' ' + a.summary + ' ' + a.steps.join(' ') + ' ' + a.tips.join(' ') + ' ' + a.keywords.join(' ')).toLowerCase().includes(q)));
-      const tabNames = { dash: 'ภาพรวม', products: 'สินค้าของฉัน', radar: 'Product Radar', drafts: 'AI Video Factory', video: 'สร้างคลิป AI', connectors: 'Connectors', calendar: 'ปฏิทิน', tracking: 'ติดตามยอดขาย', keys: 'API Keys', help: 'ช่วยเหลือ', studio: 'สร้างคอนเทนต์' };
+      const tabNames = { dash: 'ภาพรวม', products: 'สินค้าของฉัน', radar: 'เรดาร์สินค้ามาแรง', drafts: 'โรงงานบทรีวิว', video: 'สร้างคลิปวิดีโอ', connectors: 'เชื่อมต่อช่องทาง', calendar: 'ปฏิทินคอนเทนต์', tracking: 'ติดตามยอดขายและสถิติ', keys: 'คีย์และการตั้งค่า', help: 'ช่วยเหลือ', studio: 'สร้างคอนเทนต์', ideas: 'เสนอไอเดีย / แจ้งปัญหา' };
       $('v8HelpArticles').innerHTML = list.length ? list.map(a => `
         <details class="v8-article" id="help-${a.id}">
-          <summary><span>${esc(a.title)}</span><small>${esc(a.summary)}</small></summary>
+          <summary><span>❓ ${esc(a.title)}</span><small>${esc(a.summary)}</small></summary>
           <ol>${a.steps.map(s => `<li>${linkify(esc(s))}</li>`).join('')}</ol>
           ${a.tips.length ? `<div class="v8-tips">${a.tips.map(t => `<div>💡 ${linkify(esc(t))}</div>`).join('')}</div>` : ''}
           <div class="v8-article-actions">
             ${a.goto && a.goto !== 'help' ? `<button class="btn btn-primary btn-sm" data-tab-go="${a.goto}">ไปที่หน้า ${esc(tabNames[a.goto] || a.goto)} →</button>` : ''}
-            <button class="btn btn-ghost btn-sm" onclick="AASv8.askAbout(${jsArg(a.title)})">💬 ถามทีมงานเรื่องนี้</button>
           </div>
-        </details>`).join('') : stateBox('empty', 'ไม่พบคู่มือที่ตรงกับคำค้น — พิมพ์ถามทีมงานในกล่องแชทได้เลย', null);
+        </details>`).join('') : stateBox('empty', 'ไม่พบคำถามที่ตรงกับคำค้น — ลองคำอื่น หรือแจ้งเราที่เมนู "เสนอไอเดีย / แจ้งปัญหา"', null);
       bindTabGo($('v8HelpArticles'));
     },
     openArticle(id) {
@@ -606,9 +654,7 @@
       const nb = $('v8NotifBadge'); if (nb) { nb.hidden = !this.n; nb.textContent = this.n; }
     },
     bump() { if (!document.querySelector('#help.active')) { this.n += 1; this.paint(); } },
-    async refresh() {
-      try { const r = await api('/api/support/unread'); this.n = r.unread; this.paint(); } catch {}
-    },
+    async refresh() { /* live chat removed — help is FAQ only */ },
   };
 
   // =========================================================== STUDIO (Phase 1 guided flow)
@@ -1177,7 +1223,7 @@
         <table class="v8-onb-table"><thead><tr><th>ฟีเจอร์</th><th>สถานะ</th></tr></thead><tbody>
         <tr><td>สร้างบท UGC 6 สไตล์ + คลิปพรีวิว 9:16 (ดาวน์โหลดได้)</td><td><span class="chip chip-success">ใช้ได้เลย</span></td></tr>
         <tr><td>สินค้าตัวอย่าง / เพิ่มสินค้าเอง พร้อมรูป ราคา ค่าคอม</td><td><span class="chip chip-success">ใช้ได้เลย</span></td></tr>
-        <tr><td>ศูนย์ช่วยเหลือ + แชทถามทีมงาน</td><td><span class="chip chip-success">ใช้ได้เลย</span></td></tr>
+        <tr><td>ศูนย์ช่วยเหลือ + คำถามที่พบบ่อย (FAQ)</td><td><span class="chip chip-success">ใช้ได้เลย</span></td></tr>
         <tr><td>ดึงสินค้าจาก Shopee (รูป ราคา ค่าคอมจริง)</td><td><span class="chip v8-chip-wait">ต้องใส่ AppID/Secret ของคุณ</span></td></tr>
         <tr><td>เชื่อม Facebook / Instagram / LINE OA + Auto-Post ตั้งเวลา</td><td><span class="chip v8-chip-wait">รอผู้ดูแลตั้งค่า Meta App</span></td></tr>
         <tr><td>คลิป AI จริง (Veo 3.1 Lite)</td><td><span class="chip v8-chip-wait">รอเปิดเอนจิน AI</span></td></tr>
@@ -1185,15 +1231,15 @@
         </tbody></table>` },
       { title: '🧭 เริ่มใช้งานใน 4 ขั้นตอน', html: `
         <ol class="v8-onb-steps">
-          <li><strong>สร้างคอนเทนต์ (เริ่มที่นี่)</strong> — มีสินค้าและบทตัวอย่างให้ลองทันที <button class="btn btn-ghost btn-sm" data-onb-go="studio">เปิดดู</button></li>
+          <li><strong>สร้างคอนเทนต์</strong> — มีสินค้าและบทตัวอย่างให้ลองทันที <button class="btn btn-ghost btn-sm" data-onb-go="studio">เปิดดู</button></li>
           <li><strong>เลือกสไตล์ UGC → สร้างบท</strong> แก้ไขได้ทุกฉาก แล้วกด "⏺ สร้างไฟล์คลิปพรีวิว" (ฟรี)</li>
           <li><strong>บันทึก / ดาวน์โหลด</strong> คลิปไปโพสต์ TikTok เอง หรือ "⏰ Auto-Post" เมื่อเชื่อม Facebook แล้ว</li>
           <li><strong>สินค้าของฉัน</strong> ดึงสินค้าจริงจาก Shopee <button class="btn btn-ghost btn-sm" data-onb-go="products">เปิดดู</button></li>
         </ol>
         <p class="v8-muted v8-small">ทุกขั้นมีแถบสถานะบอกชัดว่าเสร็จ / กำลังทำ / ล้มเหลว</p>` },
-      { title: '🛟 ติดขัดตรงไหน ถามได้เลย', html: `
-        <p>เมนู <strong>ช่วยเหลือ & สอนใช้งาน</strong> มีคู่มือทีละขั้นตอนทุกฟีเจอร์ และแชทสดกับทีมงาน (ปุ่ม 💬 มุมขวาล่าง)</p>
-        <p>พบบั๊กหรืออยากได้ฟีเจอร์ไหน แจ้งได้ที่เมนู <strong>เสนอฟีเจอร์ / แจ้งบั๊ก</strong> — ความเห็นของคุณช่วยกำหนดสิ่งที่จะทำใน Phase ถัดไป</p>
+      { title: '🛟 ติดขัดตรงไหน ดู FAQ ได้เลย', html: `
+        <p>เมนู <strong>ช่วยเหลือ & FAQ</strong> รวมคำถามที่พบบ่อยทุกฟีเจอร์ พร้อมคำตอบทีละขั้นตอนและช่องค้นหา</p>
+        <p>พบบั๊กหรืออยากได้ฟีเจอร์ไหน แจ้งได้ที่เมนู <strong>เสนอไอเดีย / แจ้งปัญหา</strong> — ความเห็นของคุณช่วยกำหนดสิ่งที่จะทำใน Phase ถัดไป</p>
         <p class="v8-muted v8-small">ดูหน้านี้อีกครั้งได้ที่ปุ่ม "🧪 BETA ทดสอบ" ด้านบน หรือในหน้าช่วยเหลือ</p>` },
     ],
     hidden() { try { return localStorage.getItem(ONB_KEY) === '1'; } catch { return false; } },
@@ -1341,7 +1387,7 @@
     copy,
     loadHelp: () => Help.load(),
     openThread: id => Chat.openThread(id),
-    askAbout(title) { const i = $('v8ChatInput'); i.value = `สอบถามเรื่อง "${title}": `; i.focus(); },
+    askAbout() { AAS.switchTab('help'); },
     loadStudio: () => Studio.load(),
     openProject: id => Studio.openProject(id),
     async deleteProject(id) {
@@ -1404,7 +1450,7 @@
   });
 
   function init() {
-    Shopee.bind(); Conn.bind(); Chat.bind(); Studio.bind(); AutoPost.bind(); Onboard.bind();
+    Shopee.bind(); Conn.bind(); Studio.bind(); AutoPost.bind(); Onboard.bind();
     if (!new URLSearchParams(location.search).get('oauth')) setTimeout(() => Onboard.open(false), 700);
     document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => { $(b.dataset.close).hidden = true; }));
     $('v8PublishSubmit')?.addEventListener('click', () => Publish.submit());

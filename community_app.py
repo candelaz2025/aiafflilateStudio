@@ -1753,10 +1753,8 @@ def create_app(data_dir=None, secret_key=None):
                     return JSONResponse({'detail':'CSRF token ไม่ถูกต้อง'},status_code=403)
         return await call_next(request)
 
-    # Mount the existing V6 features without mixing its single-tenant database
-    # into community.db. Never publish this combined prototype to the internet.
-    if PUBLIC_MODE:
-        return app
+    # V8 product features (studio, connectors, help, scheduler) are part of the
+    # public product and must be registered in every mode.
     import features_v8
     features_v8.register(app, connect=connect, read=read, require_user=require_user, mutation=mutation,
                          cipher=cipher, now=now, data_dir=data, public_mode=PUBLIC_MODE)
@@ -1772,6 +1770,11 @@ def create_app(data_dir=None, secret_key=None):
             return ''
     scheduler_v8.register(app, connect=connect, read=read, require_user=require_user, mutation=mutation, now=now,
                           data_dir=data, decrypt=_dec, base_url_for=app.state.v8_base_url)
+
+    # Mount the existing V6 features without mixing its single-tenant database
+    # into community.db. Never publish this combined prototype to the internet.
+    if PUBLIC_MODE:
+        return app
 
     import sys, importlib.util
     studio_path=(ROOT/'studio_v6').resolve()
