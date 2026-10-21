@@ -76,3 +76,32 @@ def test_title_required_and_empty_rejected(client):
                   files={'file': ('p.csv', _csv(), 'text/csv')}).status_code == 400
     assert c.post('/api/my/products/import-file/preview', headers=h,
                   files={'file': ('e.csv', b'a,b\n', 'text/csv')}).status_code == 400
+
+
+def test_cookie_file_is_rejected_and_nothing_stored(client):
+    c, h = client
+    cookie = (b'# Netscape HTTP Cookie File\n# https://curl.haxx.se/rfc/cookie_spec.html\n'
+              b'.shopee.co.th\tTRUE\t/\tTRUE\t1826944181\tSPC_ST\tsecretvalue\n')
+    r = c.post('/api/my/products/import-file/preview', headers=h, files={'file': ('cookies.txt', cookie, 'text/plain')})
+    assert r.status_code == 400 and 'cookie' in r.json()['detail']
+    r = c.post('/api/my/products/import-file/commit', headers=h, data={'mapping': '{"title":"x"}'},
+               files={'file': ('cookies.txt', cookie, 'text/plain')})
+    assert r.status_code == 400
+    assert c.get('/api/my/products').json() == []
+    # same content under an innocent name is still detected by its shape
+    r = c.post('/api/my/products/import-file/preview', headers=h, files={'file': ('products.txt', cookie, 'text/plain')})
+    assert r.status_code == 400 and 'cookie' in r.json()['detail']
+
+
+def test_bulk_delete_only_file_imports(client):
+    c, h = client
+    c.post('/api/my/products/import-file/commit', headers=h,
+           data={'mapping': '{"title":"ชื่อสินค้า"}', 'download_images': '0'},
+           files={'file': ('p.csv', _csv(), 'text/csv')})
+    c.post('/api/my/products/manual', headers=h, data={'title': 'กรอกเองชิ้นหนึ่ง'})
+    assert len(c.get('/api/my/products').json()) == 3
+    r = c.post('/api/my/products/bulk-delete', headers=h, json={'source': 'file_import'}).json()
+    assert r['deleted'] == 2
+    left = c.get('/api/my/products').json()
+    assert len(left) == 1 and left[0]['source'] == 'manual'
+    assert c.post('/api/my/products/bulk-delete', headers=h, json={'source': 'shopee_affiliate_api'}).status_code == 400

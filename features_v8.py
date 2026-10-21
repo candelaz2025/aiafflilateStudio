@@ -55,6 +55,10 @@ class IntegrationConfigIn(BaseModel):
     public_base_url: str | None = Field(default=None, max_length=200)
 
 
+class BulkDeleteIn(BaseModel):
+    source: str = Field(min_length=3, max_length=32)
+
+
 class FbTokenIn(BaseModel):
     token: str = Field(min_length=40, max_length=1000)
 
@@ -1283,6 +1287,23 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, cipher, now
         return {'added': added, 'updated': updated, 'images': images, 'skipped': skipped,
                 'total': added + updated,
                 'message': f'นำเข้าสำเร็จ — เพิ่ม {added}, อัปเดต {updated} รายการ' + (f' · ดาวน์โหลดรูป {images}' if images else '')}
+
+    @app.post('/api/my/products/bulk-delete')
+    def bulk_delete_products(body: BulkDeleteIn, req: Request, x_csrf_token: str | None = Header(default=None)):
+        """Remove every product of one source for this user (e.g. a mistaken file import)."""
+        u = mutation(req, x_csrf_token)
+        if body.source not in ('file_import', 'manual', 'radar'):
+            raise HTTPException(400, 'ลบได้เฉพาะสินค้าที่นำเข้าจากไฟล์ กรอกเอง หรือจาก Radar')
+        rows = read('SELECT id, image_file FROM products WHERE user_id=? AND source=?', (u['id'], body.source))
+        with connect() as c:
+            c.execute('DELETE FROM products WHERE user_id=? AND source=?', (u['id'], body.source))
+        for r in rows:
+            if r['image_file']:
+                try:
+                    (media_dir / r['image_file']).unlink()
+                except OSError:
+                    pass
+        return {'deleted': len(rows), 'message': f'ลบสินค้า {len(rows)} รายการแล้ว'}
 
     @app.get('/media/products/{name}')
     def product_media(name: str):

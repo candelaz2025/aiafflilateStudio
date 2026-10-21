@@ -127,20 +127,34 @@ def facebook_page_from_token(token: str) -> dict:
     linked IG business account when present.
     """
     g = f'{fb_graph_base()}/{graph_version()}'
-    data = _get(f'{g}/me', {'access_token': token,
-                            'fields': 'id,name,category,tasks,picture{url},'
-                                      'instagram_business_account{id,username,profile_picture_url}'})
+    # 1) A token can describe itself: type (USER/PAGE) and the scopes it carries.
+    #    Best-effort — some tokens cannot be introspected with themselves.
+    ttype, scopes = '', []
+    try:
+        dbg = _get(f'{g}/debug_token', {'input_token': token, 'access_token': token}).get('data') or {}
+        ttype, scopes = (dbg.get('type') or '').upper(), dbg.get('scopes') or []
+    except MetaError:
+        pass
+    if ttype == 'USER':
+        raise MetaError('นี่คือ User Token — ใน Graph API Explorer เปลี่ยนดรอปดาวน์ "User or Page" เป็นเพจของคุณ แล้วคัดลอก token ใหม่')
+    if scopes and 'pages_manage_posts' not in scopes:
+        raise MetaError('token นี้ไม่มีสิทธิ์ pages_manage_posts — ติ๊กสิทธิ์นี้ใน Permissions แล้วกด Generate Access Token ใหม่')
+    # 2) The page itself (category only exists on pages, so a user token fails here too).
+    try:
+        data = _get(f'{g}/me', {'access_token': token,
+                                'fields': 'id,name,category,picture{url},'
+                                          'instagram_business_account{id,username,profile_picture_url}'})
+    except MetaError as e:
+        if 'category' in str(e) or 'nonexisting field' in str(e):
+            raise MetaError('token นี้ไม่ใช่ Page Token — เลือกเพจในดรอปดาวน์ "User or Page" ของ Graph API Explorer แล้วคัดลอกใหม่')
+        raise
     pid = str(data.get('id') or '')
     if not pid:
         raise MetaError('token นี้ไม่คืนค่าเพจ — ต้องเป็น Page Access Token (ไม่ใช่ User Token)')
-    tasks = data.get('tasks') or []
-    # A real page token exposes tasks; a user token answering /me has none.
-    if tasks and 'CREATE_CONTENT' not in tasks:
-        raise MetaError('token นี้ไม่มีสิทธิ์โพสต์ (CREATE_CONTENT) — สร้าง token ใหม่โดยให้สิทธิ์ pages_manage_posts')
     ig = data.get('instagram_business_account') or None
     return {'id': pid, 'name': data.get('name') or 'Facebook Page', 'category': data.get('category', ''),
             'picture': ((data.get('picture') or {}).get('data') or {}).get('url', ''),
-            'tasks': tasks,
+            'scopes': scopes,
             'instagram': ({'id': str(ig['id']), 'username': ig.get('username', ''),
                            'picture': ig.get('profile_picture_url', '')} if ig and ig.get('id') else None)}
 

@@ -80,6 +80,14 @@ def _read_rows(binary: bytes, filename: str):
     if len(binary) > MAX_FILE_BYTES:
         raise ValueError(f'ไฟล์เกิน {MAX_FILE_BYTES // (1024 * 1024)} MB')
     name = (filename or '').lower()
+    head = binary[:600].lstrip(b'\xef\xbb\xbf').lower()
+    # Browser cookie exports are not product lists — refuse them outright and never store them.
+    if (head.startswith(b'# netscape http cookie') or b'curl.haxx.se/rfc/cookie_spec' in head
+            or 'cookie' in name or re.search(rb'^[.\w-]+\.[a-z]{2,}\t(true|false)\t/', head, re.I | re.M)):
+        raise ValueError('ไฟล์นี้เป็นไฟล์ cookie ของเบราว์เซอร์ ไม่ใช่รายการสินค้า — ระบบไม่รับและไม่เก็บ cookie '
+                         'กรุณาใช้ไฟล์สินค้า (.csv/.xlsx) ที่มีคอลัมน์ชื่อสินค้า ดูวิธีทำไฟล์ใน FAQ "นำเข้าสินค้าจากไฟล์"')
+    if head.startswith(b'#'):
+        raise ValueError('ไฟล์ไม่มีหัวคอลัมน์ (บรรทัดแรกขึ้นต้นด้วย #) — บรรทัดแรกต้องเป็นชื่อคอลัมน์ เช่น ชื่อสินค้า,ราคา,ลิงก์ affiliate')
     if name.endswith('.xlsx'):
         try:
             import openpyxl

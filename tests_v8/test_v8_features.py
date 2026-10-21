@@ -132,8 +132,10 @@ def test_facebook_connect_by_page_token(env):
     assert all('access_token' not in json.dumps(x) for x in chans)
     # a second page token without IG
     assert c.post('/api/connectors/facebook/token', headers=h, json={'token': 'EAAPAGETOKEN2xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'}).json()['instagram'] is False
-    # an invalid token is rejected
+    # an invalid token is rejected; a USER token gets a specific hint
     assert c.post('/api/connectors/facebook/token', headers=h, json={'token': 'x' * 50}).status_code == 400
+    r = c.post('/api/connectors/facebook/token', headers=h, json={'token': 'USER-LONG-' + 'y' * 40})
+    assert r.status_code == 400 and 'User Token' in r.json()['detail']
     # CSRF required
     assert c.post('/api/connectors/facebook/token', json={'token': 'EAAPAGETOKEN1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'}).status_code == 403
 

@@ -184,10 +184,27 @@
           <a class="btn btn-ghost btn-sm" id="v8ImportSample">⬇ ดาวน์โหลดไฟล์ตัวอย่าง (.csv)</a>
           <span class="v8-muted v8-small" id="v8ImportName"></span>
         </div>
-        <div id="v8ImportStage"></div>`;
+        <div id="v8ImportStage"></div>
+        <div id="v8ImportClean" hidden style="margin-top:14px;padding-top:12px;border-top:1px solid var(--color-border)"></div>`;
       $('v8ImportPick').addEventListener('click', () => $('v8ImportFile').click());
       $('v8ImportFile').addEventListener('change', e => this.picked(e.target.files[0]));
       $('v8ImportSample').addEventListener('click', () => this.sample());
+      this.cleanupOffer();
+    },
+    async cleanupOffer() {
+      try {
+        const prods = await api('/api/my/products');
+        const n = prods.filter(p => p.source === 'file_import').length;
+        const box = $('v8ImportClean'); if (!box || !n) return;
+        box.hidden = false;
+        box.innerHTML = `<span class="v8-small v8-muted">มีสินค้าที่นำเข้าจากไฟล์อยู่ ${n} รายการ</span>
+          <button class="btn btn-ghost btn-sm v8-danger" id="v8ImpCleanBtn">🧹 ลบสินค้าที่นำเข้าจากไฟล์ทั้งหมด</button>`;
+        $('v8ImpCleanBtn').addEventListener('click', async () => {
+          if (!confirm(`ลบสินค้าที่นำเข้าจากไฟล์ทั้ง ${n} รายการ? (สินค้าที่เพิ่มเองหรือดึงจาก Shopee API จะไม่ถูกลบ)`)) return;
+          try { const r = await api('/api/my/products/bulk-delete', 'POST', { source: 'file_import' }); toast('✅ ' + r.message, 'success'); AAS.reloadProducts(); box.hidden = true; }
+          catch (e) { toast(e.message, 'error'); }
+        });
+      } catch {}
     },
     sample() {
       const csv = '﻿ชื่อสินค้า,ราคา,ลิงก์ affiliate,URL ภาพสินค้า,รหัสสินค้า\n' +

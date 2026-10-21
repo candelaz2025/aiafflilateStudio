@@ -105,16 +105,26 @@ def _page_tokens():
     return {p['access_token']: p for p in PAGES}
 
 
+@app.get('/graph/{ver}/debug_token')
+def fb_debug_token(ver: str, input_token: str, access_token: str):
+    if input_token in _page_tokens():
+        return {'data': {'type': 'PAGE', 'is_valid': True,
+                         'scopes': ['pages_show_list', 'pages_read_engagement', 'pages_manage_posts']}}
+    if input_token.startswith('USER-'):
+        return {'data': {'type': 'USER', 'is_valid': True, 'scopes': ['pages_show_list']}}
+    return JSONResponse({'error': {'message': 'Invalid OAuth access token.', 'code': 190}}, 400)
+
+
 @app.get('/graph/{ver}/me')
 def fb_me(ver: str, access_token: str, fields: str = ''):
     toks = _page_tokens()
     if access_token not in toks:
+        if access_token.startswith('USER-'):  # a user token has no `category`
+            return JSONResponse({'error': {'message': '(#100) Tried accessing nonexisting field (category)', 'code': 100}}, 400)
         return JSONResponse({'error': {'message': 'Invalid OAuth access token.', 'code': 190}}, 400)
     p = toks[access_token]
     log('fb.me', page=p['id'])
-    out = {'id': p['id'], 'name': p['name'], 'category': p['category'],
-           'tasks': ['ANALYZE', 'ADVERTISE', 'MESSAGING', 'MODERATE', 'CREATE_CONTENT', 'MANAGE'],
-           'picture': p['picture']}
+    out = {'id': p['id'], 'name': p['name'], 'category': p['category'], 'picture': p['picture']}
     ig = p.get('instagram_business_account')
     if ig:
         out['instagram_business_account'] = ig
