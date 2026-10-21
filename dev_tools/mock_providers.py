@@ -65,10 +65,10 @@ a{{display:inline-block;padding:10px 18px;border-radius:8px;margin-right:8px;tex
 
 # ----------------------------------------------------------------- Facebook
 PAGES = [
-    {'id': '1010101010', 'name': 'ดีลเด็ดของใช้ในบ้าน', 'access_token': 'PAGE-TOKEN-1', 'category': 'Shopping & retail',
+    {'id': '1010101010', 'name': 'ดีลเด็ดของใช้ในบ้าน', 'access_token': 'EAAPAGETOKEN1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'category': 'Shopping & retail',
      'picture': {'data': {'url': 'https://example.com/p1.jpg'}},
      'instagram_business_account': {'id': '17841400000000001', 'username': 'deal_home_th', 'profile_picture_url': ''}},
-    {'id': '2020202020', 'name': 'รีวิวแกดเจ็ตไอที', 'access_token': 'PAGE-TOKEN-2', 'category': 'Product/service',
+    {'id': '2020202020', 'name': 'รีวิวแกดเจ็ตไอที', 'access_token': 'EAAPAGETOKEN2xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'category': 'Product/service',
      'picture': {'data': {'url': ''}}},
 ]
 
@@ -103,6 +103,22 @@ def fb_accounts(ver: str, access_token: str, fields: str = '', limit: int = 25):
 
 def _page_tokens():
     return {p['access_token']: p for p in PAGES}
+
+
+@app.get('/graph/{ver}/me')
+def fb_me(ver: str, access_token: str, fields: str = ''):
+    toks = _page_tokens()
+    if access_token not in toks:
+        return JSONResponse({'error': {'message': 'Invalid OAuth access token.', 'code': 190}}, 400)
+    p = toks[access_token]
+    log('fb.me', page=p['id'])
+    out = {'id': p['id'], 'name': p['name'], 'category': p['category'],
+           'tasks': ['ANALYZE', 'ADVERTISE', 'MESSAGING', 'MODERATE', 'CREATE_CONTENT', 'MANAGE'],
+           'picture': p['picture']}
+    ig = p.get('instagram_business_account')
+    if ig:
+        out['instagram_business_account'] = ig
+    return out
 
 
 @app.get('/graph/{ver}/{obj_id}')

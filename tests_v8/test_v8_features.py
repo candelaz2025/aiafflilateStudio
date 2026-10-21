@@ -118,6 +118,26 @@ def test_facebook_denied(env):
     assert c.get('/api/connectors').json()['channels'] == []
 
 
+def test_facebook_connect_by_page_token(env):
+    app, mock = env
+    c = TestClient(app); h = signup(c, 'tess')
+    # pasting a page token connects the page (and its linked IG) with no OAuth app needed
+    r = c.post('/api/connectors/facebook/token', headers=h, json={'token': 'EAAPAGETOKEN1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'})
+    assert r.status_code == 200, r.text
+    assert r.json()['page']['id'] == '1010101010' and r.json()['instagram'] is True
+    chans = c.get('/api/connectors').json()['channels']
+    assert {x['platform'] for x in chans} == {'facebook', 'instagram'}
+    fb = next(x for x in chans if x['platform'] == 'facebook')
+    assert fb['account_name'] == 'ดีลเด็ดของใช้ในบ้าน' and fb['kind'] == 'page_token'
+    assert all('access_token' not in json.dumps(x) for x in chans)
+    # a second page token without IG
+    assert c.post('/api/connectors/facebook/token', headers=h, json={'token': 'EAAPAGETOKEN2xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'}).json()['instagram'] is False
+    # an invalid token is rejected
+    assert c.post('/api/connectors/facebook/token', headers=h, json={'token': 'x' * 50}).status_code == 400
+    # CSRF required
+    assert c.post('/api/connectors/facebook/token', json={'token': 'EAAPAGETOKEN1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'}).status_code == 403
+
+
 def test_instagram_login(env):
     app, mock = env
     c = TestClient(app); h = signup(c, 'dave')

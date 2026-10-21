@@ -55,6 +55,10 @@ class IntegrationConfigIn(BaseModel):
     public_base_url: str | None = Field(default=None, max_length=200)
 
 
+class FbTokenIn(BaseModel):
+    token: str = Field(min_length=40, max_length=1000)
+
+
 class LineConnectIn(BaseModel):
     channel_id: str = Field(min_length=5, max_length=20)
     channel_secret: str = Field(min_length=16, max_length=64)
@@ -635,6 +639,27 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, cipher, now
                                                        'picture': ig['picture'], 'username': ig['username']})
                 ig_count += 1
         return back('facebook', True, tab=st['return_tab'], count=len(pages), ig=ig_count)
+
+    @app.post('/api/connectors/facebook/token')
+    def fb_connect_token(body: FbTokenIn, req: Request, x_csrf_token: str | None = Header(default=None)):
+        """Connect a page by pasting its Page Access Token — no Meta App required."""
+        u = mutation(req, x_csrf_token)
+        limit(u['id'], 'fb-token', 6)
+        token = body.token.strip()
+        try:
+            page = meta.facebook_page_from_token(token)
+        except meta.MetaError as e:
+            raise HTTPException(400, str(e))
+        upsert_channel(u['id'], 'facebook', page['id'], page['name'], token, kind='page_token',
+                       meta_obj={'picture': page['picture'], 'category': page['category'], 'via': 'page_token'})
+        ig = page['instagram']
+        if ig:
+            upsert_channel(u['id'], 'instagram', ig['id'], '@' + (ig['username'] or ig['id']), token, kind='page_token',
+                           meta_obj={'via': 'facebook', 'page_id': page['id'], 'page_name': page['name'],
+                                     'picture': ig['picture'], 'username': ig['username']})
+        return {'ok': True, 'page': {'id': page['id'], 'name': page['name'], 'picture': page['picture']},
+                'instagram': bool(ig),
+                'message': f'เชื่อมเพจ "{page["name"]}" สำเร็จ' + (' · พบ Instagram ที่ผูกไว้' if ig else '')}
 
     # ---------------- Instagram Login
     @app.post('/api/connectors/instagram/start')

@@ -119,6 +119,32 @@ def facebook_page_check(page_id, token) -> dict:
     return _get(f'{g}/{page_id}', {'fields': 'id,name,fan_count,followers_count', 'access_token': token})
 
 
+def facebook_page_from_token(token: str) -> dict:
+    """Resolve a pasted Page Access Token into its page (no app needed).
+
+    A page token answers /me as the page itself. We also read tasks so we can
+    warn when the token lacks CREATE_CONTENT (posting) permission, and pull the
+    linked IG business account when present.
+    """
+    g = f'{fb_graph_base()}/{graph_version()}'
+    data = _get(f'{g}/me', {'access_token': token,
+                            'fields': 'id,name,category,tasks,picture{url},'
+                                      'instagram_business_account{id,username,profile_picture_url}'})
+    pid = str(data.get('id') or '')
+    if not pid:
+        raise MetaError('token นี้ไม่คืนค่าเพจ — ต้องเป็น Page Access Token (ไม่ใช่ User Token)')
+    tasks = data.get('tasks') or []
+    # A real page token exposes tasks; a user token answering /me has none.
+    if tasks and 'CREATE_CONTENT' not in tasks:
+        raise MetaError('token นี้ไม่มีสิทธิ์โพสต์ (CREATE_CONTENT) — สร้าง token ใหม่โดยให้สิทธิ์ pages_manage_posts')
+    ig = data.get('instagram_business_account') or None
+    return {'id': pid, 'name': data.get('name') or 'Facebook Page', 'category': data.get('category', ''),
+            'picture': ((data.get('picture') or {}).get('data') or {}).get('url', ''),
+            'tasks': tasks,
+            'instagram': ({'id': str(ig['id']), 'username': ig.get('username', ''),
+                           'picture': ig.get('profile_picture_url', '')} if ig and ig.get('id') else None)}
+
+
 def facebook_publish(page_id, token, message, link='', image_url='') -> dict:
     g = f'{fb_graph_base()}/{graph_version()}'
     if image_url:

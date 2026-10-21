@@ -394,10 +394,22 @@
       };
       $('v8ConnectorCards').innerHTML = `
         <div class="mf-card v8-conn-card">
-          ${head('facebook', 'Facebook Pages', 'ล็อกอินกับ Facebook → เลือกเพจ → โพสต์รูป+แคปชั่น+ลิงก์ได้จริง (เชื่อมได้หลายเพจ)')}
-          ${cfg.facebook.ready ? '' : notReady('Meta App')}
+          ${head('facebook', 'เพจ Facebook (โพส Reels ผ่าน API)', 'วาง Page Access Token ของเพจ — ระบบเช็คและดึงชื่อเพจให้อัตโนมัติ')}
+          <div class="v8-warn v8-small" style="line-height:1.6">🌐 <strong>ตั้งภาษาหน้า developers.facebook.com เป็น English</strong> ตอนขอ Page Access Token ปุ่มบนหน้าจอจะตรงกับคู่มือ (Generate Access Token · Permissions · User or Page) — การโพสต์ใช้ Graph API ไม่ได้อ่านหน้าจอ ภาษาจึงไม่ทำให้โพสต์พลาด</div>
+          <form id="v8FbTokenForm" class="v8-token-form" autocomplete="off">
+            <div>
+              <strong style="font-size:14px">Page Access Token</strong>
+              <div class="v8-small v8-muted">ต้องมีสิทธิ์ pages_manage_posts + pages_read_engagement (+ pages_manage_engagement ถ้าจะคอมเมนต์ลิงก์)</div>
+            </div>
+            <div class="v8-token-row">
+              <input class="form-input" name="token" type="password" required minlength="40" maxlength="1000" placeholder="วาง token ของเพจที่นี่" aria-label="Page Access Token">
+              <button type="button" class="btn btn-ghost btn-sm" id="v8FbTokenEye" aria-label="แสดง/ซ่อน">👁</button>
+              <button type="button" class="btn btn-ghost btn-sm" data-help-article="connect-facebook">วิธีขอ token</button>
+              <button class="btn btn-primary" type="submit">เพิ่มเพจ</button>
+            </div>
+          </form>
           <div class="v8-chan-list">${by('facebook').map(c => this.chanRow(c)).join('') || '<div class="v8-empty">ยังไม่มีเพจที่เชื่อม</div>'}</div>
-          <button class="btn btn-primary v8-fb-btn" ${cfg.facebook.ready ? '' : 'disabled'} onclick="AASv8.oauth('facebook', this)">Connect with Facebook</button>
+          ${cfg.facebook.ready ? '<button class="btn btn-secondary btn-sm v8-fb-btn" onclick="AASv8.oauth(\'facebook\', this)">หรือเชื่อมผ่านปุ่ม Login กับ Facebook</button>' : ''}
         </div>
         <div class="mf-card v8-conn-card">
           ${head('instagram', 'Instagram (Business/Creator)', 'เชื่อมผ่านเพจ Facebook ที่ผูก IG ไว้ (อัตโนมัติ) หรือ Instagram Login โดยตรง')}
@@ -419,7 +431,22 @@
           </form>
         </div>`;
       $('v8LineForm').addEventListener('submit', e => this.connectLine(e));
+      $('v8FbTokenForm')?.addEventListener('submit', e => this.connectFbToken(e));
+      $('v8FbTokenEye')?.addEventListener('click', () => {
+        const i = $('v8FbTokenForm').token; i.type = i.type === 'password' ? 'text' : 'password';
+      });
       bindHelpLinks($('v8ConnectorCards'));
+    },
+    async connectFbToken(e) {
+      e.preventDefault();
+      const btn = e.submitter; btn.disabled = true; btn.textContent = 'กำลังตรวจกับ Facebook…';
+      try {
+        const r = await api('/api/connectors/facebook/token', 'POST', { token: e.target.token.value.trim() });
+        e.target.reset();
+        toast('✅ ' + r.message, 'success');
+        this.load();
+      } catch (err) { toast(err.message, 'error'); }
+      finally { btn.disabled = false; btn.textContent = 'เพิ่มเพจ'; }
     },
     async connectLine(e) {
       e.preventDefault();
