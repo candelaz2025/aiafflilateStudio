@@ -8,6 +8,14 @@ services:
       MAX_BETA_USERS: "100"
       BETA_INVITE_CODE: ${BETA_INVITE_CODE:?Set BETA_INVITE_CODE in .env}
       APP_MASTER_KEY: ${APP_MASTER_KEY:?Set APP_MASTER_KEY in .env}
+      # Free mode (optional): members generate with the owner's OpenRouter key, kept server-side.
+      PLATFORM_OPENROUTER_API_KEY: ${PLATFORM_OPENROUTER_API_KEY:-}
+      PLATFORM_MODELS: ${PLATFORM_MODELS:-google/veo-3.1-lite}
+      # provider:model pairs members may start, comma separated, or 'all'
+      ENABLED_VIDEO_MODELS: ${ENABLED_VIDEO_MODELS:-openrouter:google/veo-3.1-lite}
+      PLATFORM_CLIPS_PER_USER: ${PLATFORM_CLIPS_PER_USER:-3}
+      PLATFORM_QUOTA_PERIOD: ${PLATFORM_QUOTA_PERIOD:-month}
+      PLATFORM_DAILY_BUDGET_USD: ${PLATFORM_DAILY_BUDGET_USD:-5}
     expose:
       - "8010"
     volumes:
