@@ -181,9 +181,11 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, now, data_d
         return p
 
     def project_out(p):
-        prod = read('''SELECT id,title,price,commission_rate,commission_baht,image_url,image_file,offer_link,url,source,rating,sales
+        prod = read('''SELECT id,title,price,commission_rate,commission_baht,image_url,image_file,offer_link,url,source,rating,sales,
+                              use_ai_image,ai_image_file
                        FROM products WHERE id=?''', (p['product_id'],), True) or {}
-        img = prod.get('image_url') or (f"/media/products/{prod['image_file']}" if prod.get('image_file') else '')
+        img = ((f"/media/products/{prod['ai_image_file']}" if prod.get('use_ai_image') and prod.get('ai_image_file') else '')
+               or prod.get('image_url') or (f"/media/products/{prod['image_file']}" if prod.get('image_file') else ''))
         if prod.get('source') == 'sample' and not img:
             img = sample_img
         job = None
@@ -246,10 +248,12 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, now, data_d
     def bootstrap(req: Request):
         u = require_user(req)
         seed_if_new(u['id'])
-        products = read('''SELECT id,title,price,commission_rate,commission_baht,image_url,image_file,source,platform,offer_link,url
+        products = read('''SELECT id,title,price,commission_rate,commission_baht,image_url,image_file,source,platform,offer_link,url,
+                                  use_ai_image,ai_image_file
                            FROM products WHERE user_id=? AND COALESCE(active,1)=1 ORDER BY id DESC LIMIT 100''', (u['id'],))
         for p in products:
-            p['image'] = p['image_url'] or (f"/media/products/{p['image_file']}" if p['image_file'] else (sample_img if p['source'] == 'sample' else ''))
+            p['image'] = ((f"/media/products/{p['ai_image_file']}" if p.get('use_ai_image') and p.get('ai_image_file') else '')
+                          or p['image_url'] or (f"/media/products/{p['image_file']}" if p['image_file'] else (sample_img if p['source'] == 'sample' else '')))
         projects = [project_out(p) for p in read('SELECT * FROM studio_projects WHERE user_id=? ORDER BY id DESC LIMIT 20', (u['id'],))]
         chans = read("""SELECT id,platform,account_name FROM connected_channels WHERE user_id=? AND platform IN ('facebook','instagram','line_oa','tiktok')
                         AND access_token_encrypted IS NOT NULL AND access_token_encrypted!=''""", (u['id'],))

@@ -137,3 +137,42 @@ def write_script(api_key: str, product: dict, style_label: str, *, avoid: list[s
     parts = (cands[0].get('content') or {}).get('parts') or []
     text = ''.join(p.get('text', '') for p in parts)
     return _extract_json(text)
+
+
+LISTING_SYSTEM = f"""คุณคือนักเขียนหน้าสินค้าภาษาไทยสำหรับร้านค้าออนไลน์และงาน Affiliate
+งาน: เขียนชื่อสินค้าใหม่ให้อ่านง่ายและค้นเจอ และเขียนรายละเอียดสั้นๆ จากข้อมูลที่ให้มาเท่านั้น
+
+กฎที่ห้ามละเมิด:
+1. ชื่อสินค้ายาวไม่เกิน 100 ตัวอักษร ขึ้นต้นด้วยชนิดสินค้า ตามด้วยจุดเด่นที่มีอยู่ในชื่อเดิม ไม่ใส่อิโมจิ ไม่ใส่ราคา
+2. ห้ามเพิ่มสเปก ขนาด วัสดุ จำนวน หรือคุณสมบัติที่ไม่ได้อยู่ในชื่อเดิม ถ้าชื่อเดิมไม่บอก ก็ห้ามเดา
+3. ห้ามใช้คำเหล่านี้: {', '.join(rules.BANNED[:12])}
+4. รายละเอียด 3-5 บรรทัด แต่ละบรรทัดขึ้นต้นด้วย "• " เขียนว่าเหมาะกับใคร ใช้ทำอะไร จากสิ่งที่ชื่อบอกได้จริง
+5. ห้ามแต่งรีวิว ห้ามอ้างผลลัพธ์ทางสุขภาพหรือความงาม
+
+ตอบเป็น JSON อย่างเดียว: {{"title":"ชื่อใหม่","description":"• ...\\n• ..."}}"""
+
+
+def rewrite_listing(api_key: str, product: dict, *, model: str = '') -> dict:
+    """A cleaner title and a short description, built only from what the product record says."""
+    ask = [_product_brief(product)]
+    if product.get('shop_name'):
+        ask.append(f"ร้าน: {product['shop_name']}")
+    body = {'systemInstruction': {'parts': [{'text': LISTING_SYSTEM}]},
+            'contents': [{'role': 'user', 'parts': [{'text': '\n'.join(ask)}]}],
+            'generationConfig': {'temperature': 0.7, 'maxOutputTokens': 1024, 'responseMimeType': 'application/json'}}
+    try:
+        r = requests.post(f'{base()}/models/{model or DEFAULT_MODEL}:generateContent', json=body, timeout=TIMEOUT,
+                          headers={'x-goog-api-key': api_key, 'Content-Type': 'application/json'})
+    except requests.RequestException as e:
+        raise GeminiTextError('เชื่อมต่อ Gemini ไม่สำเร็จ') from e
+    data = _check(r)
+    parts = ((data.get('candidates') or [{}])[0].get('content') or {}).get('parts') or []
+    out = _extract_json(''.join(p.get('text', '') for p in parts))
+    title = rules.scrub(str(out.get('title', '')).strip())[:120]
+    # A line built around a banned claim is dropped whole — cutting the phrase out of it
+    # leaves a fragment ("• หายทันทีเมื่อใช้" → "• เมื่อใช้") that reads as nonsense.
+    desc = '\n'.join(line.strip() for line in str(out.get('description', '')).splitlines()
+                      if line.strip() and not rules.banned_in(line))[:1200]
+    if len(title) < 3:
+        raise GeminiTextError('Gemini ไม่ได้ส่งชื่อสินค้าที่ใช้ได้กลับมา')
+    return {'title': title, 'description': desc}

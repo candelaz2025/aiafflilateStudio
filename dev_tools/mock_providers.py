@@ -401,7 +401,7 @@ def gem_models(x_goog_api_key: str = Header(default='')):
     bad = _gem_auth(x_goog_api_key)
     if bad:
         return bad
-    return {'models': [{'name': 'models/gemini-omni-1.1-flash'}, {'name': 'models/gemini-2.5-flash'}]}
+    return {'models': [{'name': 'models/gemini-omni-1.1-flash'}, {'name': 'models/gemini-2.5-flash'}, {'name': 'models/gemini-2.5-flash-image'}]}
 
 
 @app.post('/gemini/interactions')
@@ -615,9 +615,19 @@ async def gem_generate(model: str, request: Request, x_goog_api_key: str = Heade
     bad = _gem_auth(x_goog_api_key)
     if bad:
         return bad
+    body = await request.json()
+    gen = body.get('generationConfig') or {}
+    if 'IMAGE' in (gen.get('responseModalities') or []):
+        return _gem_image(model, body)
     if TEXT_STATE['fail']:
         return JSONResponse({'error': {'code': 429, 'message': 'Resource exhausted'}}, 429)
-    body = await request.json()
+    if 'นักเขียนหน้าสินค้า' in json.dumps(body.get('systemInstruction', {}), ensure_ascii=False):
+        user = json.dumps(body.get('contents', []), ensure_ascii=False)
+        log('gemini.listing', model=model, prompt=user[:2000])
+        m = re.search(r'ชื่อสินค้า: ([^\\"]+)', user)
+        name = (m.group(1).strip() if m else 'สินค้า')[:60]
+        out = {'title': f'{name} ดีที่สุด (AI)', 'description': '• เหมาะกับคนทำงาน\n• พกพาสะดวก\n• หายทันทีเมื่อใช้'}
+        return {'candidates': [{'content': {'parts': [{'text': json.dumps(out, ensure_ascii=False)}]}}]}
     asked = json.dumps(body.get('contents', []), ensure_ascii=False)
     _gem_text_calls['n'] += 1
     n = _gem_text_calls['n']
@@ -641,3 +651,23 @@ async def gem_generate(model: str, request: Request, x_goog_api_key: str = Heade
         'hashtags': '#รีวิว #ของดี #ShopeeAffiliate #ป้ายยา #ของใช้',
     }
     return {'candidates': [{'content': {'parts': [{'text': json.dumps(script, ensure_ascii=False)}]}}]}
+
+
+IMAGE_STATE = {'fail': False, 'blocked': False}
+_PNG_1PX = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==')
+
+
+def _gem_image(model, body):
+    parts = (body.get('contents') or [{}])[0].get('parts') or []
+    has_ref = any(p.get('inlineData') for p in parts)
+    prompt = ' '.join(p.get('text', '') for p in parts)
+    log('gemini.image', model=model, has_ref=has_ref, prompt=prompt[:1500],
+        aspect=((body.get('generationConfig') or {}).get('imageConfig') or {}).get('aspectRatio'))
+    if IMAGE_STATE['fail']:
+        return JSONResponse({'error': {'code': 429, 'message': 'Quota exceeded'}}, 429)
+    if IMAGE_STATE['blocked']:
+        return {'candidates': [{'finishReason': 'IMAGE_SAFETY', 'content': {'parts': []}}]}
+    return {'candidates': [{'content': {'parts': [
+        {'thought': True, 'inlineData': {'mimeType': 'image/png', 'data': 'AAAA'}},
+        {'text': 'here you go'},
+        {'inlineData': {'mimeType': 'image/png', 'data': base64.b64encode(_PNG_1PX).decode()}}]}}]}

@@ -13,6 +13,8 @@ import os
 import re
 import secrets
 import time
+
+import requests
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import urlencode, urlsplit
@@ -22,7 +24,8 @@ from fastapi import (BackgroundTasks, FastAPI, File, Form, Header, HTTPException
 from fastapi.responses import FileResponse, RedirectResponse
 from pydantic import BaseModel, Field
 
-from integrations import help_content, line_oa, meta, shopee_affiliate as shopee, tiktok
+from integrations import (gemini_image, gemini_text, help_content, line_oa, meta,
+                          shopee_affiliate as shopee, tiktok)
 from studio_v6 import file_import
 
 OAUTH_STATE_MINUTES = 15
@@ -75,6 +78,16 @@ class ProductPatchIn(BaseModel):
     price: float | None = Field(default=None, ge=0, le=10_000_000)
     commission_rate: float | None = Field(default=None, ge=0, le=100)
     active: bool | None = None
+    description: str | None = Field(default=None, max_length=2000)
+    use_ai_image: bool | None = None
+
+
+class ProductAiIn(BaseModel):
+    product_ids: list[int] = Field(default_factory=list, max_length=200)   # empty = every active product
+    do_text: bool = True
+    do_image: bool = False
+    image_style: str = Field(default='studio', max_length=20)
+    only_missing_image: bool = False
 
 
 class BulkDeleteIn(BaseModel):
@@ -222,7 +235,9 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, cipher, now
                           ('item_id', "TEXT NOT NULL DEFAULT ''"), ('offer_link', "TEXT NOT NULL DEFAULT ''"),
                           ('product_link', "TEXT NOT NULL DEFAULT ''"), ('sales', 'INTEGER'), ('rating', 'REAL'),
                           ('source', "TEXT NOT NULL DEFAULT 'manual'"), ('synced_at', 'TEXT'),
-                          ('active', 'INTEGER NOT NULL DEFAULT 1'), ('discount_rate', 'REAL')]:
+                          ('active', 'INTEGER NOT NULL DEFAULT 1'), ('discount_rate', 'REAL'),
+                          ('description', "TEXT NOT NULL DEFAULT ''"), ('ai_image_file', "TEXT NOT NULL DEFAULT ''"),
+                          ('use_ai_image', 'INTEGER NOT NULL DEFAULT 0'), ('ai_prev', "TEXT NOT NULL DEFAULT ''")]:
             if name not in p_cols:
                 db.execute(f'ALTER TABLE products ADD COLUMN {name} {ddl}')
         db.execute('CREATE INDEX IF NOT EXISTS products_item ON products(user_id, item_id)')
@@ -1011,6 +1026,8 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, cipher, now
     def product_image(req, p):
         if not p:
             return ''
+        if p.get('use_ai_image') and p.get('ai_image_file'):
+            return f"{base_url(req)}/media/products/{p['ai_image_file']}"
         if p.get('image_url', '').startswith('https://'):
             return p['image_url']
         if p.get('image_file'):
@@ -1424,6 +1441,161 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, cipher, now
                 'updated': job['updated'], 'error': job['error'], 'items': job['items'][since:],
                 'next': len(job['items'])}
 
+    # ============================================================ AI: listing + images
+    ai_jobs: dict[str, dict] = {}
+
+    def gemini_key_of(user_id):
+        row = read("SELECT encrypted FROM credentials WHERE user_id=? AND provider='gemini'", (user_id,), True)
+        return dec(row['encrypted']) if row else ''
+
+    def _reference_image(p):
+        """The product's real photo as bytes, so the model edits it rather than inventing one."""
+        if p.get('image_file'):
+            f = media_dir / p['image_file']
+            if f.is_file() and f.stat().st_size <= gemini_image.MAX_REF_BYTES:
+                ext = f.suffix.lower()
+                return f.read_bytes(), {'.png': 'image/png', '.webp': 'image/webp'}.get(ext, 'image/jpeg')
+        url = p.get('image_url') or ''
+        if url.startswith('https://') and file_import.image_link(url):
+            try:
+                r = requests.get(url, timeout=20, headers={'User-Agent': 'Mozilla/5.0'})
+                ctype = (r.headers.get('content-type') or '').split(';')[0]
+                if r.ok and ctype in IMAGE_TYPES and len(r.content) <= gemini_image.MAX_REF_BYTES:
+                    return r.content, ctype
+            except requests.RequestException:
+                pass
+        return None, ''
+
+    def _run_ai(job_id):
+        job = ai_jobs[job_id]
+        key = job.pop('key')
+        try:
+            text_model = gemini_text.pick_model(key) if job['do_text'] else ''
+            image_model = gemini_image.pick_model(key) if job['do_image'] else ''
+            for pid in job['ids']:
+                if job.get('cancel'):
+                    break
+                p = read('SELECT * FROM products WHERE id=? AND user_id=?', (pid, job['user_id']), True)
+                row = {'id': pid, 'title': (p or {}).get('title', ''), 'ok': True, 'notes': []}
+                if not p:
+                    row.update(ok=False); row['notes'].append('ไม่พบสินค้า')
+                else:
+                    if job['do_text']:
+                        try:
+                            out = gemini_text.rewrite_listing(key, p, model=text_model)
+                            prev = json.dumps({'title': p['title'], 'description': p.get('description', '')}, ensure_ascii=False)
+                            with connect() as c:
+                                c.execute('UPDATE products SET title=?, description=?, ai_prev=? WHERE id=? AND user_id=?',
+                                          (out['title'], out['description'], prev, pid, job['user_id']))
+                            row['title'] = out['title']; row['description'] = out['description']
+                            row['old_title'] = p['title']
+                            job['text_done'] += 1
+                        except gemini_text.GeminiTextError as e:
+                            row['ok'] = False; row['notes'].append('ชื่อ/รายละเอียด: ' + str(e)[:140])
+                    if job['do_image'] and not (job['only_missing_image'] and (p.get('image_file') or p.get('image_url'))):
+                        try:
+                            ref, mime = _reference_image(p)
+                            data, out_mime = gemini_image.generate(key, row['title'] or p['title'], job['image_style'],
+                                                                   reference=ref, reference_mime=mime, model=image_model)
+                            fname = 'ai_' + secrets.token_urlsafe(14) + gemini_image.OUT_TYPES[out_mime]
+                            (media_dir / fname).write_bytes(data)
+                            old = p.get('ai_image_file') or ''
+                            with connect() as c:
+                                c.execute('UPDATE products SET ai_image_file=?, use_ai_image=1 WHERE id=? AND user_id=?',
+                                          (fname, pid, job['user_id']))
+                            if old and old != fname:
+                                (media_dir / old).unlink(missing_ok=True)
+                            row['ai_image'] = f'/media/products/{fname}'
+                            row['from_photo'] = bool(ref)
+                            if not ref:
+                                row['notes'].append('ไม่มีรูปจริงให้อ้างอิง — รูปนี้เป็นภาพประกอบที่ AI วาดจากชื่อ ตรวจให้ตรงของจริงก่อนใช้')
+                            job['image_done'] += 1
+                        except gemini_image.GeminiImageError as e:
+                            row['ok'] = False; row['notes'].append('รูป: ' + str(e)[:140])
+                        except OSError as e:
+                            row['ok'] = False; row['notes'].append(f'บันทึกรูปไม่ได้: {e.__class__.__name__}')
+                job['items'].append(row)
+                job['done'] += 1
+                if not row['ok']:
+                    job['failed'] += 1
+                    # A quota or key problem will fail every remaining item the same way.
+                    if any(w in ' '.join(row['notes']) for w in ('โควต้า', 'คีย์ Gemini')):
+                        job['error'] = row['notes'][-1]
+                        break
+            job['status'] = 'done'
+        except Exception as e:  # never leave a job spinning
+            job['status'] = 'error'; job['error'] = f'เกิดข้อผิดพลาด: {e}'[:300]
+        finally:
+            if job['status'] == 'running':
+                job['status'] = 'done'
+            job['finished_at'] = time.time()
+
+    @app.post('/api/products/ai')
+    def products_ai_start(body: ProductAiIn, req: Request, x_csrf_token: str | None = Header(default=None)):
+        u = mutation(req, x_csrf_token)
+        limit(u['id'], 'products-ai', 4)
+        if not (body.do_text or body.do_image):
+            raise HTTPException(400, 'เลือกอย่างน้อย 1 อย่าง: ชื่อ/รายละเอียด หรือ รูป')
+        if body.image_style not in gemini_image.STYLE_IDS:
+            raise HTTPException(400, 'สไตล์รูปไม่ถูกต้อง')
+        key = gemini_key_of(u['id'])
+        if not key:
+            raise HTTPException(409, 'ต้องเชื่อมคีย์ Gemini ก่อน — ไปที่เมนู "คีย์และการตั้งค่า" (ขอคีย์ฟรีที่ Google AI Studio)')
+        for j in ai_jobs.values():
+            if j['user_id'] == u['id'] and j['status'] == 'running':
+                raise HTTPException(409, 'AI กำลังทำงานรอบก่อนอยู่ รอให้เสร็จก่อน')
+        for k in [k for k, j in ai_jobs.items() if j['status'] != 'running' and time.time() - j.get('finished_at', 0) > 900]:
+            ai_jobs.pop(k, None)
+        if body.product_ids:
+            rows = read(f"SELECT id FROM products WHERE user_id=? AND id IN ({','.join('?' * len(body.product_ids))}) ORDER BY id DESC",
+                        (u['id'], *body.product_ids))
+        else:
+            rows = read('SELECT id FROM products WHERE user_id=? AND active=1 ORDER BY id DESC LIMIT 200', (u['id'],))
+        ids = [r['id'] for r in rows]
+        if not ids:
+            raise HTTPException(400, 'ไม่มีสินค้าให้ AI ปรับ')
+        job_id = secrets.token_urlsafe(12)
+        ai_jobs[job_id] = {'user_id': u['id'], 'status': 'running', 'ids': ids, 'total': len(ids), 'done': 0, 'failed': 0,
+                           'text_done': 0, 'image_done': 0, 'do_text': body.do_text, 'do_image': body.do_image,
+                           'image_style': body.image_style, 'only_missing_image': body.only_missing_image,
+                           'items': [], 'error': '', 'key': key, 'started_at': time.time()}
+        threading.Thread(target=_run_ai, args=(job_id,), daemon=True).start()
+        return {'job_id': job_id, 'total': len(ids)}
+
+    @app.get('/api/products/ai/{job_id}')
+    def products_ai_status(job_id: str, req: Request, since: int = 0):
+        u = require_user(req)
+        job = ai_jobs.get(job_id)
+        if not job or job['user_id'] != u['id']:
+            raise HTTPException(404, 'ไม่พบงาน AI')
+        return {k: job[k] for k in ('status', 'total', 'done', 'failed', 'text_done', 'image_done', 'error')} | {
+            'items': job['items'][since:], 'next': len(job['items'])}
+
+    @app.post('/api/products/ai/{job_id}/cancel')
+    def products_ai_cancel(job_id: str, req: Request, x_csrf_token: str | None = Header(default=None)):
+        u = mutation(req, x_csrf_token)
+        job = ai_jobs.get(job_id)
+        if not job or job['user_id'] != u['id']:
+            raise HTTPException(404, 'ไม่พบงาน AI')
+        job['cancel'] = True
+        return {'ok': True}
+
+    @app.post('/api/my/products/{product_id}/ai-undo')
+    def products_ai_undo(product_id: int, req: Request, x_csrf_token: str | None = Header(default=None)):
+        """Put back the title and description the AI replaced."""
+        u = mutation(req, x_csrf_token)
+        p = product_for(u['id'], product_id)
+        try:
+            prev = json.loads(p.get('ai_prev') or '')
+        except ValueError:
+            prev = None
+        if not prev:
+            raise HTTPException(409, 'ไม่มีข้อมูลเดิมให้คืนค่า')
+        with connect() as c:
+            c.execute("UPDATE products SET title=?, description=?, ai_prev='' WHERE id=? AND user_id=?",
+                      (prev.get('title') or p['title'], prev.get('description', ''), product_id, u['id']))
+        return {'ok': True, 'message': 'คืนชื่อและรายละเอียดเดิมแล้ว'}
+
     @app.post('/api/my/products/{product_id}/refresh')
     def shopee_refresh(product_id: int, req: Request, x_csrf_token: str | None = Header(default=None)):
         u = mutation(req, x_csrf_token)
@@ -1657,6 +1829,12 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, cipher, now
             sets.append('commission_rate=?'); vals.append(body.commission_rate)
         if body.active is not None:
             sets.append('active=?'); vals.append(1 if body.active else 0)
+        if body.description is not None:
+            sets.append('description=?'); vals.append(body.description.strip())
+        if body.use_ai_image is not None:
+            if body.use_ai_image and not p.get('ai_image_file'):
+                raise HTTPException(400, 'สินค้านี้ยังไม่มีรูปที่ AI สร้าง')
+            sets.append('use_ai_image=?'); vals.append(1 if body.use_ai_image else 0)
         if not sets:
             raise HTTPException(400, 'ไม่มีข้อมูลที่จะแก้ไข')
         price = body.price if body.price is not None else p.get('price')

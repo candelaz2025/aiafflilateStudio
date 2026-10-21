@@ -684,7 +684,8 @@
         </div>
 
         <!-- Products: card grid (V8) -->
-        <div class="v8-prod-head"><h3 id="v8ProductCount">สินค้า 0 รายการ</h3></div>
+        <div class="v8-prod-head"><h3 id="v8ProductCount">สินค้า 0 รายการ</h3>
+          <button class="btn btn-ai btn-sm" id="v8AiAllBtn" type="button">✨ ให้ AI ปรับชื่อ · รายละเอียด · รูป</button></div>
         <div id="v8ProductGrid" class="v8-prod-grid"></div>
         <table hidden><tbody id="productlist"></tbody></table>
       </section>
@@ -2664,6 +2665,14 @@
         <button class="btn btn-primary" id="v8OnbNext">ถัดไป →</button>
       </div>
     </div>
+  </div>
+</div>
+<!-- V8: AI rewrite of product listings and images -->
+<div class="modal-backdrop" id="v8Ai" hidden>
+  <div class="modal-content v8-ai-modal" role="dialog" aria-modal="true" aria-labelledby="v8AiTitle">
+    <button class="modal-close-btn" id="v8AiClose" aria-label="ปิด">&times;</button>
+    <h3 id="v8AiTitle">✨ ให้ AI ปรับสินค้า</h3>
+    <div id="v8AiBody"></div>
   </div>
 </div>
 <!-- V8: edit a product — the same fields the manual add form collects -->

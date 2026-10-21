@@ -232,6 +232,7 @@
                      keyword: $('v8FetchKw')?.value.trim() || '', ams_only: this.mode === 'category' ? true : !!$('v8FetchAms')?.checked };
       if (body.mode === 'search' && body.keyword.length < 2) return toast('พิมพ์คีย์เวิร์ดอย่างน้อย 2 ตัวอักษร', 'error');
       const btn = $('v8FetchGo'); btn.disabled = true; btn.textContent = 'กำลังเริ่ม…';
+      this.fetchedIds = [];
       try { const r = await api('/api/shopee/fetch', 'POST', body); this.job = { id: r.job_id, since: 0, items: [] }; this.progress({ status: 'running', total: body.limit, done: 0, added: 0, updated: 0, items: [] }); this.poll(); }
       catch (e) { toast(e.message, 'error'); btn.disabled = false; btn.textContent = 'เริ่มดึง'; }
     },
@@ -244,16 +245,19 @@
           <div class="v8-fetch-stat"><span id="v8FetchMsg">เชื่อมต่อ Shopee Affiliate Open API…</span><strong id="v8FetchCount">0 / ${j.total || '?'}</strong></div>
           <div class="v8-prog"><div class="v8-prog-bar" id="v8FetchProg" style="width:0%"></div></div>
           <div class="v8-fetch-list" id="v8FetchList"></div>
-          <div class="v8-onb-nav" style="justify-content:flex-end;margin-top:12px" id="v8FetchDone" hidden>
+          <div class="v8-onb-nav" style="justify-content:flex-end;margin-top:12px;flex-wrap:wrap" id="v8FetchDone" hidden>
             <button class="btn btn-ghost" id="v8FetchAgain">ดึงเพิ่ม</button>
+            <button class="btn btn-ai" id="v8FetchAi" hidden>✨ ให้ AI ปรับสินค้าที่เพิ่งดึง</button>
             <button class="btn btn-primary" id="v8FetchView">ดูสินค้าของฉัน</button>
           </div>`;
         $('v8FetchAgain').addEventListener('click', () => this.open());
+        $('v8FetchAi').addEventListener('click', () => { const ids = [...new Set(this.fetchedIds || [])]; this.close(); AiProducts.open(ids, 'สินค้าที่เพิ่งดึง'); });
         $('v8FetchView').addEventListener('click', () => { this.close(); AAS.switchTab('products'); });
       }
       $('v8FetchProg').style.width = pct + '%';
       $('v8FetchCount').textContent = `${j.done || 0} / ${j.total || this.job?.limit || '?'}`;
       const list = $('v8FetchList');
+      (j.items || []).forEach(it => { if (it.id) (this.fetchedIds = this.fetchedIds || []).push(it.id); });
       (j.items || []).forEach(it => list.insertAdjacentHTML('afterbegin', `<div class="v8-fetch-row">${it.image_url ? `<img src="${esc(it.image_url)}" alt="">` : '<span class="v8-fetch-noimg"></span>'}
         <div class="v8-fetch-txt"><div class="v8-fetch-title">${esc(it.title)}</div><div class="v8-small v8-muted">${baht(it.price)} · ค่าคอม ${it.commission_rate != null ? it.commission_rate + '%' : '-'}${it.sales ? ' · ขายได้ ' + Number(it.sales).toLocaleString('th-TH') : ''}${it.discount_rate ? ' · ' + Math.round(it.discount_rate) + '% OFF' : ''}</div></div>
         <span class="chip ${it.updated ? '' : 'chip-success'}">${it.updated ? 'อัปเดต' : 'เพิ่มใหม่'}</span></div>`));
@@ -261,6 +265,7 @@
         $('v8FetchTitle').textContent = '✅ ดึงสินค้าเสร็จแล้ว';
         $('v8FetchMsg').textContent = `เพิ่มใหม่ ${j.added} · อัปเดต ${j.updated} รายการ`;
         $('v8FetchProg').style.width = '100%'; $('v8FetchDone').hidden = false;
+        if ((this.fetchedIds || []).length) { $('v8FetchAi').hidden = false; $('v8FetchAi').textContent = `✨ ให้ AI ปรับ ${new Set(this.fetchedIds).size} รายการที่เพิ่งดึง`; }
         AAS.reloadProducts(); toast(`✅ ดึงสินค้าเสร็จ เพิ่ม ${j.added} อัปเดต ${j.updated}`, 'success');
         if (!j.added && !j.updated) $('v8FetchMsg').textContent = 'ไม่พบสินค้าที่ตรงเงื่อนไข — ลองคีย์เวิร์ดอื่น หรือปิด "เฉพาะ Comm Xtra"';
       } else if (j.status === 'error') {
@@ -285,6 +290,131 @@
       $('v8FetchBtn')?.addEventListener('click', () => this.open());
       $('v8FetchClose')?.addEventListener('click', () => this.close());
       $('v8Fetch')?.addEventListener('click', e => { if (e.target.id === 'v8Fetch') this.close(); });
+    },
+  };
+
+  // =========================================================== AI: listing + images
+  // Rewrites names and descriptions from what the record actually says, and makes new
+  // product photos from the real photo. Old names stay recoverable (↩ on the card) and
+  // the original photo is kept beside the AI one, so nothing here is a one-way door.
+  const AI_STYLES = [
+    { id: 'studio', label: 'สตูดิโอพื้นขาว' }, { id: 'lifestyle', label: 'ใช้งานจริงในบ้าน' },
+    { id: 'flatlay', label: 'Flat lay ด้านบน' }, { id: 'promo', label: 'แบนเนอร์โปรโมต' },
+  ];
+  const AiProducts = {
+    ids: [], job: null, pollT: null, style: 'studio',
+    async open(ids = [], label = '') {
+      this.ids = ids; clearInterval(this.pollT); this.job = null;
+      $('v8Ai').hidden = false;
+      $('v8AiTitle').textContent = '✨ ให้ AI ปรับสินค้า';
+      const body = $('v8AiBody');
+      body.innerHTML = stateBox('loading', 'กำลังตรวจคีย์ Gemini…');
+      let hasKey = false, count = ids.length;
+      try {
+        const [keys, prods] = await Promise.all([api('/api/my/keys'), ids.length ? null : api('/api/my/products')]);
+        hasKey = (keys.connected || []).some(k => k.provider === 'gemini');
+        if (prods) count = prods.filter(p => p.active !== 0).length;
+      } catch (e) { /* show the form anyway */ }
+      const scope = ids.length === 1 ? 'สินค้า 1 รายการ' : ids.length ? `${label || 'สินค้าที่เลือก'} ${ids.length} รายการ` : `สินค้าที่เปิดใช้งานทั้งหมด ${count} รายการ`;
+      body.innerHTML = `
+        ${hasKey ? '' : `<div class="v8-writer is-tip" style="margin-top:0"><strong>ต้องเชื่อมคีย์ Gemini ก่อน</strong>
+          <div class="v8-small">ทั้งการเขียนชื่อ/รายละเอียดและการสร้างรูปใช้คีย์ Gemini ของคุณเอง — ค่าใช้จ่ายคิดกับบัญชี Google ของคุณ ไม่หักเครดิตระบบ</div>
+          <div class="v8-writer-act"><button class="btn btn-primary btn-sm" onclick="AASv8.closeAi();AASv8.goKeys()">เชื่อมคีย์ Gemini</button>
+          <span class="v8-small v8-muted">ขอคีย์ฟรีที่ <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a></span></div></div>`}
+        <p class="v8-small v8-muted" style="margin:6px 0 12px">ขอบเขต: <strong>${esc(scope)}</strong></p>
+        <label class="v8-ai-opt"><input type="checkbox" id="v8AiText" checked>
+          <div><strong>เขียนชื่อสินค้าและรายละเอียดใหม่</strong>
+          <div class="v8-small v8-muted">ชื่ออ่านง่าย ค้นเจอ ไม่เกิน 100 ตัวอักษร + รายละเอียด 3–5 บรรทัด · ใช้เฉพาะข้อมูลที่มีจริง ไม่เติมสเปกเอง · คืนชื่อเดิมได้ทุกเมื่อ</div></div></label>
+        <label class="v8-ai-opt"><input type="checkbox" id="v8AiImg">
+          <div><strong>สร้างรูปสินค้าใหม่</strong>
+          <div class="v8-small v8-muted">ใช้รูปจริงของสินค้าเป็นต้นแบบ เปลี่ยนแค่ฉากและแสง ตัวสินค้าต้องเหมือนเดิม · รูปเดิมยังเก็บไว้ สลับกลับได้</div>
+          <div class="v8-seg v8-ai-styles" id="v8AiStyles">${AI_STYLES.map(x => `<button type="button" data-v="${x.id}" class="${x.id === this.style ? 'is-on' : ''}">${x.label}</button>`).join('')}</div>
+          <label class="v8-small" style="display:flex;gap:6px;align-items:center;margin-top:6px"><input type="checkbox" id="v8AiOnlyMissing"> เฉพาะสินค้าที่ยังไม่มีรูป</label>
+          </div></label>
+        <div class="v8-small v8-muted" style="margin-top:8px">⏱ ข้อความราว 5 วินาที/รายการ · รูปราว 15–30 วินาที/รายการ${count > 1 ? ` (${count} รายการ ≈ ${Math.max(1, Math.ceil(count * 25 / 60))} นาทีถ้าทำครบทั้งสองอย่าง)` : ''} · ปิดหน้าต่างนี้ได้ งานยังทำต่อ</div>
+        <div class="v8-ep-foot">
+          <button class="btn btn-ghost" onclick="AASv8.closeAi()">ยกเลิก</button>
+          <button class="btn btn-ai" id="v8AiGo" ${hasKey ? '' : 'disabled'}>✨ เริ่มให้ AI ปรับ</button>
+        </div>`;
+      $('v8AiStyles').addEventListener('click', e => {
+        const b = e.target.closest('[data-v]'); if (!b) return;
+        this.style = b.dataset.v; $('v8AiStyles').querySelectorAll('button').forEach(x => x.classList.toggle('is-on', x === b));
+        $('v8AiImg').checked = true;
+      });
+      $('v8AiGo').addEventListener('click', () => this.start());
+    },
+    async start() {
+      const doText = $('v8AiText').checked, doImage = $('v8AiImg').checked;
+      if (!doText && !doImage) return toast('เลือกอย่างน้อย 1 อย่าง', 'error');
+      const btn = $('v8AiGo'); btn.disabled = true; btn.textContent = 'กำลังเริ่ม…';
+      try {
+        const r = await api('/api/products/ai', 'POST', { product_ids: this.ids, do_text: doText, do_image: doImage,
+          image_style: this.style, only_missing_image: $('v8AiOnlyMissing').checked });
+        this.job = { id: r.job_id, since: 0 };
+        this.renderProgress({ status: 'running', total: r.total, done: 0, failed: 0, items: [] });
+        this.poll();
+      } catch (e) { toast(e.message, 'error'); btn.disabled = false; btn.textContent = '✨ เริ่มให้ AI ปรับ'; }
+    },
+    renderProgress(j) {
+      if (!$('v8AiProg')) {
+        $('v8AiTitle').textContent = '✨ AI กำลังปรับสินค้า…';
+        $('v8AiBody').innerHTML = `
+          <div class="v8-fetch-stat"><span id="v8AiMsg">เริ่มงาน…</span><strong id="v8AiCount">0 / ${j.total}</strong></div>
+          <div class="v8-prog"><div class="v8-prog-bar v8-prog-ai" id="v8AiProg" style="width:0%"></div></div>
+          <div class="v8-fetch-list v8-ai-list" id="v8AiList"></div>
+          <div class="v8-ep-foot">
+            <button class="btn btn-ghost" id="v8AiStop">หยุด</button>
+            <button class="btn btn-primary" id="v8AiDone" hidden>ดูสินค้าของฉัน</button>
+          </div>`;
+        $('v8AiStop').addEventListener('click', () => this.stop());
+        $('v8AiDone').addEventListener('click', () => { this.close(); AAS.switchTab('products'); });
+      }
+      const total = Math.max(j.total || 1, 1);
+      $('v8AiProg').style.width = Math.round((j.done || 0) / total * 100) + '%';
+      $('v8AiCount').textContent = `${j.done || 0} / ${j.total}`;
+      (j.items || []).forEach(it => $('v8AiList').insertAdjacentHTML('afterbegin', `
+        <div class="v8-fetch-row v8-ai-row ${it.ok ? '' : 'is-bad'}">
+          ${it.ai_image ? `<img src="${esc(it.ai_image)}" alt="">` : '<span class="v8-fetch-noimg"></span>'}
+          <div class="v8-fetch-txt">
+            ${it.old_title && it.old_title !== it.title ? `<div class="v8-ai-old">${esc(it.old_title)}</div>` : ''}
+            <div class="v8-fetch-title">${esc(it.title)}</div>
+            ${it.description ? `<div class="v8-small v8-muted v8-ai-desc">${esc(it.description)}</div>` : ''}
+            ${(it.notes || []).map(n => `<div class="v8-small ${it.ok ? 'v8-muted' : 'v8-err'}">${esc(n)}</div>`).join('')}
+          </div>
+          <span class="chip ${it.ok ? 'chip-success' : 'v8-chip-err'}">${it.ok ? 'เสร็จ' : 'ไม่สำเร็จ'}</span>
+        </div>`));
+      if (j.status === 'running') { $('v8AiMsg').textContent = `เขียนชื่อแล้ว ${j.text_done || 0} · สร้างรูปแล้ว ${j.image_done || 0}`; return; }
+      $('v8AiTitle').textContent = j.error ? '⚠ AI หยุดกลางทาง' : '✅ AI ปรับสินค้าเสร็จแล้ว';
+      $('v8AiMsg').innerHTML = j.error ? `<span class="v8-err">${esc(j.error)}</span>`
+        : `เขียนชื่อใหม่ ${j.text_done || 0} · สร้างรูป ${j.image_done || 0}${j.failed ? ` · ไม่สำเร็จ ${j.failed}` : ''}`;
+      $('v8AiProg').style.width = '100%';
+      $('v8AiStop').hidden = true; $('v8AiDone').hidden = false;
+      AAS.reloadProducts();
+      toast(j.error ? '⚠ ' + j.error : `✅ AI ปรับสินค้าเสร็จ ${j.done} รายการ`, j.error ? 'error' : 'success');
+    },
+    poll() {
+      clearInterval(this.pollT);
+      this.pollT = setInterval(async () => {
+        if (!this.job) return clearInterval(this.pollT);
+        try {
+          const j = await api(`/api/products/ai/${this.job.id}?since=${this.job.since}`);
+          this.job.since = j.next;
+          if ($('v8AiProg')) this.renderProgress(j);
+          if (j.status !== 'running') { clearInterval(this.pollT); this.job = null; if (!$('v8AiProg')) { AAS.reloadProducts(); toast('✅ AI ปรับสินค้าเสร็จแล้ว', 'success'); } }
+          else if (j.items && j.items.length) AAS.reloadProducts();
+        } catch (e) { clearInterval(this.pollT); this.job = null; toast(e.message, 'error'); }
+      }, 1500);
+    },
+    async stop() {
+      if (!this.job) return;
+      try { await api(`/api/products/ai/${this.job.id}/cancel`, 'POST'); toast('กำลังหยุดหลังรายการปัจจุบัน', 'info'); } catch (e) { toast(e.message, 'error'); }
+    },
+    // Closing only hides the window; polling keeps going so the cards still refresh.
+    close() { $('v8Ai').hidden = true; },
+    bind() {
+      $('v8AiAllBtn')?.addEventListener('click', () => this.open([]));
+      $('v8AiClose')?.addEventListener('click', () => this.close());
+      $('v8Ai')?.addEventListener('click', e => { if (e.target.id === 'v8Ai') this.close(); });
     },
   };
 
@@ -453,12 +583,14 @@
     return '<span class="v8-pc-status">กรอกเอง</span>';
   }
   function productCard(p) {
-    const img = p.image_url || p.image_path || (p.source === 'sample' ? SAMPLE_IMG : '');
+    const img = (p.use_ai_image && p.ai_image_path) || p.image_url || p.image_path || (p.source === 'sample' ? SAMPLE_IMG : '');
     const price = p.price_max && p.price_min && p.price_max !== p.price_min ? `${baht(p.price_min)}–${baht(p.price_max)}` : (p.price != null ? '฿' + Number(p.price).toLocaleString('th-TH', { minimumFractionDigits: 2 }) : '-');
     const link = p.offer_link || '';
     const off = p.active === 0;
     return `<div class="v8-pc ${off ? 'is-off' : ''}" data-pid="${p.id}">
-      <div class="v8-pc-img">${img ? `<img src="${esc(img)}" alt="" loading="lazy">` : '<div class="v8-pc-noimg">ไม่มีรูป</div>'}${p.discount_rate ? `<span class="v8-pc-off">${Math.round(Number(p.discount_rate))}% OFF</span>` : ''}</div>
+      <div class="v8-pc-img">${img ? `<img src="${esc(img)}" alt="" loading="lazy">` : '<div class="v8-pc-noimg">ไม่มีรูป</div>'}${p.discount_rate ? `<span class="v8-pc-off">${Math.round(Number(p.discount_rate))}% OFF</span>` : ''}
+        ${p.ai_image_path ? `<button class="v8-pc-imgswitch" onclick="AASv8.toggleAiImage(${p.id}, ${p.use_ai_image ? 'false' : 'true'})"
+            title="สลับรูป">${p.use_ai_image ? '✨ รูป AI · ใช้รูปเดิม' : '📷 รูปเดิม · ใช้รูป AI'}</button>` : ''}</div>
       <div class="v8-pc-body">
         <div class="v8-pc-title-row">
           <button class="v8-pc-title v8-inline" data-field="title" data-pid="${p.id}" data-value="${esc(p.title)}"
@@ -476,6 +608,11 @@
             <strong>${commBaht(p)}</strong></div>
         </div>
         <div class="v8-muted v8-small">${p.sales ? 'ขายได้ ' + Number(p.sales).toLocaleString('th-TH') + ' ชิ้น' : '&nbsp;'}</div>
+        ${p.description ? `<details class="v8-pc-desc"><summary>รายละเอียด</summary><div>${esc(p.description)}</div></details>` : ''}
+        <div class="v8-pc-ai">
+          <button class="btn btn-ai btn-sm" onclick="AASv8.aiProduct(${p.id})">✨ AI ปรับ</button>
+          ${p.can_undo_ai ? `<button class="btn btn-ghost btn-sm" onclick="AASv8.undoAi(${p.id})" title="คืนชื่อและรายละเอียดก่อน AI แก้">↩ คืนชื่อเดิม</button>` : ''}
+        </div>
         <div class="v8-pc-link"><span class="v8-pc-linkbox ${link ? 'has' : ''}" title="${esc(link)}">${link ? esc(link.replace(/^https:\/\//, '')) : 'ยังไม่มีลิงก์ affiliate'}</span>
           <button class="btn btn-ghost btn-sm" onclick="AASv8.editLink(${p.id}, ${jsArg(link)})" title="แก้ลิงก์ affiliate">✎</button></div>
         <div class="v8-muted v8-small">ID ${esc(p.item_id || ('#' + p.id))}</div>
@@ -2379,6 +2516,13 @@
     openPay: () => Pay.open(),
     renderProducts,
     inlineEdit(btn) { inlineEdit(btn); },
+    aiProduct(id) { AiProducts.open([id]); },
+    closeAi() { AiProducts.close(); },
+    toggleAiImage(id, on) { patchProduct(id, { use_ai_image: on }, on ? 'ใช้รูปที่ AI สร้าง' : 'กลับไปใช้รูปเดิม'); },
+    async undoAi(id) {
+      try { const r = await api(`/api/my/products/${id}/ai-undo`, 'POST'); toast(r.message, 'success'); AAS.reloadProducts(); }
+      catch (e) { toast(e.message, 'error'); }
+    },
     goKeys() { AAS.switchTab('keys'); setTimeout(() => document.querySelector('#keys [name=gemini], #keys input')?.focus(), 350); },
     editProduct(id) { EditProduct.open(id); },
     renameProduct(id, cur) { const t = (prompt('ชื่อสินค้าใหม่', cur) || '').trim(); if (t && t !== cur) patchProduct(id, { title: t }, 'เปลี่ยนชื่อแล้ว'); },
@@ -2464,13 +2608,15 @@
     bindTabGo(document);
     dashCta();
     EditProduct.bind();
+    AiProducts.bind();
     TikTokConnect.bind();
     $('v8TtClose')?.addEventListener('click', () => TikTokPost.close());
     $('v8TtModal')?.addEventListener('click', e => { if (e.target.id === 'v8TtModal') TikTokPost.close(); });
     document.addEventListener('keydown', e => { if (e.key !== 'Escape') return;
       if (!$('v8TtModal')?.hidden) TikTokPost.close();
       if (!$('v8TtConnect')?.hidden) TikTokConnect.close();
-      if (!$('v8EditProduct')?.hidden) EditProduct.close(); });
+      if (!$('v8EditProduct')?.hidden) EditProduct.close();
+      if (!$('v8Ai')?.hidden) AiProducts.close(); });
     const qs = new URLSearchParams(location.search);
     const tab = qs.get('tab');
     if (qs.get('oauth')) {
