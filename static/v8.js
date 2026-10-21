@@ -1350,15 +1350,18 @@
   // =========================================================== PROFILE MENU (top-right)
   const Profile = {
     paint() {
-      const me = AAS.getMe() || {}, on = !!me.id;
+      const me = AAS.getMe() || {}, on = !!me.id, demo = !!me.is_demo;
       $('v8Profile').hidden = !on;
-      const trig = $('authModalTriggerBtn'); if (trig) trig.hidden = on;
+      const trig = $('authModalTriggerBtn'); if (trig) trig.hidden = on && !demo;
       if (!on) { this.close(); return; }
-      const name = me.username || '-', ini = name.slice(0, 1).toUpperCase();
+      document.querySelectorAll('#v8ProfileMenu .v8-pm-demo').forEach(b => { b.hidden = !demo; });
+      const lo = document.querySelector('#v8ProfileMenu [data-pm=logout]'); if (lo) lo.hidden = demo;
+      const sep = document.querySelector('#v8ProfileMenu .v8-pm-sep'); if (sep) sep.hidden = demo;
+      const name = demo ? 'ผู้ใช้ทดลอง' : (me.username || '-'), ini = demo ? 'D' : name.slice(0, 1).toUpperCase();
       $('v8PfAv').textContent = ini; $('v8PmAv').textContent = ini;
       $('v8PfName').textContent = name; $('v8PmName').textContent = name;
-      $('v8PfRole').textContent = me.role === 'admin' ? 'ADMIN' : 'MEMBER';
-      $('v8PmEmail').textContent = me.email || '';
+      $('v8PfRole').textContent = demo ? 'DEMO' : me.role === 'admin' ? 'ADMIN' : 'MEMBER';
+      $('v8PmEmail').textContent = demo ? 'บัญชีทดลอง · เก็บงานไว้ 7 วัน' : (me.email || '');
       $('v8PmCredit').textContent = `⚡ ${Number(me.credits || 0).toLocaleString('th-TH')} เครดิต`;
     },
     open() { $('v8ProfileMenu').hidden = false; $('v8ProfileBtn').setAttribute('aria-expanded', 'true'); $('v8ProfileMenu').querySelector('[data-pm]')?.focus(); },
@@ -1370,12 +1373,13 @@
         const me = await api('/api/me');
         const row = (k, v) => `<tr><th>${k}</th><td>${v}</td></tr>`;
         box.innerHTML = `<table class="v8-onb-table v8-acc-table"><tbody>
-          ${row('ชื่อผู้ใช้', esc(me.username))}${row('อีเมล', esc(me.email || '-'))}
-          ${row('สถานะ', me.role === 'admin' ? '<span class="chip chip-success">ผู้ดูแลระบบ</span>' : '<span class="chip">สมาชิก Beta</span>')}
+          ${me.is_demo ? '' : row('ชื่อผู้ใช้', esc(me.username)) + row('อีเมล', esc(me.email || '-'))}
+          ${row('สถานะ', me.is_demo ? '<span class="chip v8-chip-wait">บัญชีทดลอง (Demo)</span>' : me.role === 'admin' ? '<span class="chip chip-success">ผู้ดูแลระบบ</span>' : '<span class="chip">สมาชิก Beta</span>')}
           ${row('เครดิตคงเหลือ', `⚡ ${Number(me.credits || 0).toLocaleString('th-TH')} เครดิต`)}
         </tbody></table>
         <div class="v8-onb-nav" style="margin:12px 0 4px"><button class="btn btn-secondary btn-sm" data-acc="topup">💳 เติมเงิน</button><button class="btn btn-ghost btn-sm" data-acc="logout">🚪 ออกจากระบบ</button></div>
-        <details class="v8-acc-sec"><summary>🔑 เปลี่ยนรหัสผ่าน</summary>
+        ${me.is_demo ? '<div class="v8-demo-note">🧪 นี่คือบัญชีทดลองบนเบราว์เซอร์นี้ งานจะถูกเก็บไว้ 7 วัน <button class="btn btn-primary btn-sm" data-acc="signup">✨ สมัครสมาชิกเพื่อเก็บงานถาวร</button></div>' : ''}
+        <details class="v8-acc-sec" ${me.is_demo ? 'hidden' : ''}><summary>🔑 เปลี่ยนรหัสผ่าน</summary>
           <form id="v8PwForm" class="v8-pw-form" autocomplete="off">
             <label>รหัสผ่านปัจจุบัน<input class="form-input" type="password" name="current_password" required autocomplete="current-password"></label>
             <label>รหัสผ่านใหม่ (อย่างน้อย 12 ตัว มีตัวอักษรและตัวเลข)<input class="form-input" type="password" name="new_password" minlength="12" required autocomplete="new-password"></label>
@@ -1403,12 +1407,18 @@
           } catch (err) { $('v8AccHistBody').innerHTML = stateBox('error', err.message, null); }
         });
         box.querySelector('[data-acc=topup]').addEventListener('click', () => { $('v8Account').hidden = true; Pay.open(); });
-        box.querySelector('[data-acc=logout]').addEventListener('click', () => AAS.logout());
+        const lo = box.querySelector('[data-acc=logout]');
+        if (me.is_demo) lo.remove(); else lo.addEventListener('click', () => AAS.logout());
+        box.querySelector('[data-acc=signup]')?.addEventListener('click', () => { $('v8Account').hidden = true; this.act('signup'); });
       } catch (e) { box.innerHTML = stateBox('error', 'โหลดข้อมูลบัญชีไม่สำเร็จ: ' + e.message, null); }
     },
     act(k) {
       this.close();
       const me = AAS.getMe() || {};
+      if (k === 'signup' || k === 'login') {
+        $('authModal').hidden = false; $(k === 'signup' ? 'tabRegisterBtn' : 'tabLoginBtn')?.click();
+        const n = $('regDemoNote'); if (n) n.hidden = false; return;
+      }
       if (k === 'members') return me.role === 'admin' ? AAS.switchTab('users_mgmt') : this.account();
       if (k === 'topup') return Pay.open();
       if (k === 'report') return AAS.switchTab('tracking');
@@ -1438,6 +1448,7 @@
         <div class="v8-onb-warn"><strong>🧪 นี่คือระบบทดสอบ (Beta)</strong><br>
         ระบบอยู่ระหว่างการพัฒนา <strong>ยังใช้งานจริงไม่ได้ทั้งหมด</strong> บางฟีเจอร์ต้องรอการตั้งค่าหรือการอนุมัติจากแพลตฟอร์ม
         ข้อมูลทดสอบอาจถูกรีเซ็ตได้ — กรุณาอย่าใส่ข้อมูลสำคัญหรือรหัสผ่านของแพลตฟอร์มอื่น</div>
+        <p>✅ <strong>ใช้ได้ทันทีไม่ต้องสมัคร</strong> — ระบบเปิดบัญชีทดลอง (Demo) ให้อัตโนมัติ เพิ่มสินค้า นำเข้าสินค้า สร้างบทและคลิปได้ครบ สมัครทีหลังงานก็ย้ายตามไปด้วย</p>
         <p>ระบบช่วยนักทำ Affiliate: <strong>หาสินค้า Shopee → สร้างคลิปรีวิวแบบ UGC → โพสต์ลงโซเชียล</strong> ในหน้าเดียว</p>
         <p class="v8-muted v8-small">ใช้เวลาอ่าน 1 นาที — กด "ถัดไป" เพื่อดูว่า Phase 1 ทำอะไรได้บ้าง</p>` },
       { title: '✅ Phase 1 ทำอะไรได้บ้าง', html: `
@@ -1609,6 +1620,7 @@
     loadHelp: () => Help.load(),
     openThread: id => Chat.openThread(id),
     openPay: () => Pay.open(),
+    toast: (m, t) => toast(m, t),
     askAbout() { AAS.switchTab('help'); },
     loadStudio: () => Studio.load(),
     openProject: id => Studio.openProject(id),

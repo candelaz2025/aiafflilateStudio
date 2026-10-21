@@ -28,8 +28,21 @@
       banner.style.borderColor = 'var(--color-primary)';
       banner.style.color = 'var(--color-primary)';
     }
-    if (text) setTimeout(() => { banner.style.display = 'none'; }, 4000);
+    clearTimeout(msg._t);
+    if (text) msg._t = setTimeout(() => { banner.style.display = 'none'; }, 4000);
   };
+
+  // Floating confirmation that closes itself (used after sign-in / sign-up).
+  function authToast(title, sub) {
+    document.querySelector('.aas-auth-toast')?.remove();
+    const t = document.createElement('div');
+    t.className = 'aas-auth-toast'; t.setAttribute('role', 'status'); t.setAttribute('aria-live', 'polite');
+    t.innerHTML = `<span class="aas-at-icon" aria-hidden="true">✓</span><span class="aas-at-text"><strong></strong><small></small></span><span class="aas-at-bar" aria-hidden="true"></span>`;
+    t.querySelector('strong').textContent = title; t.querySelector('small').textContent = sub || '';
+    document.body.appendChild(t);
+    requestAnimationFrame(() => t.classList.add('is-in'));
+    setTimeout(() => { t.classList.remove('is-in'); setTimeout(() => t.remove(), 300); }, 2600);
+  }
 
   const val = form => Object.fromEntries(new FormData(form));
 
@@ -1950,7 +1963,8 @@
       me = res;
       await checkSession();
       $('authModal').hidden = true;
-      msg('เข้าสู่ระบบสำเร็จ');
+      e.target.reset();
+      authToast('เข้าสู่ระบบสำเร็จ', `ยินดีต้อนรับกลับ, ${me.username || ''}`);
       await refreshDashboard();
     } catch (err) {
       msg(err.message, 'error');
@@ -1964,7 +1978,8 @@
       me = res;
       await checkSession();
       $('authModal').hidden = true;
-      msg('สมัครสมาชิกสำเร็จ ยินดีต้อนรับสู่ Beta');
+      e.target.reset();
+      authToast('สมัครสมาชิกสำเร็จ', `ยินดีต้อนรับสู่ Beta, ${me.username || ''}`);
       await refreshDashboard();
     } catch (err) {
       msg(err.message, 'error');

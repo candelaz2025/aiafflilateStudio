@@ -278,3 +278,17 @@ body:not(.is-admin) [data-tab="users_mgmt"]{display:none}
 .v8-pw-form label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600}
 @media (max-width:760px){.v8-pkg-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.v8-pay-grid{grid-template-columns:1fr}.v8-qr-card{max-width:320px;margin:0 auto}}
 .v8-acc p{margin:14px 0 12px}
+
+.aas-auth-toast{position:fixed;top:20px;left:50%;transform:translate(-50%,-16px);opacity:0;z-index:2000;display:flex;align-items:center;gap:12px;min-width:280px;max-width:calc(100% - 32px);padding:12px 18px 14px 14px;border-radius:14px;background:#065f46;color:#fff;box-shadow:0 14px 34px rgba(6,95,70,.35);overflow:hidden;transition:transform .25s ease,opacity .25s ease;pointer-events:none}
+.aas-auth-toast.is-in{transform:translate(-50%,0);opacity:1}
+.aas-at-icon{width:30px;height:30px;border-radius:50%;background:#10b981;display:grid;place-items:center;font-weight:900;flex:none}
+.aas-at-text{display:flex;flex-direction:column;line-height:1.3}
+.aas-at-text strong{font-size:15px}
+.aas-at-text small{font-size:12px;opacity:.85}
+.aas-at-bar{position:absolute;left:0;bottom:0;height:3px;width:100%;background:#34d399;transform-origin:left;animation:aasbar 2.6s linear forwards}
+@keyframes aasbar{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+@media (prefers-reduced-motion:reduce){.aas-auth-toast{transition:none}.aas-at-bar{animation:none}}
+
+.v8-demo-note{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--color-tertiary-subtle);border:1px solid var(--color-tertiary-border);border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.55;margin:4px 0 12px}
+.v8-demo-note[hidden]{display:none!important}
+body.is-demo #sidebarLogoutBtn{display:none}
