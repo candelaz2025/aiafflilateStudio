@@ -7,6 +7,7 @@ import hashlib
 import os
 import re
 import secrets
+import shutil
 import sqlite3
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
@@ -26,7 +27,6 @@ from studio_v6 import grok_service as grok
 from studio_v6 import openrouter_service as openrouter
 from studio_v6 import mock_video_service as mock_video
 from studio_v6.shopee_user_import import pasted_preview, report_preview
-from reset_password import temporary_password
 
 ROOT = Path(__file__).resolve().parent
 try:
@@ -107,9 +107,6 @@ class CommentIn(BaseModel):
 class PasswordChangeIn(BaseModel):
     current_password: str = Field(min_length=1, max_length=128)
     new_password: str = Field(min_length=12, max_length=128)
-
-class DeleteMemberIn(BaseModel):
-    confirm_username: str = Field(min_length=1, max_length=32)
 
 class UserRoleIn(BaseModel):
     role: str = Field(..., pattern=r'^(admin|member)$')
@@ -332,12 +329,6 @@ def create_app(data_dir=None, secret_key=None):
           updated_at TEXT NOT NULL
         );
         CREATE INDEX IF NOT EXISTS video_jobs_owner ON video_jobs(user_id,id DESC);
-        CREATE TABLE IF NOT EXISTS admin_audit (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          admin_id INTEGER NOT NULL, admin_username TEXT NOT NULL,
-          action TEXT NOT NULL CHECK(action IN ('reset_password','delete_member')),
-          target_user_id INTEGER NOT NULL, target_username TEXT NOT NULL, target_email TEXT NOT NULL,
-          created_at TEXT NOT NULL);
         ''')
 
         db.execute('''
@@ -522,11 +513,6 @@ def create_app(data_dir=None, secret_key=None):
     @app.get('/')
     def index():
         return FileResponse(ROOT / 'static' / 'index.html')
-
-    @app.get('/admin')
-    def admin_page():
-        # The page is static; every number on it comes from the admin-only APIs below.
-        return FileResponse(ROOT / 'static' / 'admin.html', headers={'Cache-Control':'no-store'})
 
     @app.get('/donate')
     def donate():
@@ -1105,18 +1091,36 @@ def create_app(data_dir=None, secret_key=None):
         if user_id == admin['id']:
             raise HTTPException(400, 'ไม่สามารถเปลี่ยนสิทธิ์ของตัวเองได้')
         with connect() as c:
+            c.execute('BEGIN IMMEDIATE')
+            admin_target(c, user_id)
             c.execute('UPDATE users SET role=? WHERE id=?', (body.role, user_id))
         return {'ok': True, 'user_id': user_id, 'role': body.role}
 
+    def admin_target(c, user_id):
+        target = c.execute('SELECT id, username, role FROM users WHERE id=?', (user_id,)).fetchone()
+        if not target:
+            raise HTTPException(404, 'ไม่พบผู้ใช้นี้')
+        # Admin accounts are managed from the server shell only, so one admin cannot lock out another.
+        if target['role'] == 'admin':
+            raise HTTPException(400, 'บัญชีแอดมินแก้ไขหรือลบจากหน้านี้ไม่ได้')
+        return target
+
     @app.delete('/api/admin/users/{user_id}')
-    def admin_delete_user(user_id: int, req: Request, x_csrf_token: str | None = Header(default=None)):
+    def admin_delete_user(user_id: int, req: Request, confirm_username: str = '', x_csrf_token: str | None = Header(default=None)):
         admin = mutation(req, x_csrf_token)
         if admin['role'] != 'admin':
             raise HTTPException(403, 'เฉพาะผู้ดูแลระบบเท่านั้น')
         if user_id == admin['id']:
             raise HTTPException(400, 'ไม่สามารถลบบัญชีตัวเองได้')
         with connect() as c:
+            c.execute('BEGIN IMMEDIATE')
+            target = admin_target(c, user_id)
+            if confirm_username.strip().lower() != target['username'].lower():
+                raise HTTPException(400, 'พิมพ์ชื่อผู้ใช้ไม่ตรง ยังไม่ได้ลบ')
+            # ideas has no ON DELETE CASCADE; their votes and comments cascade from the idea.
+            c.execute('DELETE FROM ideas WHERE user_id=?', (user_id,))
             c.execute('DELETE FROM users WHERE id=?', (user_id,))
+        shutil.rmtree(data / 'videos' / str(user_id), ignore_errors=True)
         return {'ok': True, 'user_id': user_id}
 
     @app.get('/api/my/connections')
@@ -1401,126 +1405,6 @@ def create_app(data_dir=None, secret_key=None):
         if u['role']!='admin':
             raise HTTPException(403, 'เฉพาะผู้ดูแลระบบ')
         return u
-
-    def month_start():
-        return datetime.now(timezone.utc).date().replace(day=1).isoformat()
-
-    def admin_member_rows():
-        # Read-only summary. Never select password_hash, session tokens or encrypted keys.
-        rows=read('''SELECT u.id,u.username,u.email,u.role,u.created_at,
-            (SELECT COUNT(*) FROM products p WHERE p.user_id=u.id) AS products,
-            (SELECT COUNT(*) FROM drafts d WHERE d.user_id=u.id) AS drafts,
-            (SELECT COUNT(*) FROM video_jobs v WHERE v.user_id=u.id) AS clips,
-            (SELECT COUNT(*) FROM video_jobs v WHERE v.user_id=u.id AND v.status='ready') AS clips_ready,
-            (SELECT COUNT(*) FROM video_jobs v WHERE v.user_id=u.id AND v.provider='platform' AND v.status!='failed' AND v.created_at>=?) AS free_used,
-            (SELECT COALESCE(SUM(v.est_cost_usd),0) FROM video_jobs v WHERE v.user_id=u.id AND v.provider='platform' AND v.status!='failed' AND v.created_at>=?) AS free_cost_month_usd,
-            (SELECT GROUP_CONCAT(c.provider) FROM credentials c WHERE c.user_id=u.id) AS own_keys,
-            (SELECT MAX(s.expires_at) FROM sessions s WHERE s.user_id=u.id) AS session_expires,
-            (SELECT MAX(v.created_at) FROM video_jobs v WHERE v.user_id=u.id) AS last_clip_at
-            FROM users u ORDER BY u.id''',(platform_period_start(),month_start()))
-        for r in rows:
-            # Sessions last SESSION_DAYS, so the newest expiry dates the most recent sign-in.
-            expires=r.pop('session_expires')
-            r['last_login_at']=((datetime.fromisoformat(expires)-timedelta(days=SESSION_DAYS)).isoformat(timespec='seconds')
-                                if expires else None)
-            r['own_keys']=sorted(set((r['own_keys'] or '').split(',')) - {''})
-            r['free_cost_month_usd']=round(r['free_cost_month_usd'],2)
-            r['free_limit']=platform_limit if platform_enabled else 0
-        return rows
-
-    @app.get('/api/admin/overview')
-    def admin_overview(req:Request):
-        require_admin(req)
-        with connect() as c:
-            members=c.execute('SELECT COUNT(*) FROM users').fetchone()[0]
-            admins=c.execute("SELECT COUNT(*) FROM users WHERE role='admin'").fetchone()[0]
-            jobs={r[0]:r[1] for r in c.execute('SELECT status,COUNT(*) FROM video_jobs GROUP BY status')}
-            free_month=c.execute("SELECT COUNT(*),COALESCE(SUM(est_cost_usd),0) FROM video_jobs WHERE provider='platform' AND status!='failed' AND created_at>=?",
-                                 (month_start(),)).fetchone()
-            spent_today=platform_spent_today(c)
-        return {'members':members,'admins':admins,'seat_limit':MAX_BETA_USERS,'video_jobs':jobs,
-                'free_mode':{'enabled':platform_enabled,'models':platform_models,'limit':platform_limit,'period':platform_period,
-                             'daily_budget_usd':platform_budget,'spent_today_usd':round(spent_today,2),
-                             'clips_this_month':free_month[0],'spent_this_month_usd':round(free_month[1],2)},
-                'enabled_models':enabled_models,'mock':video_mock}
-
-    @app.get('/api/admin/members')
-    def admin_members(req:Request):
-        require_admin(req)
-        return admin_member_rows()
-
-    @app.get('/api/admin/members.csv')
-    def admin_members_csv(req:Request):
-        require_admin(req)
-        import csv, io
-        def cell(v):
-            text=', '.join(v) if isinstance(v,list) else '' if v is None else str(v)
-            # Stop spreadsheet formula injection from member-controlled text.
-            return "'"+text if text[:1] in ('=','+','-','@','\t','\r') else text
-        cols=['id','username','email','role','created_at','last_login_at','products','drafts','clips','clips_ready',
-              'free_used','free_limit','free_cost_month_usd','own_keys','last_clip_at']
-        out=io.StringIO()
-        w=csv.writer(out)
-        w.writerow(cols)
-        for r in admin_member_rows():
-            w.writerow([cell(r[k]) for k in cols])
-        stamp=datetime.now(timezone.utc).strftime('%Y%m%d')
-        # BOM so Excel opens Thai text as UTF-8.
-        return Response('\ufeff'+out.getvalue(),media_type='text/csv; charset=utf-8',
-                        headers={'Content-Disposition':f'attachment; filename="members-{stamp}.csv"','Cache-Control':'no-store'})
-
-    def admin_target(c, admin, user_id):
-        target=c.execute('SELECT id,username,email,role FROM users WHERE id=?',(user_id,)).fetchone()
-        if not target: raise HTTPException(404,'ไม่พบสมาชิกนี้')
-        if target['id']==admin['id']:
-            raise HTTPException(400,'จัดการบัญชีตัวเองจากหน้านี้ไม่ได้ · เปลี่ยนรหัสผ่านที่เมนู API ของฉัน')
-        # Admin accounts are managed from the server shell only, so one admin cannot lock out another.
-        if target['role']=='admin':
-            raise HTTPException(400,'บัญชีแอดมินลบหรือรีเซ็ตจากหน้านี้ไม่ได้')
-        return target
-
-    def audit(c, admin, action, target):
-        c.execute('''INSERT INTO admin_audit(admin_id,admin_username,action,target_user_id,target_username,target_email,created_at)
-                     VALUES(?,?,?,?,?,?,?)''',(admin['id'],admin['username'],action,target['id'],target['username'],target['email'],now()))
-
-    @app.post('/api/admin/members/{user_id}/reset-password')
-    def admin_reset_password(user_id:int,req:Request,response:Response,x_csrf_token:str|None=Header(default=None)):
-        admin=mutation(req,x_csrf_token)
-        if admin['role']!='admin': raise HTTPException(403,'เฉพาะผู้ดูแลระบบ')
-        password=temporary_password()
-        with connect() as c:
-            c.execute('BEGIN IMMEDIATE')
-            target=admin_target(c,admin,user_id)
-            c.execute('UPDATE users SET password_hash=? WHERE id=?',(PH.hash(password),target['id']))
-            c.execute('DELETE FROM sessions WHERE user_id=?',(target['id'],))
-            c.execute('DELETE FROM login_attempts WHERE email=?',(target['email'],))
-            c.execute('DELETE FROM login_failures WHERE email=?',(target['email'],))
-            audit(c,admin,'reset_password',target)
-        # Shown once to the admin; it is never stored in plain text.
-        response.headers['Cache-Control']='no-store'
-        return {'username':target['username'],'email':target['email'],'temporary_password':password}
-
-    @app.post('/api/admin/members/{user_id}/delete')
-    def admin_delete_member(user_id:int,body:DeleteMemberIn,req:Request,x_csrf_token:str|None=Header(default=None)):
-        admin=mutation(req,x_csrf_token)
-        if admin['role']!='admin': raise HTTPException(403,'เฉพาะผู้ดูแลระบบ')
-        with connect() as c:
-            c.execute('BEGIN IMMEDIATE')
-            target=admin_target(c,admin,user_id)
-            if body.confirm_username.strip().lower()!=target['username'].lower():
-                raise HTTPException(400,'พิมพ์ชื่อผู้ใช้ไม่ตรง ยังไม่ได้ลบ')
-            # ideas has no ON DELETE CASCADE; their votes and comments cascade from the idea.
-            c.execute('DELETE FROM ideas WHERE user_id=?',(target['id'],))
-            c.execute('DELETE FROM users WHERE id=?',(target['id'],))
-            audit(c,admin,'delete_member',target)
-        import shutil
-        shutil.rmtree(data/'videos'/str(int(target['id'])),ignore_errors=True)
-        return {'deleted':True,'username':target['username']}
-
-    @app.get('/api/admin/audit')
-    def admin_audit_log(req:Request):
-        require_admin(req)
-        return read('SELECT id,admin_username,action,target_username,target_email,created_at FROM admin_audit ORDER BY id DESC LIMIT 50')
 
     @app.get('/api/admin/donation-reports')
     def admin_donation_reports(req:Request):
