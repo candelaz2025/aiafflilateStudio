@@ -187,3 +187,24 @@ body:not(.is-admin) [data-tab="users_mgmt"]{display:none}
 .v8-ap-connect .v8-fb-btn{margin-top:0}
 .v8-ap-when .v8-inline-form{align-items:center}
 .v8-ap-when input[type=datetime-local]{max-width:240px;flex:none}
+
+.v8-onb-backdrop{z-index:1200}
+.v8-onb{max-width:620px;width:calc(100% - 32px);max-height:calc(100vh - 40px);overflow:auto}
+.v8-onb-title{font-size:21px;font-weight:800;margin:4px 0 12px}
+.v8-onb-content{font-size:14px;line-height:1.7}
+.v8-onb-content p{margin:0 0 10px}
+.v8-onb-warn{background:var(--color-tertiary-subtle);border:1px solid var(--color-tertiary-border);border-left:4px solid var(--color-tertiary);border-radius:var(--radius-md);padding:12px 14px;margin-bottom:12px;font-size:13px;line-height:1.65}
+.v8-onb-table{width:100%;border-collapse:collapse;font-size:13px}
+.v8-onb-table th,.v8-onb-table td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--color-border);vertical-align:top}
+.v8-onb-table td:last-child{white-space:nowrap}
+.v8-onb-steps{padding-left:20px;margin:0 0 8px}
+.v8-onb-steps li{margin-bottom:8px}
+.v8-onb-dots{display:flex;gap:6px;margin-bottom:6px}
+.v8-onb-dots span{width:22px;height:5px;border-radius:3px;background:var(--color-border)}
+.v8-onb-dots span.is-on{background:var(--color-primary)}
+.v8-onb-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:16px;padding-top:12px;border-top:1px solid var(--color-border)}
+.v8-onb-skip{display:flex;gap:6px;align-items:center;font-size:13px;color:var(--color-text-muted);cursor:pointer}
+.v8-onb-nav{display:flex;gap:8px}
+.v8-beta-chip{border:1px solid var(--color-tertiary-border);background:var(--color-tertiary-subtle);color:var(--color-tertiary-hover);border-radius:999px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
+@media (max-width:600px){.v8-onb-table td:last-child{white-space:normal}.v8-beta-chip{font-size:11px;padding:3px 8px}}
+.v8-chip-wait{background:var(--color-tertiary-subtle);color:var(--color-tertiary-hover);border:1px solid var(--color-tertiary-border)}

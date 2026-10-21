@@ -79,7 +79,7 @@
           <div class="v8-muted v8-small">Seller ${pct(it.seller_comm_rate)} · Shopee ${pct(it.shopee_comm_rate)}</div>
           <div class="v8-muted v8-small">⭐ ${it.rating ?? '-'} · ขายแล้ว ${Number(it.sales || 0).toLocaleString()} · ${esc(it.shop_name || '')}</div>
           <div class="v8-pcard-actions">
-            ${added ? `<span class="chip chip-success mono">อยู่ในคลังแล้ว #${added}</span>
+            ${added ? `<span class="chip chip-success">อยู่ในคลังแล้ว #${added}</span>
                        <button class="btn btn-primary btn-sm" onclick="AASv8.studioWithProduct(${added})">✨ สร้างบท & คลิป</button>`
                     : `<button class="btn btn-primary btn-sm" onclick="AASv8.importItem('${esc(it.item_id)}','${esc(it.shop_id)}', ${ctx === 'radar' ? 'true' : 'false'})">➕ เพิ่มสินค้า</button>`}
           </div>
@@ -209,7 +209,7 @@
         const groups = ['facebook', 'instagram', 'line_oa'].map(pl => {
           const list = this.channels.filter(c => c.platform === pl);
           if (!list.length) return `<div class="v8-pub-row is-off">${PLATFORM_ICON[pl]} ${PLATFORM_LABEL[pl]} — <span class="v8-muted">ยังไม่เชื่อมต่อ</span> <button class="btn btn-ghost btn-sm" onclick="AASv8.goConnectors()">เชื่อมต่อ</button></div>`;
-          return list.map(c => `<label class="v8-pub-row"><input type="checkbox" name="v8pubch" value="${c.id}" data-platform="${pl}"> ${PLATFORM_ICON[pl]} ${esc(c.account_name)} <span class="chip mono">${PLATFORM_LABEL[pl]}</span></label>`).join('');
+          return list.map(c => `<label class="v8-pub-row"><input type="checkbox" name="v8pubch" value="${c.id}" data-platform="${pl}"> ${PLATFORM_ICON[pl]} ${esc(c.account_name)} <span class="chip v8-chip-wait">${PLATFORM_LABEL[pl]}</span></label>`).join('');
         }).join('') + `<div class="v8-pub-row is-off">🎵 TikTok — <span class="v8-muted">ยังไม่เชื่อมต่อ (โพสต์เอง: ดาวน์โหลดคลิปจากหน้า "สร้างคอนเทนต์")</span></div>`;
         $('v8PublishChannels').innerHTML = groups;
         $('v8PublishChannels').querySelectorAll('input[name=v8pubch]').forEach(cb => cb.addEventListener('change', () => this.syncLine()));
@@ -263,7 +263,7 @@
     },
     chanRow(c) {
       const m = c.meta || {};
-      const status = c.status === 'error' ? `<span class="chip v8-chip-err mono">⚠ ${esc(c.last_error || 'error')}</span>` : `<span class="chip chip-success mono">🟢 เชื่อมต่อจริง</span>`;
+      const status = c.status === 'error' ? `<span class="chip v8-chip-err mono">⚠ ${esc(c.last_error || 'error')}</span>` : `<span class="chip chip-success">🟢 เชื่อมต่อจริง</span>`;
       const extra = c.platform === 'line_oa'
         ? `<div class="v8-small v8-muted">${esc(m.basic_id || '')} · โควต้า ${m.quota && m.quota.limit != null ? `${m.quota.used}/${m.quota.limit}` : 'ไม่จำกัด/ไม่ทราบ'} · ผู้รับที่รู้จัก ${c.recipients || 0} คน</div>
            <div class="v8-small">Webhook: <code class="v8-code">${esc(c.webhook_url || '-')}</code> <button class="btn btn-ghost btn-sm" onclick="AASv8.copy(${jsArg(c.webhook_url || '')})">คัดลอก</button></div>`
@@ -521,7 +521,7 @@
         const r = await api('/api/support/threads');
         $('v8ThreadList').innerHTML = r.threads.length ? r.threads.map(t => `
           <button class="v8-thread ${t.unread_admin ? 'is-unread' : ''}" onclick="AASv8.openThread(${t.id})">
-            <div><strong>${esc(t.username)}</strong> <span class="chip mono">${t.status === 'open' ? 'เปิด' : 'ปิดแล้ว'}</span>${t.unread_admin ? ` <span class="v8-pill">${t.unread_admin}</span>` : ''}</div>
+            <div><strong>${esc(t.username)}</strong> <span class="chip v8-chip-wait">${t.status === 'open' ? 'เปิด' : 'ปิดแล้ว'}</span>${t.unread_admin ? ` <span class="v8-pill">${t.unread_admin}</span>` : ''}</div>
             <div class="v8-small v8-muted">${esc((t.last_role === 'bot' ? '🤖 ' : '') + (t.last_body || '').slice(0, 80))}</div>
             <div class="v8-small v8-muted">${esc(localTime(t.last_message_at))}</div></button>`).join('')
           : '<div class="v8-chat-empty">ยังไม่มีข้อความจากสมาชิก</div>';
@@ -989,12 +989,12 @@
       const row = (pl) => {
         const list = chans.filter(c => c.platform === pl);
         return `<div class="v8-plat ${list.length ? 'is-on' : ''}"><span>${PLATFORM_ICON[pl]} <strong>${PLATFORM_LABEL[pl]}</strong></span>
-          ${list.length ? `<span class="chip chip-success mono">เชื่อมแล้ว ${list.length}</span>
+          ${list.length ? `<span class="chip chip-success">เชื่อมแล้ว ${list.length}</span>
             <button class="btn btn-secondary btn-sm" ${p ? '' : 'disabled'} onclick="AASv8.openPublish(${p ? p.product_id : 0}, AASv8.currentCaption())">📤 โพสต์รูป+แคปชั่น</button>`
-          : `<span class="chip mono">ยังไม่เชื่อมต่อ</span><button class="btn btn-ghost btn-sm" onclick="AASv8.goConnectors()">เชื่อมต่อ</button>`}</div>`;
+          : `<span class="chip v8-chip-wait">ยังไม่เชื่อมต่อ</span><button class="btn btn-ghost btn-sm" onclick="AASv8.goConnectors()">เชื่อมต่อ</button>`}</div>`;
       };
       box.innerHTML = `<div class="v8-plat is-primary"><span>🎵 <strong>TikTok</strong> <span class="v8-small v8-muted">(แพลตฟอร์มหลัก Phase 1)</span></span>
-          <span class="chip mono">ยังไม่เชื่อมต่อ API · โพสต์เอง</span></div>
+          <span class="chip v8-chip-wait">ยังไม่เชื่อมต่อ API · โพสต์เอง</span></div>
         <div class="v8-tiktok-steps v8-small">1) ดาวน์โหลดคลิป 2) คัดลอกแคปชั่น 3) อัปโหลดที่ <a href="https://www.tiktok.com/upload" target="_blank" rel="noopener noreferrer">tiktok.com/upload</a> แล้วปักตะกร้า/ลิงก์</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 12px">
           <button class="btn btn-primary btn-sm" id="v8QueueTiktok" ${hasClip && p.status !== 'queued_tiktok' ? '' : 'disabled'}>${p && p.status === 'queued_tiktok' ? '✅ อยู่ในคิว TikTok แล้ว' : '➕ เพิ่มเข้าคิว TikTok'}</button>
@@ -1036,7 +1036,7 @@
       api('/api/studio/projects').then(r => {
         const styleLabel = Object.fromEntries(this.boot.styles.map(s => [s.id, s.emoji + ' ' + s.label]));
         tb.innerHTML = r.projects.length ? r.projects.map(p => `<tr class="${this.project && this.project.id === p.id ? 'v8-row-on' : ''}">
-          <td class="mono">#${p.id}${p.is_sample ? ' <span class="chip mono">ตัวอย่าง</span>' : ''}</td><td>${esc(p.product.title || '')}</td><td>${esc(styleLabel[p.style] || p.style)}</td>
+          <td class="mono">#${p.id}${p.is_sample ? ' <span class="chip v8-chip-wait">ตัวอย่าง</span>' : ''}</td><td>${esc(p.product.title || '')}</td><td>${esc(styleLabel[p.style] || p.style)}</td>
           <td><span class="chip mono v8-st-${p.status}">${esc(p.status_label)}</span></td><td class="mono v8-small">${esc(localTime(p.updated_at))}</td>
           <td><button class="btn btn-ghost btn-sm" onclick="AASv8.openProject(${p.id})">เปิด</button>
               <button class="btn btn-ghost btn-sm v8-danger" onclick="AASv8.deleteProject(${p.id})" aria-label="ลบโปรเจกต์">🗑</button></td></tr>`).join('')
@@ -1090,7 +1090,7 @@
       const chans = Studio.boot.channels || [];
       const fb = chans.filter(c => c.platform === 'facebook');
       const group = pl => chans.filter(c => c.platform === pl).map(c =>
-        `<label class="v8-pub-row"><input type="checkbox" name="v8apch" value="${c.id}" data-platform="${pl}" ${pl === 'facebook' ? 'checked' : ''}> ${PLATFORM_ICON[pl]} ${esc(c.account_name)} <span class="chip mono">${PLATFORM_LABEL[pl]}</span></label>`).join('');
+        `<label class="v8-pub-row"><input type="checkbox" name="v8apch" value="${c.id}" data-platform="${pl}" ${pl === 'facebook' ? 'checked' : ''}> ${PLATFORM_ICON[pl]} ${esc(c.account_name)} <span class="chip v8-chip-wait">${PLATFORM_LABEL[pl]}</span></label>`).join('');
       box.innerHTML = (fb.length ? '' : `<div class="v8-ap-connect"><div><strong>📘 ยังไม่ได้เชื่อม Facebook</strong><div class="v8-small v8-muted">กด Connect → ล็อกอิน Facebook → เลือกเพจ → กลับมาหน้านี้อัตโนมัติ</div></div>
           <button class="btn btn-primary v8-fb-btn" onclick="AASv8.oauth('facebook', this, 'studio')">Connect with Facebook</button></div>`)
         + group('facebook') + group('instagram') + group('line_oa')
@@ -1144,7 +1144,7 @@
         const r = await api('/api/scheduled-posts');
         tb.innerHTML = r.posts.length ? r.posts.map(p => {
           const [cls, label] = AP_STATUS[p.status] || ['', p.status];
-          return `<tr><td class="mono v8-small">${esc(localTime(p.scheduled_at))}</td><td>${esc(p.product_title)}${p.has_video ? ' <span class="chip mono">🎬 คลิป</span>' : ''}</td>
+          return `<tr><td class="mono v8-small">${esc(localTime(p.scheduled_at))}</td><td>${esc(p.product_title)}${p.has_video ? ' <span class="chip v8-chip-wait">🎬 คลิป</span>' : ''}</td>
             <td>${p.channels.map(c => { const [i, t] = AP_STATE[c.state] || ['', c.state];
               return `<div class="v8-small">${i} ${PLATFORM_ICON[c.platform] || ''} ${esc(c.account_name)} — ${t}${c.error ? `<div class="v8-err">${esc(c.error)}</div>` : ''}</div>`; }).join('')}</td>
             <td><span class="chip ${cls} mono">${label}</span></td>
@@ -1161,6 +1161,75 @@
     },
   };
 
+
+  // =========================================================== ONBOARDING (first visit)
+  const ONB_KEY = 'aas_onboarding_v8_hide';
+  const Onboard = {
+    i: 0,
+    slides: [
+      { title: '👋 ยินดีต้อนรับสู่ Affiliate Auto Studio', html: `
+        <div class="v8-onb-warn"><strong>🧪 นี่คือระบบทดสอบ (Beta)</strong><br>
+        ระบบอยู่ระหว่างการพัฒนา <strong>ยังใช้งานจริงไม่ได้ทั้งหมด</strong> บางฟีเจอร์ต้องรอการตั้งค่าหรือการอนุมัติจากแพลตฟอร์ม
+        ข้อมูลทดสอบอาจถูกรีเซ็ตได้ — กรุณาอย่าใส่ข้อมูลสำคัญหรือรหัสผ่านของแพลตฟอร์มอื่น</div>
+        <p>ระบบช่วยนักทำ Affiliate: <strong>หาสินค้า Shopee → สร้างคลิปรีวิวแบบ UGC → โพสต์ลงโซเชียล</strong> ในหน้าเดียว</p>
+        <p class="v8-muted v8-small">ใช้เวลาอ่าน 1 นาที — กด "ถัดไป" เพื่อดูว่า Phase 1 ทำอะไรได้บ้าง</p>` },
+      { title: '✅ Phase 1 ทำอะไรได้บ้าง', html: `
+        <table class="v8-onb-table"><thead><tr><th>ฟีเจอร์</th><th>สถานะ</th></tr></thead><tbody>
+        <tr><td>สร้างบท UGC 6 สไตล์ + คลิปพรีวิว 9:16 (ดาวน์โหลดได้)</td><td><span class="chip chip-success">ใช้ได้เลย</span></td></tr>
+        <tr><td>สินค้าตัวอย่าง / เพิ่มสินค้าเอง พร้อมรูป ราคา ค่าคอม</td><td><span class="chip chip-success">ใช้ได้เลย</span></td></tr>
+        <tr><td>ศูนย์ช่วยเหลือ + แชทถามทีมงาน</td><td><span class="chip chip-success">ใช้ได้เลย</span></td></tr>
+        <tr><td>ดึงสินค้าจาก Shopee (รูป ราคา ค่าคอมจริง)</td><td><span class="chip v8-chip-wait">ต้องใส่ AppID/Secret ของคุณ</span></td></tr>
+        <tr><td>เชื่อม Facebook / Instagram / LINE OA + Auto-Post ตั้งเวลา</td><td><span class="chip v8-chip-wait">รอผู้ดูแลตั้งค่า Meta App</span></td></tr>
+        <tr><td>คลิป AI จริง (Veo 3.1 Lite)</td><td><span class="chip v8-chip-wait">รอเปิดเอนจิน AI</span></td></tr>
+        <tr><td>โพสต์ TikTok / Shopee Video อัตโนมัติ</td><td><span class="chip v8-chip-wait">ยังไม่รองรับ (โพสต์เอง)</span></td></tr>
+        </tbody></table>` },
+      { title: '🧭 เริ่มใช้งานใน 4 ขั้นตอน', html: `
+        <ol class="v8-onb-steps">
+          <li><strong>สร้างคอนเทนต์ (เริ่มที่นี่)</strong> — มีสินค้าและบทตัวอย่างให้ลองทันที <button class="btn btn-ghost btn-sm" data-onb-go="studio">เปิดดู</button></li>
+          <li><strong>เลือกสไตล์ UGC → สร้างบท</strong> แก้ไขได้ทุกฉาก แล้วกด "⏺ สร้างไฟล์คลิปพรีวิว" (ฟรี)</li>
+          <li><strong>บันทึก / ดาวน์โหลด</strong> คลิปไปโพสต์ TikTok เอง หรือ "⏰ Auto-Post" เมื่อเชื่อม Facebook แล้ว</li>
+          <li><strong>สินค้าของฉัน</strong> ดึงสินค้าจริงจาก Shopee <button class="btn btn-ghost btn-sm" data-onb-go="products">เปิดดู</button></li>
+        </ol>
+        <p class="v8-muted v8-small">ทุกขั้นมีแถบสถานะบอกชัดว่าเสร็จ / กำลังทำ / ล้มเหลว</p>` },
+      { title: '🛟 ติดขัดตรงไหน ถามได้เลย', html: `
+        <p>เมนู <strong>ช่วยเหลือ & สอนใช้งาน</strong> มีคู่มือทีละขั้นตอนทุกฟีเจอร์ และแชทสดกับทีมงาน (ปุ่ม 💬 มุมขวาล่าง)</p>
+        <p>พบบั๊กหรืออยากได้ฟีเจอร์ไหน แจ้งได้ที่เมนู <strong>เสนอฟีเจอร์ / แจ้งบั๊ก</strong> — ความเห็นของคุณช่วยกำหนดสิ่งที่จะทำใน Phase ถัดไป</p>
+        <p class="v8-muted v8-small">ดูหน้านี้อีกครั้งได้ที่ปุ่ม "🧪 BETA ทดสอบ" ด้านบน หรือในหน้าช่วยเหลือ</p>` },
+    ],
+    hidden() { try { return localStorage.getItem(ONB_KEY) === '1'; } catch { return false; } },
+    open(force) {
+      if (!force && (this.hidden() || sessionStorage.getItem('aas_onb_seen') === '1')) return;
+      this.i = 0; $('v8OnbNever').checked = this.hidden(); this.render(); $('v8Onboard').hidden = false;
+      setTimeout(() => $('v8OnbNext')?.focus(), 50);
+    },
+    close() {
+      try {
+        if ($('v8OnbNever').checked) localStorage.setItem(ONB_KEY, '1'); else localStorage.removeItem(ONB_KEY);
+        sessionStorage.setItem('aas_onb_seen', '1');
+      } catch {}
+      $('v8Onboard').hidden = true;
+    },
+    render() {
+      const s = this.slides[this.i], last = this.i === this.slides.length - 1;
+      $('v8OnbBody').innerHTML = `<h2 id="v8OnbTitle" class="v8-onb-title">${s.title}</h2><div class="v8-onb-content">${s.html}</div>`;
+      $('v8OnbDots').innerHTML = this.slides.map((_, k) => `<span class="${k === this.i ? 'is-on' : ''}"></span>`).join('');
+      $('v8OnbPrev').style.visibility = this.i ? 'visible' : 'hidden';
+      $('v8OnbNext').textContent = last ? '🚀 เริ่มใช้งาน' : 'ถัดไป →';
+      $('v8OnbBody').querySelectorAll('[data-onb-go]').forEach(b => b.addEventListener('click', () => { this.close(); AAS.switchTab(b.dataset.onbGo); }));
+    },
+    bind() {
+      $('v8OnbNext')?.addEventListener('click', () => {
+        if (this.i < this.slides.length - 1) { this.i += 1; this.render(); }
+        else { this.close(); AAS.switchTab('studio'); }
+      });
+      $('v8OnbPrev')?.addEventListener('click', () => { if (this.i) { this.i -= 1; this.render(); } });
+      $('v8OnbClose')?.addEventListener('click', () => this.close());
+      $('v8Onboard')?.addEventListener('click', e => { if (e.target.id === 'v8Onboard') this.close(); });
+      document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('v8Onboard').hidden) this.close(); });
+      $('v8BetaChip')?.addEventListener('click', () => this.open(true));
+      $('v8OnbReopen')?.addEventListener('click', () => this.open(true));
+    },
+  };
   async function refreshQueueBadge() {
     try { const q = await api('/api/my/queue'); const b = $('badge-queue-count'); if (b) b.textContent = q.filter(x => x.status !== 'cancelled').length; } catch {}
   }
@@ -1335,7 +1404,8 @@
   });
 
   function init() {
-    Shopee.bind(); Conn.bind(); Chat.bind(); Studio.bind(); AutoPost.bind();
+    Shopee.bind(); Conn.bind(); Chat.bind(); Studio.bind(); AutoPost.bind(); Onboard.bind();
+    if (!new URLSearchParams(location.search).get('oauth')) setTimeout(() => Onboard.open(false), 700);
     document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => { $(b.dataset.close).hidden = true; }));
     $('v8PublishSubmit')?.addEventListener('click', () => Publish.submit());
     $('v8HelpSearch')?.addEventListener('input', () => Help.loaded && Help.render());

@@ -261,6 +261,7 @@
       </div>
 
       <div class="topbar-right">
+        <button class="v8-beta-chip" id="v8BetaChip" title="ระบบทดสอบ — กดเพื่อดูสิ่งที่ใช้ได้ใน Phase 1">🧪 BETA ทดสอบ</button>
         <!-- Energy Quota & Credit Top-up Badge -->
         <div class="energy-badge" id="energyBadgeClickable" style="cursor:pointer;" title="คลิกเพื่อเติมเครดิตและดูโควต้า">
           <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
@@ -1669,6 +1670,7 @@
             <h2 class="page-title">🛟 ศูนย์ช่วยเหลือ & สอนใช้งาน</h2>
             <p class="page-subtitle">คู่มือทีละขั้นตอนทุกฟีเจอร์ + แชทถามทีมงานแบบ Real-time</p>
           </div>
+          <button class="btn btn-secondary btn-sm" id="v8OnbReopen">🧭 ดูแนะนำการใช้งานอีกครั้ง</button>
         </div>
         <div class="v8-help-layout">
           <div class="v8-help-main">
@@ -2580,12 +2582,28 @@
   </div>
 </div>
 
+
+<!-- V8: First-visit onboarding + beta notice -->
+<div class="modal-backdrop v8-onb-backdrop" id="v8Onboard" hidden>
+  <div class="modal-content v8-onb" role="dialog" aria-modal="true" aria-labelledby="v8OnbTitle">
+    <button class="modal-close-btn" id="v8OnbClose" aria-label="ปิด">&times;</button>
+    <div class="v8-onb-dots" id="v8OnbDots" aria-hidden="true"></div>
+    <div id="v8OnbBody"></div>
+    <div class="v8-onb-foot">
+      <label class="v8-onb-skip"><input type="checkbox" id="v8OnbNever"> ไม่ต้องเตือนฉันอีก</label>
+      <div class="v8-onb-nav">
+        <button class="btn btn-ghost" id="v8OnbPrev">← ย้อนกลับ</button>
+        <button class="btn btn-primary" id="v8OnbNext">ถัดไป →</button>
+      </div>
+    </div>
+  </div>
+</div>
 <!-- V8: Floating support chat launcher -->
 <button class="v8-chat-fab" id="v8ChatFab" aria-label="แชทกับทีมงาน" title="แชทกับทีมงาน">💬<span class="v8-fab-badge" id="v8FabBadge" hidden>0</span></button>
 <div id="v8Toast" class="v8-toast" role="status" aria-live="polite" hidden></div>
 
-<link rel="stylesheet" href="/static/v8.css?v=20261021-001">
+<link rel="stylesheet" href="/static/v8.css?v=20261021-002">
 <script src="/static/app.js?v=20261020-002" defer></script>
-<script src="/static/v8.js?v=20261021-001" defer></script>
+<script src="/static/v8.js?v=20261021-002" defer></script>
 </body>
 </html>
