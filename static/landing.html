@@ -495,10 +495,10 @@
 
         <div class="t-input-group">
           <label>รหัสผ่าน (Password) *</label>
-          <input type="password" name="password" id="trialPassword" placeholder="อย่างน้อย 6 ตัวอักษร มีตัวเลขและตัวอักษร" minlength="6" required>
+          <input type="password" name="password" id="trialPassword" placeholder="อย่างน้อย 12 ตัวอักษร มีตัวเลขและตัวอักษร" minlength="12" required>
         </div>
 
-        <div class="t-input-group">
+        <div class="t-input-group" id="trialInviteGroup">
           <label>รหัสเชิญ Beta (Invite Code - ถ้ามี)</label>
           <input type="text" name="invite_code" id="trialInviteCode" placeholder="เว้นว่างได้ถ้าเปิดรับสมัครทั่วไป">
         </div>
@@ -539,6 +539,8 @@
         const data = await res.json();
         const text = document.getElementById('trialCapText');
         if (text) text.textContent = `โควตา Beta: เหลือ ${data.available} / ${data.max} ที่นั่ง`;
+        const inv = document.getElementById('trialInviteGroup');
+        if (inv && !data.invite_only) inv.style.display = 'none';
       }
       else { const t = document.getElementById('trialCapText'); if (t) t.textContent = 'โควตา Beta: ตรวจสอบไม่ได้ชั่วคราว'; }
     } catch(e) {
@@ -574,7 +576,11 @@
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.detail || 'การสมัครสมาชิกล้มเหลว');
+        const d = data.detail;
+        const m = typeof d === 'string' ? d
+          : Array.isArray(d) && d.length ? (d[0].loc || []).slice(-1)[0] === 'password' ? 'รหัสผ่านต้องมีอย่างน้อย 12 ตัวอักษร' : 'กรุณากรอกข้อมูลให้ครบถ้วนและถูกต้อง'
+          : 'การสมัครสมาชิกล้มเหลว';
+        throw new Error(m);
       }
 
       // Success
@@ -584,8 +590,6 @@
       alertBox.style.color = '#10B981';
       alertBox.innerHTML = `<strong>🎉 สมัครทดลองใช้งานสำเร็จ!</strong><br>กำลังพาท่านเข้าสู่ Dashboard ใน 2 วินาที...`;
 
-      // Save initial trial credit bonus in local session
-      localStorage.setItem('aas_credits', '200');
 
       setTimeout(() => {
         window.location.href = '/';

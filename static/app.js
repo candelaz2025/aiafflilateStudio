@@ -1164,6 +1164,8 @@
   let pendingCheckout = null;
 
   function openTopupModal() {
+    // The legacy plan sheet is retired; PromptPay checkout lives in v8.js.
+    if (window.AASv8 && window.AASv8.openPay) return window.AASv8.openPay();
     $('topupModal').style.display = 'flex';
   }
   function closeTopupModal() {
@@ -2093,7 +2095,7 @@
   // GLOBAL WINDOW EXPORTS (FOR INLINE ACTIONS)
   // ==========================================
   window.appSwitchTab = switchTab;
-  window.AAS = { api, msg, esc, switchTab, logout: () => doLogout(), openTopup: () => openTopupModal(), getMe: () => me, reloadProducts: () => loadProducts(), reloadChannels: () => loadChannels() };
+  window.AAS = { api, msg, esc, switchTab, logout: () => doLogout(), openTopup: () => openTopupModal(), refreshSession: () => checkSession(), getMe: () => me, reloadProducts: () => loadProducts(), reloadChannels: () => loadChannels() };
 
   window.appQuickSearch = keyword => {
     switchTab('radar');

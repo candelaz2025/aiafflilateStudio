@@ -1209,6 +1209,144 @@
 
 
 
+
+  // =========================================================== PROMPTPAY TOP-UP
+  const Pay = {
+    cfg: null, order: null, pollT: 0, tickT: 0,
+    step(n) { document.querySelectorAll('#v8Pay [data-ps]').forEach(li => { const k = +li.dataset.ps; li.classList.toggle('is-on', k === n); li.classList.toggle('is-done', k < n); }); },
+    stop() { clearInterval(this.pollT); clearInterval(this.tickT); this.pollT = this.tickT = 0; },
+    close() { this.stop(); $('v8Pay').hidden = true; },
+    baht(n) { return '฿' + Number(n).toLocaleString('th-TH', { minimumFractionDigits: Number(n) % 1 ? 2 : 0, maximumFractionDigits: 2 }); },
+    async open() {
+      const me = AAS.getMe() || {};
+      if (!me.id) { toast('กรุณาเข้าสู่ระบบก่อนเติมเครดิต', 'error'); $('authModal').hidden = false; return; }
+      $('v8Pay').hidden = false; this.stop(); this.step(1);
+      $('v8PayTitle').textContent = '💳 เติมเครดิต — เลือกแพ็กเกจ';
+      const box = $('v8PayBody'); box.innerHTML = stateBox('loading', 'กำลังโหลดแพ็กเกจ…');
+      try { this.cfg = await api('/api/payments/packages'); }
+      catch (e) { box.innerHTML = stateBox('error', 'โหลดแพ็กเกจไม่สำเร็จ: ' + e.message, null) + '<button class="btn btn-secondary btn-sm" onclick="AASv8.openPay()">ลองใหม่</button>'; return; }
+      const c = this.cfg;
+      box.innerHTML = `
+        ${c.mode === 'simulate' ? `<div class="v8-onb-warn"><strong>🧪 โหมดจำลองการชำระเงิน</strong> — ไม่มีการตัดเงินจริง กด "จำลองการชำระเงินสำเร็จ" ในขั้นถัดไปแล้วเครดิตจะเข้าบัญชีจริงทันที</div>` : ''}
+        <p class="v8-muted v8-small">เครดิตคงเหลือ <strong>⚡ ${Number(me.credits || 0).toLocaleString('th-TH')}</strong> · คลิป AI 1 คลิปใช้ ${c.clip_cost} เครดิต · เครดิตไม่มีวันหมดอายุ · จ่ายครั้งเดียว ไม่ตัดรอบอัตโนมัติ</p>
+        <div class="v8-pkg-grid">${c.packages.map(p => `
+          <button class="v8-pkg ${p.popular ? 'is-pop' : ''}" data-pkg="${p.id}">
+            ${p.popular ? '<span class="v8-pkg-pop">ยอดนิยม</span>' : ''}
+            <span class="v8-pkg-name">${esc(p.name)}</span>
+            <span class="v8-pkg-credits">⚡ ${p.credits.toLocaleString('th-TH')} <small>เครดิต</small></span>
+            ${p.bonus ? `<span class="v8-pkg-bonus">โบนัส +${p.bonus.toLocaleString('th-TH')}</span>` : '<span class="v8-pkg-bonus is-none">ราคาปกติ</span>'}
+            <span class="v8-pkg-desc">${esc(p.desc)}</span>
+            <span class="v8-pkg-price">${this.baht(p.price)}</span>
+            <span class="v8-pkg-cta">เลือกแพ็กเกจนี้ →</span>
+          </button>`).join('')}</div>`;
+      box.querySelectorAll('[data-pkg]').forEach(b => b.addEventListener('click', () => this.create(b.dataset.pkg, b)));
+    },
+    async create(pkgId, btn) {
+      if (btn) { btn.disabled = true; btn.querySelector('.v8-pkg-cta').textContent = 'กำลังสร้าง QR…'; }
+      try { this.order = await api('/api/payments/orders', 'POST', { package_id: pkgId }); this.renderQR(); }
+      catch (e) { toast('สร้างรายการชำระเงินไม่สำเร็จ: ' + e.message, 'error'); if (btn) { btn.disabled = false; btn.querySelector('.v8-pkg-cta').textContent = 'เลือกแพ็กเกจนี้ →'; } }
+    },
+    renderQR() {
+      const o = this.order, sim = o.mode === 'simulate';
+      this.step(2); $('v8PayTitle').textContent = '📱 สแกนจ่ายผ่าน PromptPay';
+      $('v8PayBody').innerHTML = `
+        <div class="v8-pay-grid">
+          <div class="v8-qr-card">
+            <div class="v8-qr-head"><span class="v8-pp-logo">PromptPay</span><span>Thai QR Payment</span></div>
+            <div class="v8-qr-img ${o.payable ? '' : 'is-demo'}">${o.qr_svg || '<div class="v8-muted">ไม่สามารถสร้างภาพ QR</div>'}${o.payable ? '' : '<span class="v8-qr-stamp">QR จำลอง<br>สแกนจ่ายจริงไม่ได้</span>'}</div>
+            <div class="v8-qr-amount">${this.baht(o.amount_thb)}</div>
+            ${o.payable ? `<div class="v8-small v8-muted">ผู้รับเงิน ${esc(o.payee_name || 'PromptPay')} · ${esc(o.payee)}</div>` : ''}
+            <div class="v8-qr-timer">QR หมดอายุใน <strong id="v8PayTimer">--:--</strong></div>
+          </div>
+          <div class="v8-pay-side">
+            <table class="v8-onb-table"><tbody>
+              <tr><th>เลขที่รายการ</th><td class="mono">${esc(o.ref)}</td></tr>
+              <tr><th>แพ็กเกจ</th><td>${esc(o.package_name)}</td></tr>
+              <tr><th>เครดิตที่ได้รับ</th><td><strong>⚡ +${o.credits.toLocaleString('th-TH')}</strong></td></tr>
+              <tr><th>ยอดชำระ</th><td><strong>${this.baht(o.amount_thb)}</strong>${o.mode === 'manual' ? '<div class="v8-small v8-muted">โอนให้ตรงทุกสตางค์ เพื่อให้ระบบจับคู่รายการได้</div>' : ''}</td></tr>
+            </tbody></table>
+            <ol class="v8-onb-steps v8-small">
+              <li>เปิดแอปธนาคารหรือ e-Wallet → เลือก "สแกน QR"</li>
+              <li>สแกน QR ด้านซ้าย ตรวจยอด ${this.baht(o.amount_thb)} แล้วยืนยันการโอน</li>
+              <li>${sim ? 'กด "จำลองการชำระเงินสำเร็จ" ด้านล่าง (โหมดทดสอบ)' : 'รอระบบยืนยันยอดโอน หน้านี้จะอัปเดตเอง'}</li>
+            </ol>
+            <div class="v8-pay-status" id="v8PayStatus"><span class="v8-spin" aria-hidden="true"></span> รอการชำระเงิน…</div>
+            <div class="v8-pay-actions">
+              ${sim ? '<button class="btn btn-primary" id="v8PaySim">✅ จำลองการชำระเงินสำเร็จ</button>' : ''}
+              ${o.qr_svg ? '<button class="btn btn-secondary btn-sm" id="v8PaySave">⬇ บันทึก QR</button>' : ''}
+              <button class="btn btn-ghost btn-sm" id="v8PayBack">← เปลี่ยนแพ็กเกจ</button>
+            </div>
+          </div>
+        </div>`;
+      $('v8PaySim')?.addEventListener('click', () => this.simulate());
+      $('v8PayBack').addEventListener('click', async () => { try { await api(`/api/payments/orders/${o.id}/cancel`, 'POST', {}); } catch {} this.open(); });
+      $('v8PaySave')?.addEventListener('click', () => {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([o.qr_svg], { type: 'image/svg+xml' })); a.download = `promptpay-${o.ref}.svg`; a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+      });
+      const end = new Date(o.expires_at).getTime();
+      const tick = () => {
+        const left = Math.max(0, Math.round((end - Date.now()) / 1000));
+        const t = $('v8PayTimer'); if (t) t.textContent = `${String(Math.floor(left / 60)).padStart(2, '0')}:${String(left % 60).padStart(2, '0')}`;
+        if (!left) this.poll();
+      };
+      tick(); this.tickT = setInterval(tick, 1000);
+      this.pollT = setInterval(() => this.poll(), 4000);
+    },
+    async poll() {
+      if (!this.order) return;
+      try {
+        const r = await api(`/api/payments/orders/${this.order.id}`);
+        if (r.status === 'paid') this.success(r);
+        else if (r.status === 'expired' || r.status === 'cancelled') this.expired(r.status);
+      } catch {}
+    },
+    async simulate() {
+      const b = $('v8PaySim'); b.disabled = true;
+      $('v8PayStatus').innerHTML = '<span class="v8-spin" aria-hidden="true"></span> กำลังตรวจสอบการชำระเงินกับธนาคาร…';
+      await new Promise(r => setTimeout(r, 1400));
+      try { const r = await api(`/api/payments/orders/${this.order.id}/simulate-paid`, 'POST', {}); this.success(r); }
+      catch (e) { $('v8PayStatus').innerHTML = '❌ ' + esc(e.message); b.disabled = false; }
+    },
+    async success(r) {
+      this.stop(); this.step(3); $('v8PayTitle').textContent = '🎉 เติมเครดิตสำเร็จ';
+      await AAS.refreshSession();
+      const bal = r.balance ?? (AAS.getMe() || {}).credits;
+      $('v8PayBody').innerHTML = `
+        <div class="v8-pay-done">
+          <div class="v8-pay-check" aria-hidden="true">✓</div>
+          <div class="v8-pay-plus">+${r.credits.toLocaleString('th-TH')} เครดิต</div>
+          <p>เครดิตคงเหลือตอนนี้ <strong>⚡ ${Number(bal || 0).toLocaleString('th-TH')}</strong></p>
+          <table class="v8-onb-table v8-pay-receipt"><tbody>
+            <tr><th>เลขที่รายการ</th><td class="mono">${esc(r.ref)}</td></tr>
+            <tr><th>แพ็กเกจ</th><td>${esc(r.package_name)}</td></tr>
+            <tr><th>ยอดชำระ</th><td>${this.baht(r.amount_thb)} ${r.mode === 'simulate' ? '<span class="chip v8-chip-wait">จำลอง</span>' : ''}</td></tr>
+            <tr><th>เวลา</th><td>${new Date(r.paid_at || Date.now()).toLocaleString('th-TH-u-ca-gregory')}</td></tr>
+          </tbody></table>
+          <div class="v8-pay-actions" style="justify-content:center">
+            <button class="btn btn-primary" id="v8PayGo">🚀 ไปสร้างคอนเทนต์</button>
+            <button class="btn btn-ghost" id="v8PayDone">ปิด</button>
+          </div>
+        </div>`;
+      $('v8PayGo').addEventListener('click', () => { this.close(); AAS.switchTab('studio'); });
+      $('v8PayDone').addEventListener('click', () => this.close());
+      toast(`เติมเครดิตสำเร็จ +${r.credits.toLocaleString('th-TH')} เครดิต`, 'success');
+    },
+    expired(status) {
+      this.stop();
+      $('v8PayStatus').innerHTML = status === 'expired' ? '⏰ QR หมดอายุแล้ว — ยังไม่มีการตัดเงิน' : 'รายการนี้ถูกยกเลิกแล้ว';
+      $('v8PaySim')?.remove();
+      const t = $('v8PayTimer'); if (t) t.textContent = '00:00';
+      const a = document.querySelector('#v8PayBody .v8-pay-actions');
+      if (a && !$('v8PayNew')) { a.insertAdjacentHTML('afterbegin', '<button class="btn btn-primary" id="v8PayNew">🔄 สร้าง QR ใหม่</button>'); $('v8PayNew').addEventListener('click', () => this.create(this.order.package_id)); }
+    },
+    bind() {
+      $('v8PayClose')?.addEventListener('click', () => this.close());
+      $('v8Pay')?.addEventListener('click', e => { if (e.target.id === 'v8Pay') this.close(); });
+      document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('v8Pay').hidden) this.close(); });
+    },
+  };
   // =========================================================== PROFILE MENU (top-right)
   const Profile = {
     paint() {
@@ -1236,9 +1374,35 @@
           ${row('สถานะ', me.role === 'admin' ? '<span class="chip chip-success">ผู้ดูแลระบบ</span>' : '<span class="chip">สมาชิก Beta</span>')}
           ${row('เครดิตคงเหลือ', `⚡ ${Number(me.credits || 0).toLocaleString('th-TH')} เครดิต`)}
         </tbody></table>
-        <p class="v8-muted v8-small">ต้องการเปลี่ยนรหัสผ่านหรือลบบัญชี แจ้งทีมงานที่เมนู "เสนอไอเดีย / แจ้งปัญหา" — ช่วง Beta ผู้ดูแลจะดำเนินการให้</p>
-        <div class="v8-onb-nav"><button class="btn btn-secondary btn-sm" data-acc="topup">💳 เติมเงิน</button><button class="btn btn-ghost btn-sm" data-acc="logout">🚪 ออกจากระบบ</button></div>`;
-        box.querySelector('[data-acc=topup]').addEventListener('click', () => { $('v8Account').hidden = true; AAS.openTopup(); });
+        <div class="v8-onb-nav" style="margin:12px 0 4px"><button class="btn btn-secondary btn-sm" data-acc="topup">💳 เติมเงิน</button><button class="btn btn-ghost btn-sm" data-acc="logout">🚪 ออกจากระบบ</button></div>
+        <details class="v8-acc-sec"><summary>🔑 เปลี่ยนรหัสผ่าน</summary>
+          <form id="v8PwForm" class="v8-pw-form" autocomplete="off">
+            <label>รหัสผ่านปัจจุบัน<input class="form-input" type="password" name="current_password" required autocomplete="current-password"></label>
+            <label>รหัสผ่านใหม่ (อย่างน้อย 12 ตัว มีตัวอักษรและตัวเลข)<input class="form-input" type="password" name="new_password" minlength="12" required autocomplete="new-password"></label>
+            <label>ยืนยันรหัสผ่านใหม่<input class="form-input" type="password" name="confirm" minlength="12" required autocomplete="new-password"></label>
+            <button class="btn btn-primary btn-sm" type="submit">บันทึกรหัสผ่านใหม่</button>
+            <p class="v8-small v8-muted">เมื่อเปลี่ยนแล้ว อุปกรณ์อื่นที่ล็อกอินอยู่จะถูกออกจากระบบ</p>
+          </form>
+        </details>
+        <details class="v8-acc-sec" id="v8AccHist"><summary>🧾 ประวัติการเติมเครดิต</summary><div id="v8AccHistBody">${stateBox('loading', 'กำลังโหลด…')}</div></details>`;
+        $('v8PwForm').addEventListener('submit', async e => {
+          e.preventDefault();
+          const f = e.target, btn = f.querySelector('button[type=submit]');
+          if (f.new_password.value !== f.confirm.value) return toast('รหัสผ่านใหม่ทั้งสองช่องไม่ตรงกัน', 'error');
+          btn.disabled = true;
+          try { await api('/api/my/password', 'POST', { current_password: f.current_password.value, new_password: f.new_password.value }); f.reset(); toast('เปลี่ยนรหัสผ่านเรียบร้อย', 'success'); f.closest('details').open = false; }
+          catch (err) { toast(err.message, 'error'); }
+          finally { btn.disabled = false; }
+        });
+        $('v8AccHist').addEventListener('toggle', async ev => {
+          if (!ev.target.open || ev.target._loaded) return;
+          try {
+            const r = await api('/api/payments/orders'); ev.target._loaded = true;
+            const st = { paid: '<span class="chip chip-success">สำเร็จ</span>', pending: '<span class="chip v8-chip-wait">รอชำระ</span>', expired: '<span class="chip">หมดอายุ</span>', cancelled: '<span class="chip">ยกเลิก</span>' };
+            $('v8AccHistBody').innerHTML = r.orders.length ? `<table class="v8-onb-table"><thead><tr><th>วันที่</th><th>แพ็กเกจ</th><th>ยอด</th><th>สถานะ</th></tr></thead><tbody>${r.orders.map(o => `<tr><td>${new Date(o.created_at).toLocaleDateString('th-TH-u-ca-gregory')}</td><td>${esc(o.package_name)} <small class="v8-muted">+${o.credits}</small></td><td>${Pay.baht(o.amount_thb)}</td><td>${st[o.status] || esc(o.status)}</td></tr>`).join('')}</tbody></table>` : stateBox('empty', 'ยังไม่มีประวัติการเติมเครดิต', null);
+          } catch (err) { $('v8AccHistBody').innerHTML = stateBox('error', err.message, null); }
+        });
+        box.querySelector('[data-acc=topup]').addEventListener('click', () => { $('v8Account').hidden = true; Pay.open(); });
         box.querySelector('[data-acc=logout]').addEventListener('click', () => AAS.logout());
       } catch (e) { box.innerHTML = stateBox('error', 'โหลดข้อมูลบัญชีไม่สำเร็จ: ' + e.message, null); }
     },
@@ -1246,7 +1410,7 @@
       this.close();
       const me = AAS.getMe() || {};
       if (k === 'members') return me.role === 'admin' ? AAS.switchTab('users_mgmt') : this.account();
-      if (k === 'topup') return AAS.openTopup();
+      if (k === 'topup') return Pay.open();
       if (k === 'report') return AAS.switchTab('tracking');
       if (k === 'logout') return AAS.logout();
     },
@@ -1444,6 +1608,7 @@
     copy,
     loadHelp: () => Help.load(),
     openThread: id => Chat.openThread(id),
+    openPay: () => Pay.open(),
     askAbout() { AAS.switchTab('help'); },
     loadStudio: () => Studio.load(),
     openProject: id => Studio.openProject(id),
@@ -1508,7 +1673,8 @@
   });
 
   function init() {
-    Shopee.bind(); Conn.bind(); Studio.bind(); AutoPost.bind(); Onboard.bind(); Profile.bind();
+    Shopee.bind(); Conn.bind(); Studio.bind(); AutoPost.bind(); Onboard.bind(); Profile.bind(); Pay.bind();
+    api('/api/beta/capacity').then(c => { if (!c.invite_only) $('regInviteCode')?.closest('.form-group')?.setAttribute('hidden', ''); }).catch(() => {});
     if (!new URLSearchParams(location.search).get('oauth')) setTimeout(() => Onboard.open(false), 700);
     document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => { $(b.dataset.close).hidden = true; }));
     $('v8PublishSubmit')?.addEventListener('click', () => Publish.submit());

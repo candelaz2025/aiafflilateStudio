@@ -2584,6 +2584,17 @@
 </div>
 
 
+<!-- V8: PromptPay credit top-up -->
+<div class="modal-backdrop" id="v8Pay" hidden>
+  <div class="modal-content v8-pay" role="dialog" aria-modal="true" aria-labelledby="v8PayTitle">
+    <button class="modal-close-btn" id="v8PayClose" aria-label="ปิด">&times;</button>
+    <ol class="v8-pay-steps" aria-label="ขั้นตอนเติมเครดิต">
+      <li data-ps="1">เลือกแพ็กเกจ</li><li data-ps="2">ชำระผ่าน PromptPay</li><li data-ps="3">เครดิตเข้าบัญชี</li>
+    </ol>
+    <h2 id="v8PayTitle" class="v8-onb-title">💳 เติมเครดิต</h2>
+    <div id="v8PayBody"></div>
+  </div>
+</div>
 <!-- V8: Member account modal (profile menu → จัดการสมาชิก) -->
 <div class="modal-backdrop" id="v8Account" hidden>
   <div class="modal-content v8-acc" role="dialog" aria-modal="true" aria-labelledby="v8AccTitle">
@@ -2609,8 +2620,8 @@
 </div>
 <div id="v8Toast" class="v8-toast" role="status" aria-live="polite" hidden></div>
 
-<link rel="stylesheet" href="/static/v8.css?v=20261021-004">
-<script src="/static/app.js?v=20261021-004" defer></script>
-<script src="/static/v8.js?v=20261021-004" defer></script>
+<link rel="stylesheet" href="/static/v8.css?v=20261021-005">
+<script src="/static/app.js?v=20261021-005" defer></script>
+<script src="/static/v8.js?v=20261021-005" defer></script>
 </body>
 </html>

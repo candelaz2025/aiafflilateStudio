@@ -3,7 +3,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt && groupadd --gid 10001 app && useradd --uid 10001 --gid app --no-create-home app
-COPY community_app.py promote_admin.py reset_password.py updater.py version.json features_v8.py studio_v8.py scheduler_v8.py ./
+COPY community_app.py promote_admin.py reset_password.py updater.py version.json features_v8.py studio_v8.py scheduler_v8.py payments_v8.py ./
 COPY integrations/ ./integrations/
 COPY studio_v6/ ./studio_v6/
 COPY assets/ ./assets/

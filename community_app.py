@@ -214,8 +214,7 @@ def create_app(data_dir=None, secret_key=None):
     data = Path(data_dir or os.getenv('COMMUNITY_DATA_DIR', ROOT / 'data')).resolve()
     data.mkdir(parents=True, exist_ok=True)
     db_path = data / 'community.db'
-    if PUBLIC_MODE and not REQUIRE_INVITE:
-        raise RuntimeError('PUBLIC_DEPLOYMENT requires BETA_INVITE_CODE to protect the 100 beta seats')
+    # Invite code is optional: MAX_BETA_USERS still caps open registration.
     cipher = Fernet(get_key(data, secret_key))
     app = FastAPI(title='Affiliate Auto Studio — V7.10 Shopee Import Beta100', version='0.7.10')
     app.mount('/static', StaticFiles(directory=ROOT / 'static'), name='static')
@@ -610,10 +609,12 @@ def create_app(data_dir=None, secret_key=None):
     def me(req: Request):
         u=require_user(req)
         import json
+        # require_user() only selects identity columns; read balance and permissions from users.
+        extra = read('SELECT credits, permissions FROM users WHERE id=?', (u['id'],), True)
         perms = {}
         try:
-            if 'permissions' in u.keys() and u['permissions']:
-                perms = json.loads(u['permissions'])
+            if extra and extra['permissions']:
+                perms = json.loads(extra['permissions'])
         except Exception:
             pass
         return {
@@ -622,7 +623,7 @@ def create_app(data_dir=None, secret_key=None):
             'role': u['role'],
             'csrf': u['csrf'],
             'email': u['email'] if 'email' in u.keys() else '',
-            'credits': u['credits'] if 'credits' in u.keys() else 50,
+            'credits': (extra['credits'] if extra and extra['credits'] is not None else 0),
             'permissions': perms,
             'is_admin': u['role'] == 'admin'
         }
@@ -1007,7 +1008,10 @@ def create_app(data_dir=None, secret_key=None):
 
     @app.post('/api/my/credits/topup')
     def user_self_topup(body: SelfTopupIn, req: Request, x_csrf_token: str | None = Header(default=None)):
-        u = mutation(req, x_csrf_token)
+        mutation(req, x_csrf_token)
+        # Free self-service credits were a hole: credits now come only from paid orders (/api/payments/*).
+        raise HTTPException(410, 'การเติมเครดิตย้ายไปที่ระบบชำระเงิน PromptPay แล้ว')
+        u = None
         current = read('SELECT credits FROM users WHERE id=?', (u['id'],), one=True)
         cur_cred = current['credits'] if current and 'credits' in current.keys() and current['credits'] is not None else 0
         new_cred = cur_cred + body.credits
@@ -1770,6 +1774,8 @@ def create_app(data_dir=None, secret_key=None):
             return ''
     scheduler_v8.register(app, connect=connect, read=read, require_user=require_user, mutation=mutation, now=now,
                           data_dir=data, decrypt=_dec, base_url_for=app.state.v8_base_url)
+    import payments_v8
+    payments_v8.register(app, connect=connect, read=read, require_user=require_user, mutation=mutation, now=now)
 
     # Mount the existing V6 features without mixing its single-tenant database
     # into community.db. Never publish this combined prototype to the internet.
