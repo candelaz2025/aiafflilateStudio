@@ -1,0 +1,31 @@
+# `railway up` uploads the working directory using THIS file (it does not read
+# .dockerignore, and falls back to .gitignore only when this file is absent).
+# Keep it in step with .dockerignore so a deploy ships the app and nothing else.
+.venv
+.netlify
+.git
+_sync
+public
+data
+studio_v6/data
+studio_v6/tests
+auto_studio/output
+AIStudio.app
+Logo Design
+updates/backups
+shopee
+tests
+tests_*
+.pytest_cache
+**/__pycache__
+*.pyc
+*.db
+*.sqlite3
+*.key
+*.zip
+.env
+.env.*
+!.env.server.example
+.DS_Store
+.deploy_retry.sh
+.deploy_retry.log

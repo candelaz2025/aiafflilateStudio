@@ -2666,6 +2666,45 @@
     </div>
   </div>
 </div>
+<!-- V8: TikTok pre-connect consent — what we are about to ask TikTok for, shown
+     before the redirect so the grant is never a surprise -->
+<div class="modal-backdrop" id="v8TtConnect" hidden>
+  <div class="modal-content v8-oauth-card" role="dialog" aria-modal="true" aria-labelledby="v8TtConnTitle">
+    <button class="modal-close-btn" id="v8TtConnClose" aria-label="ปิด">&times;</button>
+    <h3 id="v8TtConnTitle" class="v8-oauth-title">Affiliate Auto Studio<br>ขอเข้าถึงบัญชี TikTok ของคุณ</h3>
+    <div class="v8-oauth-pair">
+      <div class="v8-oauth-party">
+        <div class="v8-oauth-avatar v8-oauth-tt" aria-hidden="true">🎵</div>
+        <strong id="v8TtConnWho">บัญชี TikTok ของคุณ</strong>
+        <span class="v8-small v8-muted">เลือกบัญชีในหน้าถัดไป</span>
+      </div>
+      <div class="v8-oauth-arrows" aria-hidden="true">⇌</div>
+      <div class="v8-oauth-party">
+        <div class="v8-oauth-avatar v8-oauth-app" aria-hidden="true">A</div>
+        <strong>Affiliate Studio</strong>
+        <span class="v8-small v8-muted">แอปนี้</span>
+      </div>
+    </div>
+    <div class="v8-oauth-section">
+      <div class="v8-oauth-label">แอปนี้จะได้สิทธิ์</div>
+      <div class="v8-oauth-row"><span aria-hidden="true">👤</span><div><strong>ข้อมูลโปรไฟล์พื้นฐาน</strong>
+        <div class="v8-small v8-muted">ชื่อบัญชี รูปโปรไฟล์ และจำนวนผู้ติดตาม <code class="v8-code">user.info.basic</code></div></div></div>
+      <div class="v8-oauth-row"><span aria-hidden="true">🎬</span><div><strong>โพสต์วิดีโอในนามคุณ</strong>
+        <div class="v8-small v8-muted">อัปโหลดเฉพาะคลิปที่คุณกดโพสต์เองทีละคลิป <code class="v8-code">video.publish</code></div></div></div>
+    </div>
+    <div class="v8-oauth-section v8-oauth-deny">
+      <div class="v8-oauth-label">แอปนี้จะไม่ได้สิทธิ์</div>
+      <div class="v8-small">อ่านข้อความส่วนตัว · ติดตาม/เลิกติดตามใคร · ลบหรือแก้คลิปเดิมของคุณ · โพสต์เองโดยที่คุณไม่ได้สั่ง</div>
+    </div>
+    <div class="v8-oauth-note" id="v8TtConnNote"></div>
+    <p class="v8-small v8-muted v8-oauth-terms">กด "ดำเนินการต่อ" แล้วจะไปที่หน้าของ TikTok เพื่อยืนยัน — ถอนสิทธิ์ได้ทุกเมื่อทั้งในแอป TikTok
+      และปุ่ม "ตัดการเชื่อมต่อ" ที่นี่ · <a href="https://www.tiktok.com/legal/page/global/terms-of-service/th" target="_blank" rel="noopener">เงื่อนไขของ TikTok</a></p>
+    <div class="v8-oauth-foot">
+      <button class="btn btn-ghost" id="v8TtConnCancel">ยกเลิก</button>
+      <button class="btn v8-oauth-go" id="v8TtConnGo">ดำเนินการต่อ</button>
+    </div>
+  </div>
+</div>
 <!-- V8: TikTok Direct Post — the consent surface TikTok requires before a post -->
 <div class="modal-backdrop" id="v8TtModal" hidden>
   <div class="modal-content v8-tt-modal" role="dialog" aria-modal="true" aria-labelledby="v8TtTitle">

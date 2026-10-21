@@ -168,15 +168,20 @@ ARTICLES = [
     },
     {
         'id': 'connect-instagram', 'category': 'connectors', 'title': 'เชื่อม Instagram (Business/Creator)', 'goto': 'connectors',
-        'summary': 'มี 2 ทาง: (1) ผ่านเพจ Facebook ที่ผูก IG ไว้ (2) Instagram Login โดยตรง',
+        'summary': 'มี 3 ทาง: (1) เชื่อมเพจ Facebook ที่ผูก IG ไว้ ระบบเพิ่มให้เอง (2) วาง token ในการ์ด Instagram (3) ปุ่ม Instagram Login ถ้าผู้ดูแลตั้งแอปไว้',
         'steps': [
             'บัญชี IG ต้องเป็น Professional (Business หรือ Creator) — ตั้งได้ในแอป IG: Settings → Account type and tools',
-            'ทางที่ 1: เชื่อม Facebook Page ที่ผูก IG ไว้ ระบบจะเพิ่ม IG ให้อัตโนมัติ',
-            'ทางที่ 2: กด "Connect with Instagram" → ล็อกอิน IG → อนุญาต instagram_business_basic และ instagram_business_content_publish',
-            'กลับมาที่ เชื่อมต่อช่องทาง จะเห็นบัญชี @username พร้อมรูปโปรไฟล์',
+            'ทางที่ 1 (ง่ายสุด ถ้ามีเพจอยู่แล้ว): เชื่อม Facebook Page ที่ผูก IG ไว้ ระบบจะเพิ่ม IG ให้อัตโนมัติ ไม่ต้องทำอะไรเพิ่ม',
+            'ทางที่ 2 (ไม่ต้องรอผู้ดูแลตั้งแอป): เปิด Graph API Explorer → ติ๊กสิทธิ์ instagram_basic, instagram_content_publish, pages_show_list, pages_manage_posts → Generate Access Token',
+            'เปลี่ยนดรอปดาวน์ "User or Page" เป็นเพจที่ผูก IG ไว้ → คัดลอก token → วางในการ์ด Instagram แล้วกด "เพิ่มบัญชี IG"',
+            'ระบบลองหาบัญชี IG จาก token ให้ 2 แบบอัตโนมัติ: token ของ Instagram โดยตรง หรือ Page token ที่มี IG ผูกอยู่ — ใส่แบบไหนก็ได้',
+            'ทางที่ 3: ถ้าผู้ดูแลตั้ง Instagram App ไว้ จะมีปุ่ม "Login กับ Instagram" ให้กดแทน',
             'การโพสต์ IG ต้องมีรูป (ระบบใช้รูปสินค้าจาก Shopee ให้อัตโนมัติ) และลิงก์ในแคปชั่น IG จะคลิกไม่ได้ ให้ใช้ลิงก์ใน Bio',
         ],
-        'tips': ['Token ของ Instagram Login อายุ ~60 วัน ระบบจะต่ออายุให้เมื่อกด "ตรวจสอบ" หากใกล้หมดอายุ'],
+        'tips': [
+            'Token ของ Instagram Login อายุ ~60 วัน ระบบจะต่ออายุให้เมื่อกด "ตรวจสอบ" หากใกล้หมดอายุ',
+            'ถ้าขึ้นว่าเพจยังไม่ได้ผูก IG: ไป Meta Business Suite → Settings → Instagram → เชื่อมบัญชี แล้วสร้าง token ใหม่',
+        ],
         'keywords': ['instagram', 'ig', 'ไอจี', 'reels', 'business account'],
     },
     {

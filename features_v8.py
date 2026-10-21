@@ -700,6 +700,26 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, cipher, now
                 'instagram': bool(ig),
                 'message': f'เชื่อมเพจ "{page["name"]}" สำเร็จ' + (' · พบ Instagram ที่ผูกไว้' if ig else '')}
 
+    @app.post('/api/connectors/instagram/token')
+    def ig_connect_token(body: FbTokenIn, req: Request, x_csrf_token: str | None = Header(default=None)):
+        """Connect an Instagram account by pasting a token — no Instagram App required.
+        Accepts either an Instagram access token or the Page token of a page with IG linked."""
+        u = mutation(req, x_csrf_token)
+        limit(u['id'], 'ig-token', 6)
+        try:
+            ig = meta.instagram_from_token(body.token.strip())
+        except meta.MetaError as e:
+            raise HTTPException(400, str(e))
+        upsert_channel(u['id'], 'instagram', ig['id'], '@' + (ig['username'] or ig['id']), body.token.strip(),
+                       kind='page_token',
+                       meta_obj={'via': ig['via'], 'picture': ig['picture'], 'username': ig['username'],
+                                 'account_type': ig['account_type'],
+                                 'page_id': ig['page_id'], 'page_name': ig['page_name']})
+        route = f'ผ่านเพจ "{ig["page_name"]}"' if ig['via'] == 'facebook' else 'ผ่าน Instagram โดยตรง'
+        return {'ok': True, 'instagram': {'id': ig['id'], 'username': ig['username'], 'picture': ig['picture']},
+                'via': ig['via'],
+                'message': f'เชื่อม Instagram @{ig["username"] or ig["id"]} สำเร็จ ({route})'}
+
     # ---------------- Instagram Login
     @app.post('/api/connectors/instagram/start')
     def ig_start(req: Request, return_tab: str = 'connectors', x_csrf_token: str | None = Header(default=None)):

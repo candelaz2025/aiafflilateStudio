@@ -209,6 +209,40 @@ def instagram_me(token) -> dict:
             'account_type': data.get('account_type', '')}
 
 
+def instagram_from_token(token: str) -> dict:
+    """Resolve a pasted token into a publishable Instagram account — no app required.
+
+    Two kinds of token reach this function and the user rarely knows which they hold:
+      * an Instagram user access token (Instagram Login) — answers the IG Graph directly;
+      * a Facebook Page access token — the IG business account hangs off the page.
+    Try the IG route first, then the page route, and report which one worked so the
+    channel is later published through the matching base URL.
+    """
+    ig_err = ''
+    try:
+        me_ = instagram_me(token)
+        if me_['id']:
+            return {'id': me_['id'], 'username': me_['username'], 'picture': me_['picture'],
+                    'account_type': me_['account_type'], 'via': 'instagram',
+                    'page_id': '', 'page_name': ''}
+    except MetaError as e:
+        ig_err = str(e)
+    try:
+        page = facebook_page_from_token(token)
+    except MetaError as e:
+        raise MetaError('token นี้ใช้กับ Instagram ไม่ได้ — ต้องเป็น Instagram access token '
+                        'หรือ Page Access Token ของเพจที่ผูกบัญชี IG แบบ Business/Creator ไว้'
+                        + (f' (IG: {ig_err[:120]})' if ig_err else '')
+                        + f' (Facebook: {str(e)[:120]})')
+    ig = page['instagram']
+    if not ig:
+        raise MetaError(f'เพจ "{page["name"]}" ยังไม่ได้ผูกบัญชี Instagram แบบ Business/Creator '
+                        '— ผูกใน Meta Business Suite → Settings → Instagram ก่อน แล้วสร้าง token ใหม่')
+    return {'id': ig['id'], 'username': ig.get('username', ''), 'picture': ig.get('picture', ''),
+            'account_type': 'BUSINESS', 'via': 'facebook',
+            'page_id': page['id'], 'page_name': page['name']}
+
+
 def _ig_base(via: str) -> str:
     return f'{fb_graph_base() if via == "facebook" else ig_graph_base()}/{graph_version()}'
 

@@ -422,3 +422,36 @@ body.is-demo #sidebarLogoutBtn{display:none}
 .v8-tt-btn{width:100%;background:linear-gradient(135deg,#FE2C55,#25F4EE);border:none;color:#fff;font-weight:700}
 .v8-tt-btn:disabled{background:var(--color-surface-subtle);color:var(--color-text-subtle)}
 @media (max-width:560px){.v8-tt-modal{padding:18px 16px}}
+
+/* ------------------------------------------------- OAuth consent card (TikTok connect)
+   Mirrors the shape of the platforms' own consent screens — the two parties facing each
+   other, what is granted, what is not — so the hand-off does not feel like a leap. */
+.v8-oauth-card{max-width:440px;width:calc(100vw - 32px);max-height:88vh;overflow-y:auto;overscroll-behavior:contain;text-align:left}
+.v8-oauth-title{text-align:center;font-size:17px;line-height:1.45;margin:4px 0 18px;font-weight:800}
+.v8-oauth-pair{display:flex;align-items:flex-start;justify-content:center;gap:14px;padding-bottom:16px;
+  border-bottom:1px solid var(--color-border);margin-bottom:14px}
+.v8-oauth-party{display:flex;flex-direction:column;align-items:center;gap:3px;text-align:center;width:124px}
+.v8-oauth-party strong{font-size:13.5px;line-height:1.3}
+.v8-oauth-avatar{width:58px;height:58px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:24px;font-weight:800;color:#fff;margin-bottom:4px}
+.v8-oauth-tt{background:linear-gradient(135deg,#FE2C55,#25F4EE)}
+.v8-oauth-app{background:linear-gradient(135deg,#2563EB,#1D4ED8);font-size:26px}
+.v8-oauth-arrows{font-size:20px;color:var(--color-text-subtle);padding-top:18px}
+.v8-oauth-section{margin-bottom:12px}
+.v8-oauth-label{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--color-text-subtle);margin-bottom:7px}
+.v8-oauth-row{display:flex;gap:10px;align-items:flex-start;padding:7px 0;font-size:13px;line-height:1.5}
+.v8-oauth-row > span{font-size:16px;line-height:1.3;flex-shrink:0}
+.v8-oauth-deny{padding:10px 12px;border-radius:var(--radius-md);background:var(--color-surface-subtle);line-height:1.6}
+.v8-oauth-note:not([hidden]){padding:10px 12px;border-radius:var(--radius-md);margin-bottom:12px;font-size:12.5px;line-height:1.6;
+  background:#FEF3C7;color:#92400E;border:1px solid #FDE68A}
+:root:not([data-theme="light"]) .v8-oauth-note:not([hidden]){background:#3F2D0B;color:#FDE68A;border-color:#92400E}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]) .v8-oauth-note:not([hidden]){background:#FEF3C7;color:#92400E;border-color:#FDE68A}}
+:root[data-theme="dark"] .v8-oauth-note:not([hidden]){background:#3F2D0B;color:#FDE68A;border-color:#92400E}
+.v8-oauth-terms{line-height:1.65;margin:0 0 4px}
+.v8-oauth-foot{display:flex;gap:10px;margin-top:16px;padding-top:14px;border-top:1px solid var(--color-border)}
+.v8-oauth-foot .btn{flex:1;justify-content:center}
+.v8-oauth-go{background:#FE2C55;color:#fff;border:none;font-weight:700}
+.v8-oauth-go:hover:not(:disabled){background:#E62348}
+.v8-oauth-go:disabled{opacity:.6}
+@media (max-width:460px){.v8-oauth-card{padding:18px 16px}.v8-oauth-party{width:104px}}

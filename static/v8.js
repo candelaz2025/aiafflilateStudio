@@ -619,16 +619,28 @@
           ${cfg.facebook.ready ? '<button class="btn btn-secondary btn-sm v8-fb-btn" onclick="AASv8.oauth(\'facebook\', this)">หรือเชื่อมผ่านปุ่ม Login กับ Facebook</button>' : ''}
         </div>
         <div class="mf-card v8-conn-card">
-          ${head('instagram', 'Instagram (Business/Creator)', 'เชื่อมผ่านเพจ Facebook ที่ผูก IG ไว้ (อัตโนมัติ) หรือ Instagram Login โดยตรง')}
-          ${cfg.instagram.ready ? '' : (cfg.instagram.via_facebook_ready ? '<div class="v8-muted v8-small">💡 เชื่อม Facebook Page ที่ผูก IG ไว้ ระบบจะเพิ่ม IG ให้อัตโนมัติ</div>' : notReady('Instagram App'))}
+          ${head('instagram', 'Instagram (Business/Creator)', 'วาง token ของ IG หรือของเพจที่ผูก IG ไว้ — ระบบหาบัญชีให้เอง')}
+          <div class="v8-muted v8-small">💡 ถ้าเชื่อม Facebook Page ที่ผูก IG ไว้แล้ว ระบบเพิ่ม IG ให้อัตโนมัติ ไม่ต้องทำซ้ำที่นี่</div>
+          <form id="v8IgTokenForm" class="v8-token-form" autocomplete="off">
+            <div>
+              <strong style="font-size:14px">Instagram หรือ Page Access Token</strong>
+              <div class="v8-small v8-muted">ใส่ได้ทั้ง 2 แบบ: token ของ Instagram โดยตรง หรือ Page Access Token ของเพจที่ผูกบัญชี IG แบบ Business/Creator</div>
+            </div>
+            <div class="v8-token-row">
+              <input class="form-input" name="token" type="password" required minlength="40" maxlength="1000" placeholder="วาง token ที่นี่" aria-label="Instagram access token">
+              <button type="button" class="btn btn-ghost btn-sm" id="v8IgTokenEye" aria-label="แสดง/ซ่อน">👁</button>
+              <button type="button" class="btn btn-ghost btn-sm" data-help-article="connect-instagram">วิธีขอ token</button>
+              <button class="btn btn-primary" type="submit">เพิ่มบัญชี IG</button>
+            </div>
+          </form>
           <div class="v8-chan-list">${by('instagram').map(c => this.chanRow(c)).join('') || '<div class="v8-empty">ยังไม่มีบัญชี IG ที่เชื่อม</div>'}</div>
-          <button class="btn btn-primary v8-ig-btn" ${cfg.instagram.ready ? '' : 'disabled'} onclick="AASv8.oauth('instagram', this)">Connect with Instagram</button>
+          ${cfg.instagram.ready ? '<button class="btn btn-secondary btn-sm v8-ig-btn" onclick="AASv8.oauth(\'instagram\', this)">หรือเชื่อมผ่านปุ่ม Login กับ Instagram</button>' : ''}
         </div>
         <div class="mf-card v8-conn-card">
           ${head('tiktok', 'TikTok (โพสต์คลิปผ่าน Content Posting API)', 'กดปุ่มเดียว — TikTok จะถามยืนยันแล้วส่งกลับมาเอง ไม่ต้องคัดลอก token')}
           ${cfg.tiktok.ready ? '' : notReady('TikTok Client Key/Secret')}
           <div class="v8-chan-list">${by('tiktok').map(c => this.chanRow(c)).join('') || '<div class="v8-empty">ยังไม่มีบัญชี TikTok ที่เชื่อม</div>'}</div>
-          <button class="btn btn-primary v8-tt-btn" ${cfg.tiktok.ready ? '' : 'disabled'} onclick="AASv8.oauth('tiktok', this)">Continue with TikTok</button>
+          <button class="btn btn-primary v8-tt-btn" ${cfg.tiktok.ready ? '' : 'disabled'} onclick="AASv8.tiktokConnect()">Continue with TikTok</button>
           <button class="btn btn-ghost btn-sm" data-help-article="${d.is_admin && !cfg.tiktok.ready ? 'admin-tiktok-app' : 'connect-tiktok'}">วิธีใช้งาน TikTok</button>
           <div class="v8-small v8-muted">ขอสิทธิ์ <code class="v8-code">user.info.basic</code> + <code class="v8-code">video.publish</code> เท่านั้น · ยกเลิกได้ทุกเมื่อทั้งในแอป TikTok และปุ่ม "ตัดการเชื่อมต่อ" ที่นี่</div>
         </div>
@@ -650,6 +662,10 @@
       $('v8FbTokenEye')?.addEventListener('click', () => {
         const i = $('v8FbTokenForm').token; i.type = i.type === 'password' ? 'text' : 'password';
       });
+      $('v8IgTokenForm')?.addEventListener('submit', e => this.connectIgToken(e));
+      $('v8IgTokenEye')?.addEventListener('click', () => {
+        const i = $('v8IgTokenForm').token; i.type = i.type === 'password' ? 'text' : 'password';
+      });
       bindHelpLinks($('v8ConnectorCards'));
     },
     async connectFbToken(e) {
@@ -662,6 +678,17 @@
         this.load();
       } catch (err) { toast(err.message, 'error'); }
       finally { btn.disabled = false; btn.textContent = 'เพิ่มเพจ'; }
+    },
+    async connectIgToken(e) {
+      e.preventDefault();
+      const btn = e.submitter; btn.disabled = true; btn.textContent = 'กำลังตรวจกับ Instagram…';
+      try {
+        const r = await api('/api/connectors/instagram/token', 'POST', { token: e.target.token.value.trim() });
+        e.target.reset();
+        toast('✅ ' + r.message, 'success');
+        this.load();
+      } catch (err) { toast(err.message, 'error'); }
+      finally { btn.disabled = false; btn.textContent = 'เพิ่มบัญชี IG'; }
     },
     async connectLine(e) {
       e.preventDefault();
@@ -708,6 +735,40 @@
         catch (err) { toast(err.message, 'error'); }
       });
       $('v8ReloadLogs')?.addEventListener('click', () => this.loadLogs());
+    },
+  };
+
+  // =================================================== TIKTOK CONNECT CONSENT
+  // Shown before the redirect. TikTok's own consent screen comes next and is the one
+  // that actually grants access — this one exists so the person knows what they are
+  // about to approve, and what the app deliberately cannot do, while still in our UI.
+  const TikTokConnect = {
+    open() {
+      const note = $('v8TtConnNote');
+      const audited = (Conn.data?.channels || []).some(c => c.platform === 'tiktok' && c.meta?.audited);
+      note.innerHTML = audited ? '' :
+        '⚠ แอปนี้ยังไม่ผ่าน audit ของ TikTok — คลิปที่โพสต์ผ่านระบบจะเป็น <strong>ส่วนตัว (เห็นคนเดียว)</strong> ' +
+        'จนกว่าคุณจะเปิดแอป TikTok แล้วเปลี่ยนเป็นสาธารณะเอง';
+      note.hidden = !note.innerHTML;
+      $('v8TtConnect').hidden = false;
+      setTimeout(() => $('v8TtConnGo')?.focus(), 50);
+    },
+    close() { $('v8TtConnect').hidden = true; },
+    async go() {
+      const btn = $('v8TtConnGo'); btn.disabled = true; btn.textContent = 'กำลังเปิดหน้า TikTok…';
+      try {
+        const r = await api('/api/connectors/tiktok/start?return_tab=connectors', 'POST');
+        location.href = r.auth_url;
+      } catch (e) {
+        toast(e.message, 'error');
+        btn.disabled = false; btn.textContent = 'ดำเนินการต่อ';
+      }
+    },
+    bind() {
+      $('v8TtConnClose')?.addEventListener('click', () => this.close());
+      $('v8TtConnCancel')?.addEventListener('click', () => this.close());
+      $('v8TtConnGo')?.addEventListener('click', () => this.go());
+      $('v8TtConnect')?.addEventListener('click', e => { if (e.target.id === 'v8TtConnect') this.close(); });
     },
   };
 
@@ -2127,6 +2188,7 @@
     currentCaption: () => ($('v8Caption') ? $('v8Caption').value : ''),
     goConnectors: () => { $('v8PublishModal').hidden = true; AAS.switchTab('connectors'); },
     loadConnectors: () => Conn.load(),
+    tiktokConnect() { TikTokConnect.open(); },
     tiktokPost(id) { TikTokPost.open(id); },
     closeTiktok() { TikTokPost.close(); },
     async oauth(platform, btn, returnTab = 'connectors') {
@@ -2245,9 +2307,12 @@
     $('v8HelpSearch')?.addEventListener('input', () => Help.loaded && Help.render());
     bindTabGo(document);
     dashCta();
+    TikTokConnect.bind();
     $('v8TtClose')?.addEventListener('click', () => TikTokPost.close());
     $('v8TtModal')?.addEventListener('click', e => { if (e.target.id === 'v8TtModal') TikTokPost.close(); });
-    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('v8TtModal')?.hidden) TikTokPost.close(); });
+    document.addEventListener('keydown', e => { if (e.key !== 'Escape') return;
+      if (!$('v8TtModal')?.hidden) TikTokPost.close();
+      if (!$('v8TtConnect')?.hidden) TikTokConnect.close(); });
     const qs = new URLSearchParams(location.search);
     const tab = qs.get('tab');
     if (qs.get('oauth')) {
