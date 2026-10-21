@@ -11,6 +11,6 @@ COPY static/ ./static/
 RUN mkdir -p /app/data && chown -R app:app /app
 USER app
 EXPOSE 8010
-HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8010/health', timeout=3).read()" || exit 1
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD python -c "import os, urllib.request; urllib.request.urlopen('http://127.0.0.1:%s/health' % os.getenv('PORT', '8010'), timeout=3).read()" || exit 1
 # One worker: the Auto-Post scheduler and realtime chat hub live in-process.
-CMD ["sh", "-c", "uvicorn community_app:app --host 0.0.0.0 --port ${PORT:-8010} --workers 1 --proxy-headers --forwarded-allow-ips '*'"]
+CMD ["sh", "-c", "exec uvicorn community_app:app --host 0.0.0.0 --port ${PORT:-8010} --workers 1 --proxy-headers --forwarded-allow-ips '*'"]
