@@ -1685,7 +1685,7 @@
         <div id="v8ConnectorCards" class="v8-connector-grid" aria-live="polite"></div>
         <div class="mf-card v8-admin-card" id="v8AdminIntegrations" hidden>
           <div class="v8-card-head">
-            <div><span class="chip chip-primary mono">ADMIN</span><h3>ตั้งค่าแอป Meta / Instagram (ทำครั้งเดียวต่อเซิร์ฟเวอร์)</h3>
+            <div><span class="chip chip-primary mono">ADMIN</span><h3>ตั้งค่าแอป Meta / Instagram / TikTok (ทำครั้งเดียวต่อเซิร์ฟเวอร์)</h3>
             <p class="v8-muted">ค่าจาก ENV จะมีลำดับสูงกว่าค่าที่บันทึกที่นี่ · Secret เก็บแบบเข้ารหัสและจะไม่แสดงกลับ</p></div>
             <button class="btn btn-ghost btn-sm" data-help-article="admin-meta-app">วิธีสร้าง Meta App</button>
           </div>
@@ -1694,6 +1694,8 @@
             <label>Meta App Secret<input class="form-input" name="meta_app_secret" type="password" placeholder="••••• (เว้นว่าง = ไม่เปลี่ยน)"></label>
             <label>Instagram App ID<input class="form-input" name="ig_app_id" inputmode="numeric"></label>
             <label>Instagram App Secret<input class="form-input" name="ig_app_secret" type="password" placeholder="••••• (เว้นว่าง = ไม่เปลี่ยน)"></label>
+            <label>TikTok Client Key<input class="form-input" name="tiktok_client_key" placeholder="เช่น aw1b2c3d4e5f6g7h"></label>
+            <label>TikTok Client Secret<input class="form-input" name="tiktok_client_secret" type="password" placeholder="••••• (เว้นว่าง = ไม่เปลี่ยน)"></label>
             <label class="v8-span2">PUBLIC_BASE_URL (โดเมน https ที่ผู้ใช้เปิด)<input class="form-input" name="public_base_url" placeholder="https://studio.example.com"></label>
             <div class="v8-span2 v8-redirects" id="v8RedirectInfo"></div>
             <div class="v8-span2" style="display:flex;justify-content:flex-end"><button class="btn btn-primary" type="submit">บันทึกการตั้งค่าแอป</button></div>
@@ -2662,6 +2664,14 @@
         <button class="btn btn-primary" id="v8OnbNext">ถัดไป →</button>
       </div>
     </div>
+  </div>
+</div>
+<!-- V8: TikTok Direct Post — the consent surface TikTok requires before a post -->
+<div class="modal-backdrop" id="v8TtModal" hidden>
+  <div class="modal-content v8-tt-modal" role="dialog" aria-modal="true" aria-labelledby="v8TtTitle">
+    <button class="modal-close-btn" id="v8TtClose" aria-label="ปิด">&times;</button>
+    <h3 id="v8TtTitle">🎵 โพสต์ขึ้น TikTok</h3>
+    <div id="v8TtBody"><div class="v8-empty">กำลังโหลด…</div></div>
   </div>
 </div>
 <div id="v8Toast" class="v8-toast" role="status" aria-live="polite" hidden></div>

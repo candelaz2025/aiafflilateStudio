@@ -19,11 +19,21 @@ from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
-from integrations import line_oa, meta
+from integrations import line_oa, meta, tiktok
 
 FB_NATIVE_MIN = timedelta(minutes=15)
 FB_NATIVE_MAX = timedelta(days=29)
 MAX_ATTEMPTS = 3
+
+
+class TikTokOptions(BaseModel):
+    privacy_level: str = Field(default='SELF_ONLY', max_length=40)
+    disable_comment: bool = False
+    disable_duet: bool = False
+    disable_stitch: bool = False
+    brand_content_toggle: bool = False
+    brand_organic_toggle: bool = False
+    is_aigc: bool = True
 
 
 class ScheduleIn(BaseModel):
@@ -35,6 +45,7 @@ class ScheduleIn(BaseModel):
     use_video: bool = True
     line_mode: str = Field(default='broadcast', pattern=r'^(push|broadcast)$')
     confirm_broadcast: bool = False
+    tiktok: TikTokOptions | None = None
 
 
 def parse_when(raw: str | None) -> datetime:
@@ -70,6 +81,9 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, now, data_d
         CREATE INDEX IF NOT EXISTS scheduled_due ON scheduled_posts(status, scheduled_at);
         CREATE INDEX IF NOT EXISTS scheduled_owner ON scheduled_posts(user_id, id DESC);
         ''')
+        sp_cols = {r[1] for r in db.execute('PRAGMA table_info(scheduled_posts)')}
+        if 'tiktok_options' not in sp_cols:
+            db.execute("ALTER TABLE scheduled_posts ADD COLUMN tiktok_options TEXT NOT NULL DEFAULT ''")
 
     def iso(dt):
         return dt.astimezone(timezone.utc).isoformat(timespec='seconds')
@@ -132,6 +146,31 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, now, data_d
             if not img:
                 raise meta.MetaError('Instagram ต้องมีรูปหรือวิดีโอ MP4 จากลิงก์ https สาธารณะ (ตั้ง PUBLIC_BASE_URL เป็น https)')
             return meta.instagram_publish(ch['account_id'], token, caption, img, via)
+        if ch['platform'] == 'tiktok':
+            if not (video and video.is_file()):
+                raise tiktok.TikTokError('TikTok ต้องมีคลิปวิดีโอ — เลือกโปรเจกต์คลิปและติ๊ก "แนบคลิป" ก่อนตั้งเวลา')
+            get_token = getattr(app.state, 'v8_tiktok_token', None)
+            if not get_token:
+                raise tiktok.TikTokError('ระบบ TikTok ยังไม่พร้อม')
+            tt_token = get_token(ch)
+            opts = json.loads(post['tiktok_options'] or '{}') if post.get('tiktok_options') else {}
+            ci = tiktok.creator_info(tt_token)
+            privacy = opts.get('privacy_level') or 'SELF_ONLY'
+            if privacy not in ci['privacy_options']:
+                # The creator may have flipped the account to private since scheduling;
+                # fall back to the most restrictive option rather than failing the post.
+                privacy = 'SELF_ONLY' if 'SELF_ONLY' in ci['privacy_options'] else ci['privacy_options'][0]
+            text = caption + (f'\n\n🛒 {link}' if link and link not in caption else '')
+            init = tiktok.init_direct_post(
+                tt_token, title=text, privacy_level=privacy, video_size=video.stat().st_size,
+                disable_comment=opts.get('disable_comment', False) or ci['comment_disabled'],
+                disable_duet=opts.get('disable_duet', False) or ci['duet_disabled'],
+                disable_stitch=opts.get('disable_stitch', False) or ci['stitch_disabled'],
+                brand_content_toggle=opts.get('brand_content_toggle', False),
+                brand_organic_toggle=opts.get('brand_organic_toggle', False),
+                is_aigc=opts.get('is_aigc', True))
+            tiktok.upload_file(init['upload_url'], video, init['chunk_size'], init['total_chunk_count'])
+            return {'post_id': init['publish_id'], 'kind': 'tiktok_direct_post'}
         if ch['platform'] == 'line_oa':
             price = f"฿{prod['price']:,.0f}" if prod.get('price') else ''
             msg = line_oa.product_flex(prod.get('title', ''), price, img, link, caption.split('\n')[0][:200])
@@ -237,11 +276,13 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, now, data_d
         chans = read(f"SELECT * FROM connected_channels WHERE user_id=? AND id IN ({','.join('?' * len(ids))})", (u['id'], *ids))
         if len(chans) != len(ids):
             raise HTTPException(404, 'มีช่องทางที่ไม่พบในบัญชีของคุณ')
-        bad = [c['account_name'] for c in chans if c['platform'] not in ('facebook', 'instagram', 'line_oa') or not c['access_token_encrypted']]
+        bad = [c['account_name'] for c in chans if c['platform'] not in ('facebook', 'instagram', 'line_oa', 'tiktok') or not c['access_token_encrypted']]
         if bad:
             raise HTTPException(400, 'ช่องทางเหล่านี้ยังไม่ได้เชื่อมต่อจริง: ' + ', '.join(bad))
         if any(c['platform'] == 'line_oa' for c in chans) and body.line_mode == 'broadcast' and not body.confirm_broadcast:
             raise HTTPException(400, 'LINE Broadcast ส่งหาเพื่อนทุกคนและนับโควต้า — ต้องยืนยันก่อน')
+        if any(c['platform'] == 'tiktok' for c in chans) and not (body.use_video and body.project_id):
+            raise HTTPException(400, 'TikTok รับเฉพาะวิดีโอ — เลือกโปรเจกต์คลิปและติ๊ก "แนบคลิป" ก่อน')
         media_file = public_video = ''
         if body.use_video and body.project_id:
             v = project_video(u['id'], body.project_id)
@@ -256,9 +297,11 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, now, data_d
         base = base_url_for(req)
         with connect() as c:
             cur = c.execute('''INSERT INTO scheduled_posts(user_id,product_id,project_id,caption,media_file,public_video,line_mode,
-                               scheduled_at,status,channels_json,base_url,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,'scheduled',?,?,?,?)''',
+                               scheduled_at,status,channels_json,base_url,tiktok_options,created_at,updated_at)
+                               VALUES(?,?,?,?,?,?,?,?,'scheduled',?,?,?,?,?)''',
                             (u['id'], prod['id'], body.project_id, body.caption.strip()[:2000], media_file, public_video,
-                             body.line_mode, iso(when), json.dumps(state), base, now(), now()))
+                             body.line_mode, iso(when), json.dumps(state), base,
+                             json.dumps(body.tiktok.model_dump()) if body.tiktok else '', now(), now()))
             pid = cur.lastrowid
         post = read('SELECT * FROM scheduled_posts WHERE id=?', (pid,), True)
         # Hand Facebook posts to Facebook's native scheduler when allowed (reliable even if this server sleeps).
@@ -272,7 +315,7 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, now, data_d
                     r = publish_channel(post, ch, st, fb_native_ts=int(when.timestamp()))
                     st.update(state='fb_scheduled', external_id=r.get('post_id') or '', kind=r.get('kind'), error='')
                     log(u['id'], ch, prod['id'], True, r.get('post_id'), r.get('kind'))
-                except (meta.MetaError, HTTPException) as e:
+                except (meta.MetaError, line_oa.LineError, tiktok.TikTokError, HTTPException) as e:
                     st.update(error='Facebook ไม่รับการตั้งเวลาล่วงหน้า จะโพสต์โดยระบบแทน: ' + (getattr(e, 'detail', None) or str(e))[:200])
             finalize(pid, state, 0)
         if lead <= timedelta(minutes=1):

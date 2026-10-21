@@ -570,6 +570,11 @@
       const extra = c.platform === 'line_oa'
         ? `<div class="v8-small v8-muted">${esc(m.basic_id || '')} · โควต้า ${m.quota && m.quota.limit != null ? `${m.quota.used}/${m.quota.limit}` : 'ไม่จำกัด/ไม่ทราบ'} · ผู้รับที่รู้จัก ${c.recipients || 0} คน</div>
            <div class="v8-small">Webhook: <code class="v8-code">${esc(c.webhook_url || '-')}</code> <button class="btn btn-ghost btn-sm" onclick="AASv8.copy(${jsArg(c.webhook_url || '')})">คัดลอก</button></div>`
+        : c.platform === 'tiktok'
+          ? `<div class="v8-small v8-muted">${esc(m.display_name || '')}${m.followers != null ? ' · ผู้ติดตาม ' + Number(m.followers).toLocaleString() : ''}</div>
+             ${m.privacy_options ? (m.audited
+               ? '<div class="v8-small" style="color:var(--color-success,#16a34a)">✓ แอปผ่าน audit แล้ว — โพสต์สาธารณะได้</div>'
+               : '<div class="v8-warn v8-small">⚠ แอปยังไม่ผ่าน audit ของ TikTok — คลิปที่โพสต์จะเป็น <strong>ส่วนตัว (เห็นคนเดียว)</strong> จนกว่าจะเปลี่ยนเป็นสาธารณะเองในแอป</div>') : ''}`
         : c.platform === 'instagram'
           ? `<div class="v8-small v8-muted">${m.via === 'facebook' ? 'ผ่านเพจ ' + esc(m.page_name || '') : 'Instagram Login'}${c.token_expires_at ? ' · token หมดอายุ ' + esc(c.token_expires_at.slice(0, 10)) : ''}</div>`
           : `<div class="v8-small v8-muted">${esc(m.category || '')} · Page ID ${esc(c.account_id)}</div>`;
@@ -577,7 +582,9 @@
         <div class="v8-chan-head">${imgTag(m.picture || '', c.account_name, 'v8-avatar')}<div style="flex:1;min-width:0"><strong>${esc(c.account_name)}</strong>${extra}</div>${status}</div>
         <div class="v8-chan-actions">
           <button class="btn btn-ghost btn-sm" onclick="AASv8.verify(${c.id}, this)">📡 ตรวจสอบ</button>
-          <button class="btn btn-ghost btn-sm" onclick="AASv8.testPost(${c.id}, '${c.platform}')">📤 ทดสอบส่ง</button>
+          ${c.platform === 'tiktok'
+            ? `<button class="btn btn-primary btn-sm" onclick="AASv8.tiktokPost(${c.id})">🎬 โพสต์คลิป</button>`
+            : `<button class="btn btn-ghost btn-sm" onclick="AASv8.testPost(${c.id}, '${c.platform}')">📤 ทดสอบส่ง</button>`}
           ${c.platform === 'line_oa' ? `<button class="btn btn-ghost btn-sm" onclick="AASv8.testPost(${c.id}, 'line_broadcast')">📣 Broadcast</button>` : ''}
           <button class="btn btn-ghost btn-sm v8-danger" onclick="AASv8.disconnect(${c.id}, ${jsArg(c.account_name)})">ตัดการเชื่อมต่อ</button>
         </div></div>`;
@@ -616,6 +623,14 @@
           ${cfg.instagram.ready ? '' : (cfg.instagram.via_facebook_ready ? '<div class="v8-muted v8-small">💡 เชื่อม Facebook Page ที่ผูก IG ไว้ ระบบจะเพิ่ม IG ให้อัตโนมัติ</div>' : notReady('Instagram App'))}
           <div class="v8-chan-list">${by('instagram').map(c => this.chanRow(c)).join('') || '<div class="v8-empty">ยังไม่มีบัญชี IG ที่เชื่อม</div>'}</div>
           <button class="btn btn-primary v8-ig-btn" ${cfg.instagram.ready ? '' : 'disabled'} onclick="AASv8.oauth('instagram', this)">Connect with Instagram</button>
+        </div>
+        <div class="mf-card v8-conn-card">
+          ${head('tiktok', 'TikTok (โพสต์คลิปผ่าน Content Posting API)', 'กดปุ่มเดียว — TikTok จะถามยืนยันแล้วส่งกลับมาเอง ไม่ต้องคัดลอก token')}
+          ${cfg.tiktok.ready ? '' : notReady('TikTok Client Key/Secret')}
+          <div class="v8-chan-list">${by('tiktok').map(c => this.chanRow(c)).join('') || '<div class="v8-empty">ยังไม่มีบัญชี TikTok ที่เชื่อม</div>'}</div>
+          <button class="btn btn-primary v8-tt-btn" ${cfg.tiktok.ready ? '' : 'disabled'} onclick="AASv8.oauth('tiktok', this)">Continue with TikTok</button>
+          <button class="btn btn-ghost btn-sm" data-help-article="${d.is_admin && !cfg.tiktok.ready ? 'admin-tiktok-app' : 'connect-tiktok'}">วิธีใช้งาน TikTok</button>
+          <div class="v8-small v8-muted">ขอสิทธิ์ <code class="v8-code">user.info.basic</code> + <code class="v8-code">video.publish</code> เท่านั้น · ยกเลิกได้ทุกเมื่อทั้งในแอป TikTok และปุ่ม "ตัดการเชื่อมต่อ" ที่นี่</div>
         </div>
         <div class="mf-card v8-conn-card">
           ${head('line_oa', 'LINE Official Account', 'ใช้ Messaging API: Channel ID + Channel secret (+ access token) ระบบตรวจกับ LINE จริงและตั้ง Webhook ให้')}
@@ -675,11 +690,12 @@
       try {
         const d = await api('/api/admin/integrations');
         const f = $('v8IntegrationForm');
-        ['meta_app_id', 'ig_app_id', 'public_base_url'].forEach(k => { f[k].value = d[k].value || ''; f[k].disabled = d[k].from_env; f[k].title = d[k].from_env ? 'ตั้งค่าจาก ENV' : ''; });
-        ['meta_app_secret', 'ig_app_secret'].forEach(k => { f[k].placeholder = d[k].set ? '•••••• (ตั้งไว้แล้ว — เว้นว่าง = ไม่เปลี่ยน)' : 'ยังไม่ได้ตั้ง'; f[k].disabled = d[k].from_env; });
+        ['meta_app_id', 'ig_app_id', 'tiktok_client_key', 'public_base_url'].forEach(k => { f[k].value = d[k].value || ''; f[k].disabled = d[k].from_env; f[k].title = d[k].from_env ? 'ตั้งค่าจาก ENV' : ''; });
+        ['meta_app_secret', 'ig_app_secret', 'tiktok_client_secret'].forEach(k => { f[k].placeholder = d[k].set ? '•••••• (ตั้งไว้แล้ว — เว้นว่าง = ไม่เปลี่ยน)' : 'ยังไม่ได้ตั้ง'; f[k].disabled = d[k].from_env; });
         const cfg = this.data.config;
         $('v8RedirectInfo').innerHTML = `<div class="v8-small">ใส่ใน Meta App → Facebook Login → Valid OAuth Redirect URIs:<br><code class="v8-code">${esc(cfg.facebook.redirect_uri)}</code> <button type="button" class="btn btn-ghost btn-sm" onclick="AASv8.copy(${jsArg(cfg.facebook.redirect_uri)})">คัดลอก</button></div>
           <div class="v8-small">Instagram Business login → Redirect URL:<br><code class="v8-code">${esc(cfg.instagram.redirect_uri)}</code> <button type="button" class="btn btn-ghost btn-sm" onclick="AASv8.copy(${jsArg(cfg.instagram.redirect_uri)})">คัดลอก</button></div>
+          <div class="v8-small">TikTok → Login Kit → Redirect URI:<br><code class="v8-code">${esc(cfg.tiktok.redirect_uri)}</code> <button type="button" class="btn btn-ghost btn-sm" onclick="AASv8.copy(${jsArg(cfg.tiktok.redirect_uri)})">คัดลอก</button></div>
           <div class="v8-small v8-muted">Graph API ${esc(cfg.graph_version)} · ${cfg.line_oa.public_https ? 'เว็บเป็น https สาธารณะ ✓' : '⚠ เว็บยังไม่ใช่ https สาธารณะ: OAuth/Webhook จากภายนอกจะยังใช้ไม่ได้'}</div>`;
       } catch (e) { card.hidden = true; }
     },
@@ -692,6 +708,137 @@
         catch (err) { toast(err.message, 'error'); }
       });
       $('v8ReloadLogs')?.addEventListener('click', () => this.loadLogs());
+    },
+  };
+
+  // =========================================================== TIKTOK DIRECT POST
+  // TikTok's Content Sharing Guidelines require the creator to see who they are posting
+  // as, choose from THEIR OWN privacy options, declare commercial content, and confirm
+  // the music terms. None of that is optional dressing — a post that skips it is a
+  // policy violation, so every field here is driven by a live creator_info call.
+  const TikTokPost = {
+    channelId: null, info: null, projects: [], publishId: null, timer: null,
+    close() {
+      clearTimeout(this.timer); this.timer = null;
+      $('v8TtModal').hidden = true;
+    },
+    async open(channelId) {
+      this.channelId = channelId; this.publishId = null;
+      const box = $('v8TtBody');
+      $('v8TtModal').hidden = false;
+      box.innerHTML = stateBox('loading', 'กำลังดึงข้อมูลบัญชีจาก TikTok…');
+      try {
+        const [info, pr] = await Promise.all([
+          api(`/api/connectors/${channelId}/tiktok/creator-info`),
+          api('/api/studio/projects'),
+        ]);
+        this.info = info;
+        this.projects = (pr.projects || []).filter(p => p.clip_url || p.preview_url);
+        this.render();
+      } catch (e) {
+        box.innerHTML = stateBox('error', e.message, null);
+      }
+    },
+    render() {
+      const i = this.info;
+      if (!this.projects.length) {
+        $('v8TtBody').innerHTML = stateBox('empty', 'ยังไม่มีคลิปที่พร้อมโพสต์ — ไปสร้างคลิปที่หน้า "สร้างคอนเทนต์" ก่อน', null)
+          + '<button class="btn btn-primary btn-sm" onclick="AASv8.closeTiktok();AAS.switchTab(\'studio\')">ไปสร้างคลิป</button>';
+        return;
+      }
+      const lock = (on, label) => on ? ` <span class="chip v8-chip-wait">บัญชีล็อกไว้: ${label}</span>` : '';
+      $('v8TtBody').innerHTML = `
+        <div class="v8-tt-creator">${imgTag(i.avatar || '', i.nickname, 'v8-avatar')}
+          <div><strong>${esc(i.nickname || i.username)}</strong><div class="v8-small v8-muted">@${esc(i.username)}</div></div>
+        </div>
+        ${i.audited ? '' : '<div class="v8-warn v8-small">⚠ แอปนี้ยังไม่ผ่าน audit ของ TikTok — โพสต์ได้เฉพาะแบบ <strong>ส่วนตัว</strong> เท่านั้น หลังโพสต์ให้เปิดแอป TikTok แล้วเปลี่ยนเป็นสาธารณะเอง</div>'}
+        <label class="v8-tt-field">เลือกคลิป
+          <select class="form-input" id="v8TtProject">
+            ${this.projects.map(p => `<option value="${p.id}">#${p.id} · ${esc(p.product.title).slice(0, 60)}${p.clip_url ? ' (คลิป AI)' : ' (พรีวิว)'}</option>`).join('')}
+          </select>
+        </label>
+        <label class="v8-tt-field">แคปชัน <span class="v8-muted v8-small">(สูงสุด 2,200 ตัวอักษร · แฮชแท็กและ @ ใช้ได้)</span>
+          <textarea class="form-input" id="v8TtCaption" rows="3" maxlength="2200" placeholder="รีวิวของดีบอกต่อ #ShopeeAffiliate"></textarea>
+        </label>
+        <label class="v8-tt-field">ใครดูคลิปนี้ได้
+          <select class="form-input" id="v8TtPrivacy">
+            ${i.privacy_options.map(o => `<option value="${o}">${esc(i.privacy_labels[o] || o)}</option>`).join('')}
+          </select>
+        </label>
+        <fieldset class="v8-tt-group"><legend>การมีส่วนร่วม</legend>
+          <label><input type="checkbox" id="v8TtNoComment" ${i.comment_disabled ? 'checked disabled' : ''}> ปิดคอมเมนต์${lock(i.comment_disabled, 'คอมเมนต์ปิด')}</label>
+          <label><input type="checkbox" id="v8TtNoDuet" ${i.duet_disabled ? 'checked disabled' : ''}> ปิด Duet${lock(i.duet_disabled, 'Duet ปิด')}</label>
+          <label><input type="checkbox" id="v8TtNoStitch" ${i.stitch_disabled ? 'checked disabled' : ''}> ปิด Stitch${lock(i.stitch_disabled, 'Stitch ปิด')}</label>
+        </fieldset>
+        <fieldset class="v8-tt-group"><legend>เปิดเผยเนื้อหาเชิงพาณิชย์</legend>
+          <p class="v8-small v8-muted">คลิป Affiliate คือเนื้อหาเชิงพาณิชย์ — TikTok กำหนดให้ประกาศ ไม่ประกาศถือว่าผิดนโยบาย</p>
+          <label><input type="checkbox" id="v8TtBrandOrganic"> โปรโมตแบรนด์ของฉันเอง <span class="v8-muted v8-small">(ติดป้าย "โปรโมตเอง")</span></label>
+          <label><input type="checkbox" id="v8TtBrandContent"> ได้รับค่าตอบแทนจากแบรนด์อื่น <span class="v8-muted v8-small">(ติดป้าย "ได้รับการสนับสนุน")</span></label>
+          <div class="v8-small v8-warn" id="v8TtBrandWarn" hidden>⚠ TikTok ไม่ให้ตั้งคลิป Branded content เป็น "ส่วนตัว" — เลือกความเป็นส่วนตัวแบบอื่น หรือเอาติ๊กนี้ออก</div>
+        </fieldset>
+        <label class="v8-tt-check"><input type="checkbox" id="v8TtAigc" checked> คลิปนี้สร้างด้วย AI <span class="v8-muted v8-small">(TikTok จะติดป้าย AI-generated ให้)</span></label>
+        <label class="v8-tt-check"><input type="checkbox" id="v8TtMusic"> ฉันยอมรับ
+          <a href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en" target="_blank" rel="noopener">เงื่อนไขการใช้เพลงของ TikTok</a></label>
+        <div class="v8-tt-foot">
+          <button class="btn btn-ghost" onclick="AASv8.closeTiktok()">ยกเลิก</button>
+          <button class="btn btn-primary" id="v8TtSubmit">โพสต์ขึ้น TikTok</button>
+        </div>
+        <div id="v8TtStatus" class="v8-tt-status"></div>`;
+      const sync = () => {
+        const clash = $('v8TtBrandContent').checked && $('v8TtPrivacy').value === 'SELF_ONLY';
+        $('v8TtBrandWarn').hidden = !clash;
+        $('v8TtSubmit').disabled = clash || !$('v8TtMusic').checked;
+      };
+      ['v8TtBrandContent', 'v8TtPrivacy', 'v8TtMusic'].forEach(id => $(id).addEventListener('change', sync));
+      $('v8TtSubmit').addEventListener('click', () => this.submit());
+      sync();
+    },
+    async submit() {
+      const btn = $('v8TtSubmit'); btn.disabled = true; btn.textContent = 'กำลังอัปโหลดคลิป…';
+      const st = $('v8TtStatus');
+      st.innerHTML = stateBox('loading', 'กำลังส่งคลิปไปยัง TikTok…');
+      try {
+        const r = await api(`/api/connectors/${this.channelId}/tiktok/post`, 'POST', {
+          project_id: Number($('v8TtProject').value),
+          title: $('v8TtCaption').value,
+          privacy_level: $('v8TtPrivacy').value,
+          disable_comment: $('v8TtNoComment').checked,
+          disable_duet: $('v8TtNoDuet').checked,
+          disable_stitch: $('v8TtNoStitch').checked,
+          brand_content_toggle: $('v8TtBrandContent').checked,
+          brand_organic_toggle: $('v8TtBrandOrganic').checked,
+          is_aigc: $('v8TtAigc').checked,
+          agreed_music_terms: $('v8TtMusic').checked,
+        });
+        this.publishId = r.publish_id;
+        st.innerHTML = stateBox('loading', r.message);
+        this.poll(0);
+      } catch (e) {
+        st.innerHTML = stateBox('error', e.message, null);
+        btn.disabled = false; btn.textContent = 'โพสต์ขึ้น TikTok';
+      }
+    },
+    async poll(n) {
+      if (!this.publishId || n > 40) return;
+      const st = $('v8TtStatus');
+      try {
+        const r = await api(`/api/connectors/${this.channelId}/tiktok/status?publish_id=${encodeURIComponent(this.publishId)}`);
+        if (!r.done) {
+          st.innerHTML = stateBox('loading', r.label);
+          this.timer = setTimeout(() => this.poll(n + 1), 3000);
+          return;
+        }
+        if (r.status === 'FAILED') {
+          st.innerHTML = stateBox('error', `${r.label}${r.fail_reason ? ' — ' + r.fail_reason : ''}`, null);
+          $('v8TtSubmit').disabled = false; $('v8TtSubmit').textContent = 'ลองโพสต์อีกครั้ง';
+          return;
+        }
+        st.innerHTML = `<div class="v8-result ok">✅ ${esc(r.label)}${r.post_url ? ` · <a href="${esc(r.post_url)}" target="_blank" rel="noopener">เปิดดูคลิป</a>` : ''}</div>`;
+        toast('✅ ' + r.label, 'success');
+        Conn.loadLogs();
+      } catch (e) {
+        st.innerHTML = stateBox('error', e.message, null);
+      }
     },
   };
 
@@ -1980,10 +2127,12 @@
     currentCaption: () => ($('v8Caption') ? $('v8Caption').value : ''),
     goConnectors: () => { $('v8PublishModal').hidden = true; AAS.switchTab('connectors'); },
     loadConnectors: () => Conn.load(),
+    tiktokPost(id) { TikTokPost.open(id); },
+    closeTiktok() { TikTokPost.close(); },
     async oauth(platform, btn, returnTab = 'connectors') {
       btn.disabled = true; btn.textContent = 'กำลังเปิดหน้าล็อกอิน…';
       try { const r = await api(`/api/connectors/${platform}/start?return_tab=${returnTab}`, 'POST'); location.href = r.auth_url; }
-      catch (e) { toast(e.message, 'error'); btn.disabled = false; btn.textContent = platform === 'facebook' ? 'Connect with Facebook' : 'Connect with Instagram'; }
+      catch (e) { toast(e.message, 'error'); btn.disabled = false; btn.textContent = { facebook: 'Connect with Facebook', instagram: 'Connect with Instagram', tiktok: 'Continue with TikTok' }[platform] || 'เชื่อมต่อ'; }
     },
     async verify(id, btn) {
       btn.disabled = true; const t = btn.textContent; btn.textContent = 'กำลังตรวจ…';
@@ -2096,6 +2245,9 @@
     $('v8HelpSearch')?.addEventListener('input', () => Help.loaded && Help.render());
     bindTabGo(document);
     dashCta();
+    $('v8TtClose')?.addEventListener('click', () => TikTokPost.close());
+    $('v8TtModal')?.addEventListener('click', e => { if (e.target.id === 'v8TtModal') TikTokPost.close(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('v8TtModal')?.hidden) TikTokPost.close(); });
     const qs = new URLSearchParams(location.search);
     const tab = qs.get('tab');
     if (qs.get('oauth')) {

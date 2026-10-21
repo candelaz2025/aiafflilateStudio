@@ -820,7 +820,7 @@ def create_app(data_dir=None, secret_key=None):
         plat = body.platform.lower().strip()
         if plat not in ('tiktok', 'shopee', 'facebook', 'instagram', 'x', 'line_oa'):
             raise HTTPException(400, 'แพลตฟอร์มที่ระบุไม่รองรับ')
-        if plat in ('facebook', 'instagram', 'line_oa'):
+        if plat in ('facebook', 'instagram', 'line_oa', 'tiktok'):
             raise HTTPException(400, 'Facebook / Instagram / LINE OA ต้องเชื่อมผ่านเมนู Connectors (ล็อกอินจริงกับผู้ให้บริการ)')
         acc_token_enc = None
         if body.access_token:

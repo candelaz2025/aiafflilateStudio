@@ -449,3 +449,157 @@ def gem_file(file_id: str, x_goog_api_key: str = Header(default='')):
     if f['fail']:
         return {'name': f'files/{file_id}', 'state': 'FAILED'}
     return {'name': f'files/{file_id}', 'state': 'ACTIVE' if f['polls'] >= 2 else 'PROCESSING'}
+
+
+# ----------------------------------------------------------------- TikTok
+TT_CLIENT_KEY = 'mocktiktokkey'
+TT_CLIENT_SECRET = 'mocktiktoksecret'
+_tt_publishes: dict[str, dict] = {}
+# Flip these from a test to exercise the unaudited (SELF_ONLY) path and account-level locks.
+TT_STATE = {'privacy_options': ['PUBLIC_TO_EVERYONE', 'MUTUAL_FOLLOW_FRIENDS', 'FOLLOWER_OF_CREATOR', 'SELF_ONLY'],
+            'comment_disabled': False, 'duet_disabled': False, 'stitch_disabled': False,
+            'max_duration_sec': 600, 'fail_publish': False}
+
+
+def _tt_err(code: str, message: str, http: int = 400):
+    return JSONResponse({'error': {'code': code, 'message': message, 'log_id': 'mocklog'}}, http)
+
+
+def _tt_bearer(auth: str):
+    token = auth[7:] if auth.lower().startswith('bearer ') else ''
+    if not token.startswith('TTACCESS-'):
+        return None, _tt_err('access_token_invalid', 'The access token is invalid or expired.', 401)
+    return token, None
+
+
+@app.get('/tiktok/v2/auth/authorize/')
+def tt_authorize(client_key: str, redirect_uri: str, state: str, scope: str = '', response_type: str = 'code'):
+    log('tiktok.authorize', client_key=client_key, redirect_uri=redirect_uri, scope=scope)
+    ok = redirect_uri + '?' + urlencode({'code': 'TTCODE-' + state[:6], 'state': state, 'scopes': scope})
+    no = redirect_uri + '?' + urlencode({'error': 'access_denied',
+                                         'error_description': 'User denied the authorization.', 'state': state})
+    return consent_page('TikTok (mock) — popcont wants to access your TikTok account', ok, no, f'Scopes: {scope}')
+
+
+@app.post('/tiktok/oauth/token/')
+def tt_token(client_key: str = Form(''), client_secret: str = Form(''), code: str = Form(''),
+             grant_type: str = Form(''), redirect_uri: str = Form(''), refresh_token: str = Form('')):
+    if client_key != TT_CLIENT_KEY or client_secret != TT_CLIENT_SECRET:
+        return JSONResponse({'error': 'invalid_client', 'error_description': 'Client key or secret is incorrect.'}, 401)
+    if grant_type == 'refresh_token':
+        if not refresh_token.startswith('TTREFRESH-'):
+            return JSONResponse({'error': 'invalid_grant', 'error_description': 'Refresh token is invalid.'}, 401)
+        log('tiktok.refresh')
+        return {'access_token': 'TTACCESS-' + secrets.token_hex(4), 'refresh_token': refresh_token,
+                'open_id': 'tt-open-id-001', 'scope': 'user.info.basic,video.publish',
+                'expires_in': 86400, 'refresh_expires_in': 31536000, 'token_type': 'Bearer'}
+    if not code.startswith('TTCODE-'):
+        return JSONResponse({'error': 'invalid_grant', 'error_description': 'Authorization code is invalid.'}, 400)
+    log('tiktok.token', redirect_uri=redirect_uri)
+    return {'access_token': 'TTACCESS-' + code[-6:], 'refresh_token': 'TTREFRESH-' + code[-6:],
+            'open_id': 'tt-open-id-001', 'scope': 'user.info.basic,video.publish',
+            'expires_in': 86400, 'refresh_expires_in': 31536000, 'token_type': 'Bearer'}
+
+
+@app.post('/tiktok/oauth/revoke/')
+def tt_revoke(client_key: str = Form(''), client_secret: str = Form(''), token: str = Form('')):
+    log('tiktok.revoke')
+    return {'error': {'code': 'ok', 'message': '', 'log_id': 'mocklog'}}
+
+
+@app.get('/tiktok/user/info/')
+def tt_user_info(fields: str = '', authorization: str = Header(default='')):
+    token, bad = _tt_bearer(authorization)
+    if bad:
+        return bad
+    log('tiktok.user_info', fields=fields)
+    return {'data': {'user': {'open_id': 'tt-open-id-001', 'username': 'candelaz.kengza',
+                              'display_name': 'Candelaz Kengza', 'avatar_url': 'https://example.com/tt.jpg',
+                              'follower_count': 1280, 'likes_count': 9400, 'video_count': 37}},
+            'error': {'code': 'ok', 'message': '', 'log_id': 'mocklog'}}
+
+
+@app.post('/tiktok/post/publish/creator_info/query/')
+def tt_creator_info(authorization: str = Header(default='')):
+    token, bad = _tt_bearer(authorization)
+    if bad:
+        return bad
+    log('tiktok.creator_info')
+    return {'data': {'creator_avatar_url': 'https://example.com/tt.jpg',
+                     'creator_username': 'candelaz.kengza', 'creator_nickname': 'Candelaz Kengza',
+                     'privacy_level_options': TT_STATE['privacy_options'],
+                     'comment_disabled': TT_STATE['comment_disabled'],
+                     'duet_disabled': TT_STATE['duet_disabled'],
+                     'stitch_disabled': TT_STATE['stitch_disabled'],
+                     'max_video_post_duration_sec': TT_STATE['max_duration_sec']},
+            'error': {'code': 'ok', 'message': '', 'log_id': 'mocklog'}}
+
+
+@app.post('/tiktok/post/publish/video/init/')
+async def tt_video_init(req: Request, authorization: str = Header(default='')):
+    token, bad = _tt_bearer(authorization)
+    if bad:
+        return bad
+    body = await req.json()
+    info = body.get('post_info') or {}
+    src = body.get('source_info') or {}
+    if info.get('privacy_level') not in TT_STATE['privacy_options']:
+        return _tt_err('invalid_param', 'privacy_level is not available to this creator.')
+    if info.get('brand_content_toggle') and info.get('privacy_level') == 'SELF_ONLY':
+        return _tt_err('invalid_param', 'Branded content cannot be set to private.')
+    if src.get('source') != 'FILE_UPLOAD' or not src.get('video_size'):
+        return _tt_err('invalid_param', 'source_info is incomplete.')
+    pid = 'v_pub_' + secrets.token_hex(6)
+    _tt_publishes[pid] = {'size': int(src['video_size']), 'received': 0, 'polls': 0,
+                          'privacy': info.get('privacy_level'), 'fail': TT_STATE['fail_publish']}
+    log('tiktok.init', publish_id=pid, title=(info.get('title') or '')[:3000],
+        privacy=info.get('privacy_level'), is_aigc=info.get('is_aigc'),
+        brand_content=info.get('brand_content_toggle'), brand_organic=info.get('brand_organic_toggle'),
+        disable_comment=info.get('disable_comment'), chunks=src.get('total_chunk_count'),
+        video_size=src.get('video_size'))
+    return {'data': {'publish_id': pid, 'upload_url': f'{str(req.base_url).rstrip("/")}/tiktok/upload/{pid}'},
+            'error': {'code': 'ok', 'message': '', 'log_id': 'mocklog'}}
+
+
+@app.put('/tiktok/upload/{publish_id}')
+async def tt_upload(publish_id: str, req: Request, content_range: str = Header(default=''),
+                    content_type: str = Header(default='')):
+    rec = _tt_publishes.get(publish_id)
+    if not rec:
+        return _tt_err('invalid_publish_id', 'Unknown publish id.', 404)
+    if content_type not in ('video/mp4', 'video/quicktime', 'video/webm'):
+        return _tt_err('invalid_param', f'Unsupported Content-Type: {content_type}')
+    m = re.fullmatch(r'bytes (\d+)-(\d+)/(\d+)', content_range or '')
+    if not m:
+        return _tt_err('invalid_param', f'Bad Content-Range: {content_range}')
+    first, last, total = int(m.group(1)), int(m.group(2)), int(m.group(3))
+    if total != rec['size']:
+        return _tt_err('invalid_param', 'Content-Range total does not match video_size.')
+    blob = await req.body()
+    if len(blob) != last - first + 1:
+        return _tt_err('invalid_param', 'Chunk length does not match Content-Range.')
+    rec['received'] += len(blob)
+    log('tiktok.upload', publish_id=publish_id, range=content_range, bytes=len(blob))
+    return Response(status_code=201)
+
+
+@app.post('/tiktok/post/publish/status/fetch/')
+async def tt_status(req: Request, authorization: str = Header(default='')):
+    token, bad = _tt_bearer(authorization)
+    if bad:
+        return bad
+    pid = (await req.json()).get('publish_id', '')
+    rec = _tt_publishes.get(pid)
+    if not rec:
+        return _tt_err('invalid_publish_id', 'Unknown publish id.')
+    rec['polls'] += 1
+    if rec['fail']:
+        data = {'status': 'FAILED', 'fail_reason': 'file_format_check_failed'}
+    elif rec['received'] < rec['size'] or rec['polls'] < 2:
+        data = {'status': 'PROCESSING_UPLOAD', 'uploaded_bytes': rec['received']}
+    else:
+        data = {'status': 'PUBLISH_COMPLETE', 'uploaded_bytes': rec['received']}
+        if rec['privacy'] != 'SELF_ONLY':
+            data['publicaly_available_post_id'] = [7300000000000000001]
+    log('tiktok.status', publish_id=pid, status=data['status'])
+    return {'data': data, 'error': {'code': 'ok', 'message': '', 'log_id': 'mocklog'}}

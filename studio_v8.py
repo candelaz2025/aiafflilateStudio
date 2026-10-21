@@ -203,7 +203,7 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, now, data_d
         for p in products:
             p['image'] = p['image_url'] or (f"/media/products/{p['image_file']}" if p['image_file'] else (sample_img if p['source'] == 'sample' else ''))
         projects = [project_out(p) for p in read('SELECT * FROM studio_projects WHERE user_id=? ORDER BY id DESC LIMIT 20', (u['id'],))]
-        chans = read("""SELECT id,platform,account_name FROM connected_channels WHERE user_id=? AND platform IN ('facebook','instagram','line_oa')
+        chans = read("""SELECT id,platform,account_name FROM connected_channels WHERE user_id=? AND platform IN ('facebook','instagram','line_oa','tiktok')
                         AND access_token_encrypted IS NOT NULL AND access_token_encrypted!=''""", (u['id'],))
         return {'styles': ugc.STYLES, 'products': products, 'projects': projects, 'engine': engine_for(u['id']),
                 'templates': video_templates.TEMPLATES, 'avatars': avatars_of(u['id']),

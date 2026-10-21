@@ -398,3 +398,27 @@ body.is-demo #sidebarLogoutBtn{display:none}
 .v8-av-add{border-style:dashed}
 @media (max-width:600px){.v8-gm-grid{grid-template-columns:1fr}}
 .v8-gemini-card{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;border:1px solid var(--color-border);border-radius:12px;padding:12px 14px;background:var(--color-surface)}
+
+/* ---------------------------------------------------------------- TikTok Direct Post
+   The consent surface TikTok requires: who you post as, which privacy levels THIS
+   creator may use, the interaction locks their account already imposes, and the
+   commercial-content and music declarations. */
+.v8-tt-modal{max-width:560px;width:calc(100vw - 32px);max-height:88vh;overflow-y:auto;overscroll-behavior:contain}
+.v8-tt-modal h3{margin:0 0 14px;font-size:18px}
+.v8-tt-creator{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--color-border);
+  border-radius:var(--radius-md);background:var(--color-surface-subtle);margin-bottom:12px}
+.v8-tt-field{display:block;margin-bottom:12px;font-weight:600;font-size:13px}
+.v8-tt-field .form-input{margin-top:5px;width:100%}
+.v8-tt-field textarea.form-input{resize:vertical;min-height:62px}
+.v8-tt-group{border:1px solid var(--color-border);border-radius:var(--radius-md);padding:10px 12px;margin:0 0 12px}
+.v8-tt-group legend{font-weight:700;font-size:12.5px;padding:0 6px}
+.v8-tt-group p{margin:0 0 8px}
+.v8-tt-group label,.v8-tt-check{display:flex;align-items:flex-start;gap:8px;font-size:13px;line-height:1.5;margin:6px 0}
+.v8-tt-group input[type=checkbox],.v8-tt-check input[type=checkbox]{margin-top:2px;flex-shrink:0}
+.v8-tt-group input[type=checkbox]:disabled + *,.v8-tt-group label:has(input:disabled){opacity:.7}
+.v8-tt-check{margin:8px 0}
+.v8-tt-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;padding-top:12px;border-top:1px solid var(--color-border)}
+.v8-tt-status:not(:empty){margin-top:12px}
+.v8-tt-btn{width:100%;background:linear-gradient(135deg,#FE2C55,#25F4EE);border:none;color:#fff;font-weight:700}
+.v8-tt-btn:disabled{background:var(--color-surface-subtle);color:var(--color-text-subtle)}
+@media (max-width:560px){.v8-tt-modal{padding:18px 16px}}

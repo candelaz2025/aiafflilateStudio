@@ -209,6 +209,44 @@ ARTICLES = [
         'keywords': ['meta app', 'app id', 'app secret', 'redirect uri', 'app review', 'admin', 'ผู้ดูแล'],
     },
     {
+        'id': 'connect-tiktok', 'category': 'connectors', 'title': 'เชื่อม TikTok แล้วโพสต์คลิปจากระบบ', 'goto': 'connectors',
+        'summary': 'กดปุ่มเดียว TikTok ถามยืนยันแล้วส่งกลับมาเอง ไม่ต้องคัดลอก token — จากนั้นเลือกคลิปที่สร้างไว้แล้วโพสต์ได้เลย',
+        'steps': [
+            'เมนู "เชื่อมต่อช่องทาง" → การ์ด TikTok → กด "Continue with TikTok"',
+            'หน้าของ TikTok จะขึ้นมาถามว่าอนุญาตให้แอปเข้าถึงบัญชีไหม — กด Continue (ระบบขอแค่ user.info.basic กับ video.publish เท่านั้น)',
+            'กลับมาที่ระบบอัตโนมัติ จะเห็นชื่อบัญชี @ ของคุณพร้อมจำนวนผู้ติดตาม',
+            'ไปสร้างคลิปที่เมนู "สร้างคอนเทนต์" ให้เสร็จก่อน (คลิป AI หรือคลิปพรีวิว)',
+            'กลับมาที่การ์ด TikTok → กด "🎬 โพสต์คลิป" → เลือกคลิป ใส่แคปชัน เลือกว่าใครดูได้',
+            'ติ๊กเปิดเผยเนื้อหาเชิงพาณิชย์ให้ตรงความจริง: "โปรโมตแบรนด์ของฉันเอง" หรือ "ได้รับค่าตอบแทนจากแบรนด์อื่น" — คลิป Affiliate นับเป็นเนื้อหาเชิงพาณิชย์ ถ้าไม่ประกาศถือว่าผิดนโยบาย TikTok',
+            'ยอมรับเงื่อนไขการใช้เพลงของ TikTok แล้วกด "โพสต์ขึ้น TikTok" — ระบบจะอัปโหลดและรายงานสถานะจนกว่าจะขึ้นจริง',
+        ],
+        'tips': [
+            'ถ้าแอปของระบบยังไม่ผ่าน audit ของ TikTok คลิปที่โพสต์จะเป็น "ส่วนตัว" เท่านั้น เปิดแอป TikTok แล้วเปลี่ยนเป็นสาธารณะเองได้',
+            'TikTok ไม่ให้ตั้งคลิปที่ประกาศว่าได้รับค่าตอบแทนเป็นแบบส่วนตัว — ถ้าติ๊กไว้ต้องเลือกความเป็นส่วนตัวแบบอื่น',
+            'คลิปที่สร้างด้วย AI ควรคงติ๊ก "คลิปนี้สร้างด้วย AI" ไว้ TikTok จะติดป้าย AI-generated ให้ตามกฎของเขา',
+            'TikTok จำกัดราว 15 คลิปต่อบัญชีต่อวันจากทุกแอปรวมกัน',
+        ],
+        'keywords': ['tiktok', 'ติ๊กต่อก', 'ทิกทอก', 'โพสต์คลิป', 'direct post', 'content posting', 'เชื่อมต่อ tiktok'],
+    },
+    {
+        'id': 'admin-tiktok-app', 'category': 'connectors', 'title': '(ผู้ดูแลระบบ) ตั้งค่า TikTok App สำหรับปุ่ม Connect', 'goto': 'connectors',
+        'summary': 'ทำครั้งเดียวต่อเซิร์ฟเวอร์ ให้สมาชิกทุกคนกดเชื่อม TikTok และโพสต์คลิปได้',
+        'steps': [
+            'เข้า https://developers.tiktok.com → Manage apps → Create an app',
+            'เพิ่มสินค้า Login Kit และ Content Posting API เข้าไปในแอป',
+            'Login Kit → Redirect URI: ใส่ URL ที่หน้า เชื่อมต่อช่องทาง แสดง (ลงท้าย /api/oauth/tiktok/callback) — ต้องเป็น https ไม่มี query string',
+            'ขอ scope user.info.basic และ video.publish',
+            'Content Posting API → เปิด Direct Post',
+            'คัดลอก Client Key / Client Secret ไปใส่ใน เชื่อมต่อช่องทาง → "ตั้งค่าแอป (Admin)" หรือกำหนดเป็น ENV: TIKTOK_CLIENT_KEY, TIKTOK_CLIENT_SECRET',
+            'ส่งแอปเข้า audit ของ TikTok เพื่อให้คลิปโพสต์แบบสาธารณะได้ — ก่อนผ่าน audit คลิปจะเป็นส่วนตัวเท่านั้น และรองรับได้สูงสุด 5 บัญชีต่อ 24 ชั่วโมง',
+        ],
+        'tips': [
+            'URL Prefix / Redirect URI ของ TikTok ต้องเป็น https เท่านั้น ใช้ localhost ไม่ได้',
+            'TikTok จะตรวจว่าหน้าจอโพสต์ของเราแสดงตัวเลือกความเป็นส่วนตัวจริงตามบัญชีผู้ใช้ และมีการเปิดเผยเนื้อหาเชิงพาณิชย์ — ระบบนี้ทำครบแล้ว',
+        ],
+        'keywords': ['tiktok app', 'client key', 'client secret', 'audit', 'login kit', 'content posting api', 'admin', 'ผู้ดูแล'],
+    },
+    {
         'id': 'publish-now', 'category': 'publish', 'title': 'โพสต์สินค้าไปเพจ / IG / LINE ทันที', 'goto': 'products',
         'summary': 'จากแถวสินค้า กด "📤 โพสต์" เลือกช่องทาง แก้แคปชั่น แล้วส่ง',
         'steps': [

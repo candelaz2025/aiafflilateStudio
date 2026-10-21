@@ -22,7 +22,7 @@ from fastapi import (BackgroundTasks, FastAPI, File, Form, Header, HTTPException
 from fastapi.responses import FileResponse, RedirectResponse
 from pydantic import BaseModel, Field
 
-from integrations import help_content, line_oa, meta, shopee_affiliate as shopee
+from integrations import help_content, line_oa, meta, shopee_affiliate as shopee, tiktok
 from studio_v6 import file_import
 
 OAUTH_STATE_MINUTES = 15
@@ -32,12 +32,26 @@ MAX_IMAGE_BYTES = 5 * 1024 * 1024
 CONFIG_KEYS = {  # key -> env var
     'meta_app_id': 'META_APP_ID', 'meta_app_secret': 'META_APP_SECRET',
     'ig_app_id': 'IG_APP_ID', 'ig_app_secret': 'IG_APP_SECRET',
+    'tiktok_client_key': 'TIKTOK_CLIENT_KEY', 'tiktok_client_secret': 'TIKTOK_CLIENT_SECRET',
     'public_base_url': 'PUBLIC_BASE_URL',
 }
-SECRET_KEYS = {'meta_app_secret', 'ig_app_secret'}
+SECRET_KEYS = {'meta_app_secret', 'ig_app_secret', 'tiktok_client_secret'}
 
 
 # ------------------------------------------------------------------ request models
+class TikTokPostIn(BaseModel):
+    project_id: int = Field(gt=0)
+    title: str = Field(default='', max_length=2200)
+    privacy_level: str = Field(default='SELF_ONLY', max_length=40)
+    disable_comment: bool = False
+    disable_duet: bool = False
+    disable_stitch: bool = False
+    brand_content_toggle: bool = False
+    brand_organic_toggle: bool = False
+    is_aigc: bool = True
+    agreed_music_terms: bool = False
+
+
 class SupportMessageIn(BaseModel):
     body: str = Field(min_length=1, max_length=SUPPORT_MAX_LEN)
     thread_id: int | None = Field(default=None, gt=0)
@@ -561,7 +575,7 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, cipher, now
     def connectors(req: Request):
         u = require_user(req)
         b = base_url(req)
-        rows = read("SELECT * FROM connected_channels WHERE user_id=? AND platform IN ('facebook','instagram','line_oa') ORDER BY id",
+        rows = read("SELECT * FROM connected_channels WHERE user_id=? AND platform IN ('facebook','instagram','line_oa','tiktok') ORDER BY id",
                     (u['id'],))
         chans = []
         for r in rows:
@@ -578,6 +592,9 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, cipher, now
                 'instagram': {'ready': bool(cfg('ig_app_id') and cfg('ig_app_secret')),
                               'via_facebook_ready': bool(cfg('meta_app_id') and cfg('meta_app_secret')),
                               'redirect_uri': f'{b}/api/oauth/instagram/callback'},
+                'tiktok': {'ready': bool(cfg('tiktok_client_key') and cfg('tiktok_client_secret')),
+                           'redirect_uri': f'{b}/api/oauth/tiktok/callback',
+                           'privacy_labels': tiktok.PRIVACY_LABEL_TH},
                 'line_oa': {'ready': True, 'public_https': b.startswith('https://')},
                 'base_url': b, 'graph_version': meta.graph_version(),
             },
@@ -715,6 +732,47 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, cipher, now
                        expires_at=expires_iso(tok['expires_in']))
         return back('instagram', True, tab=st['return_tab'], count=1)
 
+    # ---------------- TikTok Login Kit
+    @app.post('/api/connectors/tiktok/start')
+    def tt_start(req: Request, return_tab: str = 'connectors', x_csrf_token: str | None = Header(default=None)):
+        u = mutation(req, x_csrf_token)
+        key = cfg('tiktok_client_key')
+        if not key or not cfg('tiktok_client_secret'):
+            raise HTTPException(409, 'ผู้ดูแลระบบยังไม่ได้ตั้งค่า TikTok Client Key/Secret (ดูคู่มือ "ตั้งค่า TikTok App")')
+        redirect_uri = f'{base_url(req)}/api/oauth/tiktok/callback'
+        if not redirect_uri.startswith('https://') and not os.getenv('TIKTOK_AUTH_BASE', '').strip():
+            # TikTok only registers https redirect URIs; the mock provider is the one exception.
+            raise HTTPException(409, 'TikTok รับเฉพาะ Redirect URI ที่เป็น https — ตั้ง PUBLIC_BASE_URL เป็นโดเมน https ก่อน')
+        state = new_state(u['id'], 'tiktok', redirect_uri, return_tab)
+        return {'auth_url': tiktok.auth_url(key, redirect_uri, state)}
+
+    @app.get('/api/oauth/tiktok/callback')
+    def tt_callback(state: str = '', code: str = '', error: str = '', error_description: str = ''):
+        st = take_state(state, 'tiktok')
+        tab = (st or {}).get('return_tab', 'connectors')
+        if not st:
+            return back('tiktok', False, tab=tab, reason='ลิงก์เชื่อมต่อหมดอายุหรือไม่ถูกต้อง กรุณากด Connect ใหม่')
+        if error or not code:
+            if error in ('access_denied', 'user_cancelled'):
+                return back('tiktok', False, tab=tab, reason='คุณกดยกเลิกการอนุญาต — กด Connect ใหม่เมื่อพร้อม')
+            return back('tiktok', False, tab=tab, reason=(error_description or error or 'ยกเลิกการเชื่อมต่อ')[:200])
+        try:
+            tok = tiktok.exchange_code(cfg('tiktok_client_key'), cfg('tiktok_client_secret'), st['redirect_uri'], code)
+            me_ = tiktok.user_info(tok['access_token'])
+        except tiktok.TikTokError as e:
+            return back('tiktok', False, tab=tab, reason=str(e)[:200])
+        if 'video.publish' not in (tok['scope'] or ''):
+            return back('tiktok', False, tab=tab,
+                        reason='ยังไม่ได้อนุญาตสิทธิ์โพสต์วิดีโอ — กด Connect ใหม่แล้วติ๊กยินยอมให้ครบทุกข้อ')
+        name = ('@' + me_['username']) if me_['username'] else (me_['display_name'] or me_['open_id'] or 'TikTok')
+        upsert_channel(st['user_id'], 'tiktok', me_['open_id'] or tok['open_id'], name, tok['access_token'],
+                       kind='oauth', secret=tok['refresh_token'],
+                       meta_obj={'picture': me_['avatar'], 'username': me_['username'],
+                                 'display_name': me_['display_name'], 'followers': me_['followers'],
+                                 'scope': tok['scope']},
+                       expires_at=expires_iso(tok['expires_in']))
+        return back('tiktok', True, tab=tab, count=1)
+
     # ---------------- LINE OA
     @app.post('/api/connectors/line')
     def line_connect(body: LineConnectIn, req: Request, x_csrf_token: str | None = Header(default=None)):
@@ -822,6 +880,27 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, cipher, now
         return {'recipients': rows}
 
     # ---------------- verify / test / publish
+    def tiktok_token(ch):
+        """TikTok access tokens live 24h, so almost every call needs a refresh first.
+        Returns a token that is good right now and persists the rotated refresh token."""
+        token = dec(ch['access_token_encrypted'])
+        refresh_tok = dec(ch['secret_encrypted']) if ch.get('secret_encrypted') else ''
+        exp = ch.get('token_expires_at')
+        fresh = exp and datetime.fromisoformat(exp) - datetime.now(timezone.utc) > timedelta(minutes=10)
+        if token and fresh:
+            return token
+        if not refresh_tok:
+            raise HTTPException(400, 'TikTok token หมดอายุและไม่มี refresh token — กด Connect ใหม่')
+        r = tiktok.refresh(cfg('tiktok_client_key'), cfg('tiktok_client_secret'), refresh_tok)
+        with connect() as c:
+            c.execute('UPDATE connected_channels SET access_token_encrypted=?, secret_encrypted=?, token_expires_at=? WHERE id=?',
+                      (enc(r['access_token']), enc(r['refresh_token'] or refresh_tok),
+                       expires_iso(r['expires_in']), ch['id']))
+        return r['access_token']
+
+    # The scheduler runs in its own module but needs the same refresh-aware token.
+    app.state.v8_tiktok_token = tiktok_token
+
     def live_check(ch):
         token = dec(ch['access_token_encrypted'])
         m = json.loads(ch.get('meta_json') or '{}')
@@ -844,6 +923,20 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, cipher, now
             info = meta.instagram_check(ch['account_id'], token, via)
             detail = {'username': info.get('username'), 'followers': info.get('followers_count'),
                       'media_count': info.get('media_count')}
+        elif p == 'tiktok':
+            token = tiktok_token(ch)
+            info = tiktok.user_info(token)
+            ci = tiktok.creator_info(token)
+            m.update({'picture': info['avatar'] or m.get('picture', ''), 'username': info['username'],
+                      'display_name': info['display_name'], 'followers': info['followers'],
+                      'privacy_options': ci['privacy_options'], 'comment_disabled': ci['comment_disabled'],
+                      'duet_disabled': ci['duet_disabled'], 'stitch_disabled': ci['stitch_disabled'],
+                      'max_duration_sec': ci['max_duration_sec'],
+                      'audited': 'PUBLIC_TO_EVERYONE' in ci['privacy_options']})
+            updates['meta'] = m
+            detail = {'username': info['username'] or ci['username'], 'nickname': ci['nickname'],
+                      'followers': info['followers'], 'videos': info['videos'],
+                      'privacy_options': ci['privacy_options'], 'max_duration_sec': ci['max_duration_sec']}
         elif p == 'line_oa':
             try:
                 info = line_oa.bot_info(token)
@@ -881,7 +974,7 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, cipher, now
         ch = own_channel(u['id'], channel_id)
         try:
             detail = live_check(ch)
-        except (meta.MetaError, line_oa.LineError) as e:
+        except (meta.MetaError, line_oa.LineError, tiktok.TikTokError) as e:
             set_channel_error(ch['id'], e)
             raise HTTPException(502, str(e))
         return {'ok': True, 'platform': ch['platform'], 'detail': detail,
@@ -961,7 +1054,7 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, cipher, now
         caption = body.message.strip() or default_caption(p)
         try:
             r = publish_one(req, u, ch, p, caption, body.line_mode, body.confirm_broadcast)
-        except (meta.MetaError, line_oa.LineError) as e:
+        except (meta.MetaError, line_oa.LineError, tiktok.TikTokError) as e:
             log_publish(u['id'], ch, body.product_id, False, '', str(e))
             raise HTTPException(502, str(e))
         log_publish(u['id'], ch, body.product_id, True, r.get('post_id'), r.get('kind'))
@@ -985,7 +1078,7 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, cipher, now
                 results.append({'channel_id': cid, 'platform': ch['platform'], 'account_name': ch['account_name'], 'ok': True, **r})
             except HTTPException as e:
                 results.append({'channel_id': cid, 'platform': ch['platform'], 'account_name': ch['account_name'], 'ok': False, 'error': e.detail})
-            except (meta.MetaError, line_oa.LineError) as e:
+            except (meta.MetaError, line_oa.LineError, tiktok.TikTokError) as e:
                 log_publish(u['id'], ch, product_id, False, '', str(e))
                 results.append({'channel_id': cid, 'platform': ch['platform'], 'account_name': ch['account_name'], 'ok': False, 'error': str(e)})
         ok = sum(1 for r in results if r['ok'])
@@ -999,10 +1092,111 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, cipher, now
                                 LEFT JOIN products p ON p.id=l.product_id
                                 WHERE l.user_id=? ORDER BY l.id DESC LIMIT 50''', (u['id'],))}
 
+    # ---------------- TikTok Direct Post
+    def tiktok_channel(user_id, channel_id):
+        ch = own_channel(user_id, channel_id)
+        if ch['platform'] != 'tiktok':
+            raise HTTPException(400, 'ใช้ได้กับช่องทาง TikTok เท่านั้น')
+        return ch
+
+    def studio_clip(user_id, project_id):
+        """Best available clip of a studio project: the AI clip first, else the recorded preview."""
+        pr = read('SELECT * FROM studio_projects WHERE id=? AND user_id=?', (project_id, user_id), True)
+        if not pr:
+            raise HTTPException(404, 'ไม่พบโปรเจกต์คลิปของบัญชีนี้')
+        job_id = pr.get('ready_job_id')
+        if not job_id and pr.get('video_job_id'):
+            j = read("SELECT id FROM video_jobs WHERE id=? AND status='ready'", (pr['video_job_id'],), True)
+            job_id = j and j['id']
+        if job_id:
+            f = data_dir / 'videos' / str(user_id) / f'{job_id}.mp4'
+            if f.is_file():
+                return pr, f
+        if pr.get('preview_file'):
+            f = data_dir / 'videos' / str(user_id) / pr['preview_file']
+            if f.is_file():
+                return pr, f
+        raise HTTPException(409, 'โปรเจกต์นี้ยังไม่มีไฟล์คลิป — สร้างคลิป AI หรืออัดพรีวิวก่อน')
+
+    @app.get('/api/connectors/{channel_id}/tiktok/creator-info')
+    def tt_creator_info(channel_id: int, req: Request):
+        """TikTok requires the posting UI to be built from THIS creator's live options,
+        not from values we hard-code — so the dialog always opens on a fresh call."""
+        u = require_user(req)
+        ch = tiktok_channel(u['id'], channel_id)
+        try:
+            info = tiktok.creator_info(tiktok_token(ch))
+        except tiktok.TikTokError as e:
+            set_channel_error(ch['id'], e)
+            raise HTTPException(502, str(e))
+        info['privacy_labels'] = {k: tiktok.PRIVACY_LABEL_TH[k] for k in info['privacy_options']
+                                  if k in tiktok.PRIVACY_LABEL_TH}
+        info['audited'] = 'PUBLIC_TO_EVERYONE' in info['privacy_options']
+        return info
+
+    @app.post('/api/connectors/{channel_id}/tiktok/post')
+    def tt_post(channel_id: int, body: TikTokPostIn, req: Request, x_csrf_token: str | None = Header(default=None)):
+        u = mutation(req, x_csrf_token)
+        limit(u['id'], 'tiktok-post', 6)
+        ch = tiktok_channel(u['id'], channel_id)
+        if not body.agreed_music_terms:
+            raise HTTPException(400, 'ต้องยอมรับเงื่อนไขการใช้เพลงของ TikTok ก่อนโพสต์')
+        pr, path = studio_clip(u['id'], body.project_id)
+        size = path.stat().st_size
+        token = tiktok_token(ch)
+        try:
+            ci = tiktok.creator_info(token)
+            if body.privacy_level not in ci['privacy_options']:
+                raise HTTPException(400, 'ระดับความเป็นส่วนตัวนี้บัญชีของคุณใช้ไม่ได้ — เปิดหน้าต่างโพสต์ใหม่เพื่อดึงตัวเลือกล่าสุด')
+            if ci['comment_disabled'] and not body.disable_comment:
+                raise HTTPException(400, 'บัญชีนี้ปิดคอมเมนต์ไว้ที่ระดับบัญชี — ต้องติ๊ก "ปิดคอมเมนต์" ด้วย')
+            if ci['duet_disabled'] and not body.disable_duet:
+                raise HTTPException(400, 'บัญชีนี้ปิด Duet ไว้ที่ระดับบัญชี — ต้องติ๊ก "ปิด Duet" ด้วย')
+            if ci['stitch_disabled'] and not body.disable_stitch:
+                raise HTTPException(400, 'บัญชีนี้ปิด Stitch ไว้ที่ระดับบัญชี — ต้องติ๊ก "ปิด Stitch" ด้วย')
+            init = tiktok.init_direct_post(
+                token, title=body.title.strip() or pr.get('title', ''), privacy_level=body.privacy_level,
+                video_size=size, disable_comment=body.disable_comment, disable_duet=body.disable_duet,
+                disable_stitch=body.disable_stitch, brand_content_toggle=body.brand_content_toggle,
+                brand_organic_toggle=body.brand_organic_toggle, is_aigc=body.is_aigc)
+            sent = tiktok.upload_file(init['upload_url'], path, init['chunk_size'], init['total_chunk_count'])
+        except tiktok.TikTokError as e:
+            set_channel_error(ch['id'], e)
+            log_publish(u['id'], ch, None, False, '', str(e))
+            raise HTTPException(502, str(e))
+        log_publish(u['id'], ch, None, True, init['publish_id'], 'direct_post')
+        return {'ok': True, 'publish_id': init['publish_id'], 'uploaded_bytes': sent,
+                'privacy_level': body.privacy_level,
+                'message': 'ส่งคลิปเข้า TikTok แล้ว — กำลังประมวลผล ดูสถานะได้ด้านล่าง'}
+
+    @app.get('/api/connectors/{channel_id}/tiktok/status')
+    def tt_status(channel_id: int, publish_id: str, req: Request):
+        u = require_user(req)
+        ch = tiktok_channel(u['id'], channel_id)
+        if not publish_id or len(publish_id) > 64:
+            raise HTTPException(400, 'publish_id ไม่ถูกต้อง')
+        try:
+            st = tiktok.publish_status(tiktok_token(ch), publish_id)
+        except tiktok.TikTokError as e:
+            raise HTTPException(502, str(e))
+        done = st['status'] in ('PUBLISH_COMPLETE', 'SEND_TO_USER_INBOX', 'FAILED')
+        label = {'PROCESSING_UPLOAD': 'TikTok กำลังรับไฟล์…',
+                 'PROCESSING_DOWNLOAD': 'TikTok กำลังดึงไฟล์…',
+                 'SEND_TO_USER_INBOX': 'ส่งเข้ากล่องร่างใน TikTok แล้ว — เปิดแอปเพื่อโพสต์',
+                 'PUBLISH_COMPLETE': 'โพสต์ขึ้น TikTok เรียบร้อย',
+                 'FAILED': 'TikTok ปฏิเสธคลิปนี้'}.get(st['status'], st['status'] or 'กำลังตรวจสอบ…')
+        return {**st, 'done': done, 'label': label,
+                'post_url': (f"https://www.tiktok.com/@{json.loads(ch.get('meta_json') or '{}').get('username', '')}"
+                             f"/video/{st['post_ids'][0]}") if st['post_ids'] else ''}
+
     @app.delete('/api/connectors/{channel_id}')
     def delete_connector(channel_id: int, req: Request, x_csrf_token: str | None = Header(default=None)):
         u = mutation(req, x_csrf_token)
-        own_channel(u['id'], channel_id)
+        ch = own_channel(u['id'], channel_id)
+        if ch['platform'] == 'tiktok' and cfg('tiktok_client_key'):
+            # Best-effort: drop the grant on TikTok's side too, so "disconnect" really disconnects.
+            tiktok.revoke(cfg('tiktok_client_key'), cfg('tiktok_client_secret'),
+                          dec(ch['access_token_encrypted']) or '')
         with connect() as c:
             c.execute('DELETE FROM connected_channels WHERE id=? AND user_id=?', (channel_id, u['id']))
         return {'ok': True}
