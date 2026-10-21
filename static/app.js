@@ -128,13 +128,13 @@
       hero_greeting_time_evening: '🌙 สวัสดีตอนค่ำ',
       hero_status_ready: 'เริ่มได้ทันทีที่เมนู สร้างคอนเทนต์',
       hero_title: 'มาสร้างคอนเทนต์กันเลย 🎯',
-      hero_prompt_placeholder: 'วันนี้อยากสร้างคอนเทนต์หรือค้นหาสินค้าอะไรดี?',
+      hero_prompt_placeholder: 'พิมพ์ชื่อสินค้า แล้วกดสร้างบทและคลิปได้เลย',
       btn_create_now: 'สร้างเลย',
-      quick_shopee_extra: 'สินค้า Shopee Extra Comm',
-      quick_weekly: 'คอนเทนต์รายสัปดาห์',
-      quick_gen_mockup: 'สร้างคลิป AI Mockup ทันที',
-      quick_queue: 'เปิดคิวโพสต์ลง TikTok',
-      hero_tip_text: 'อยากได้คลิปปังทั้งสัปดาห์ ลองค้นหาใน Product Radar แล้วกดส่งไปสร้างบท AI ครั้งเดียวได้ 3 แนวทาง',
+      quick_shopee_extra: 'ดึงสินค้าจาก Shopee',
+      quick_weekly: 'สร้างบทรีวิว UGC',
+      quick_gen_mockup: 'ทำคลิปพรีวิว',
+      quick_queue: 'ดูคิวโพสต์',
+      hero_tip_text: 'เส้นทางหลัก: ดึงสินค้าจาก Shopee → สร้างบท UGC → ทำคลิปพรีวิว → ตั้งเวลาโพสต์ Facebook',
       kpi_drafts: 'ดราฟต์บทรีวิว',
       badge_ready: 'พร้อมสร้างคลิป',
       kpi_view_drafts: 'ดูบทรีวิวทั้งหมด',
@@ -317,13 +317,13 @@
       hero_greeting_time_evening: '🌙 Good evening',
       hero_status_ready: 'Brand & AI Models Ready',
       hero_title: 'Let\'s create content now 🎯',
-      hero_prompt_placeholder: 'What product or content do you want to create today?',
+      hero_prompt_placeholder: 'Type a product name to create a script and clip',
       btn_create_now: 'Create Now',
-      quick_shopee_extra: 'Shopee Extra Comm',
-      quick_weekly: 'Weekly Content Pack',
-      quick_gen_mockup: 'Instant Video Mockup',
-      quick_queue: 'Open TikTok Queue',
-      hero_tip_text: 'Tip: Products with 15%+ Extra Comm combined with POV scripts increase CTR by 240%.',
+      quick_shopee_extra: 'Import from Shopee',
+      quick_weekly: 'Create UGC Script',
+      quick_gen_mockup: 'Make Preview Clip',
+      quick_queue: 'Open Post Queue',
+      hero_tip_text: 'Main path: import from Shopee → UGC script → preview clip → schedule a Facebook post',
       kpi_drafts: 'Review Drafts',
       badge_ready: 'Ready for Video',
       kpi_view_drafts: 'View all drafts',
@@ -488,7 +488,7 @@
     nav_drafts: 'โรงงานบทรีวิว', nav_video: 'สร้างคลิปวิดีโอ',
     nav_group_mgmt: 'การจัดการ', nav_products: 'สินค้าของฉัน', nav_connectors: 'เชื่อมต่อช่องทาง', nav_calendar: 'ปฏิทินคอนเทนต์',
     nav_queue: 'คิวโพสต์และตารางงาน', nav_tracking: 'ติดตามยอดขายและสถิติ',
-    nav_group_community: 'ชุมชนและหน้าอื่น ๆ', nav_landing: 'หน้าแรก ↗', nav_ideas: 'ห้องทดลองชุมชน', nav_new: 'เสนอไอเดีย / แจ้งปัญหา',
+    nav_group_community: 'อื่น ๆ', nav_landing: 'หน้าแรก ↗', nav_ideas: 'ห้องทดลองชุมชน', nav_new: 'เสนอไอเดีย / แจ้งปัญหา',
     nav_donate: 'สนับสนุนโครงการ ↗', nav_updates: 'ศูนย์อัปเดตระบบ ↗',
     nav_group_help: 'ช่วยเหลือ', nav_help: 'ช่วยเหลือและคำถามที่พบบ่อย',
     nav_group_system: 'ระบบและการตั้งค่า', nav_users: 'จัดการผู้ใช้', nav_keys: 'คีย์และการตั้งค่า',
@@ -500,7 +500,7 @@
     nav_drafts: 'Review Script Factory', nav_video: 'Create Video Clip',
     nav_group_mgmt: 'MANAGEMENT', nav_products: 'My Products', nav_connectors: 'Channel Connections', nav_calendar: 'Content Calendar',
     nav_queue: 'Post Queue & Schedule', nav_tracking: 'Sales & Analytics',
-    nav_group_community: 'COMMUNITY & PAGES', nav_landing: 'Home Page ↗', nav_ideas: 'Community Lab', nav_new: 'Ideas / Report a Bug',
+    nav_group_community: 'MORE', nav_landing: 'Home Page ↗', nav_ideas: 'Community Lab', nav_new: 'Ideas / Report a Bug',
     nav_donate: 'Support the Project ↗', nav_updates: 'Update Center ↗',
     nav_group_help: 'HELP', nav_help: 'Help & FAQ',
     nav_group_system: 'SYSTEM & SETTINGS', nav_users: 'User Management', nav_keys: 'Keys & Settings',
@@ -546,7 +546,22 @@
   // ==========================================
   // TAB NAVIGATION
   // ==========================================
+  // MVP scope (Phase 1): Shopee products → UGC script/clip → connect FB/IG/LINE → scheduled post.
+  // Everything else stays in the code (see git tag backup-pre-mvp-*) but is hidden from the product.
+  const MVP_HIDDEN_TABS = new Set(['radar', 'drafts', 'video', 'calendar', 'ideas']);
+  const MVP_HIDDEN_LINKS = ['/donate', '/updates'];
+  function applyMvpScope() {
+    document.querySelectorAll('#sidebar .nav-item-btn[data-tab]').forEach(b => {
+      if (MVP_HIDDEN_TABS.has(b.dataset.tab)) b.closest('li')?.setAttribute('hidden', '');
+    });
+    document.querySelectorAll('#sidebar a[href]').forEach(a => {
+      if (MVP_HIDDEN_LINKS.includes(a.getAttribute('href'))) a.closest('li')?.setAttribute('hidden', '');
+    });
+    MVP_HIDDEN_TABS.forEach(id => document.getElementById(id)?.setAttribute('hidden', ''));
+  }
+
   function switchTab(targetId) {
+    if (MVP_HIDDEN_TABS.has(targetId)) targetId = 'studio';
     activeTab = targetId;
     document.querySelectorAll('.nav-item-btn').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.tab === targetId);
@@ -2064,20 +2079,21 @@
   document.querySelectorAll('[data-quick]').forEach(btn => {
     btn.addEventListener('click', () => {
       const q = btn.dataset.quick;
-      if (q === 'radar_hot') { switchTab('radar'); $('radar-auto')?.click(); }
-      else if (q === 'weekly_script') { switchTab('drafts'); $('autoGenerateScriptBtn')?.click(); }
-      else if (q === 'instant_video') { switchTab('video'); $('generateVideoBtn')?.click(); }
-      else if (q === 'open_queue') { switchTab('queue'); }
+      // MVP routes: products (Shopee) → studio (script + clip) → connectors → queue.
+      if (q === 'radar_hot') switchTab('products');
+      else if (q === 'weekly_script' || q === 'instant_video') switchTab('studio');
+      else if (q === 'connect') switchTab('connectors');
+      else if (q === 'open_queue') switchTab('queue');
     });
   });
 
   // Hero Prompt Bar Submit
   $('heroPromptSubmitBtn')?.addEventListener('click', () => {
     const text = $('heroPromptInput').value.trim();
-    if (!text) return switchTab('radar');
-    switchTab('radar');
-    $('radar-query').value = text;
-    $('radarform')?.requestSubmit();
+    if (!text) return switchTab('studio');
+    // Typed product name → straight into the studio as a new product + UGC script.
+    if (window.AASv8?.studioFromName) return window.AASv8.studioFromName(text);
+    switchTab('studio');
   });
 
   // Theme Toggle Button
@@ -2120,7 +2136,7 @@
   // GLOBAL WINDOW EXPORTS (FOR INLINE ACTIONS)
   // ==========================================
   window.appSwitchTab = switchTab;
-  window.AAS = { api, msg, esc, switchTab, logout: () => doLogout(), openTopup: () => openTopupModal(), refreshSession: () => checkSession(), getMe: () => me, reloadProducts: () => loadProducts(), reloadChannels: () => loadChannels() };
+  window.AAS = { api, msg, esc, switchTab, isHiddenTab: id => MVP_HIDDEN_TABS.has(id), logout: () => doLogout(), openTopup: () => openTopupModal(), refreshSession: () => checkSession(), getMe: () => me, reloadProducts: () => loadProducts(), reloadChannels: () => loadChannels() };
 
   window.appQuickSearch = keyword => {
     switchTab('radar');
@@ -2962,6 +2978,7 @@
   async function init() {
     applyTheme(currentTheme);
     applyLanguage(localStorage.getItem('lang') || 'th');
+    applyMvpScope();
     await checkSession();
     setupRadar();
     updateCreditDisplays();

@@ -392,6 +392,16 @@
     'faq-shopee': 'ดึงสินค้า Shopee ไม่ได้ หรือไม่มีค่าคอม ต้องทำอย่างไร?',
   };
   const FAQ_EXTRA = [
+    { id: 'mvp-menu', category: 'start', title: 'เมนูแต่ละอันใช้ทำอะไร?',
+      summary: 'Phase 1 (MVP) มีเฉพาะเมนูที่จำเป็นสำหรับเส้นทางหลัก: สินค้า → คลิป → โพสต์',
+      steps: ['สร้างคอนเทนต์ — เลือกสินค้า เลือกสไตล์ UGC สร้างบท ทำคลิปพรีวิว แล้วบันทึกหรือตั้งเวลาโพสต์ (เริ่มที่นี่)',
+              'ภาพรวม — สรุปจำนวนสินค้า บท และคิวโพสต์ของคุณ',
+              'สินค้าของฉัน — ดึงสินค้าจาก Shopee พร้อมรูป ราคา ค่าคอม หรือเพิ่มสินค้าเอง',
+              'เชื่อมต่อช่องทาง — เชื่อม Facebook Page / Instagram / LINE OA สำหรับโพสต์อัตโนมัติ',
+              'คิวโพสต์และตารางงาน — ดูคลิปที่รอโพสต์ TikTok (โพสต์เอง) และสถานะงาน',
+              'ติดตามยอดขายและสถิติ — บันทึกยอดขายรายคลิปเพื่อวัดผล',
+              'เสนอไอเดีย / แจ้งปัญหา — ส่งความเห็นหรือแจ้งบั๊กถึงทีมงาน'],
+      tips: ['ฟีเจอร์อื่น (เรดาร์สินค้า, ปฏิทิน, ชุมชน) พักไว้ก่อนใน Phase 1 เพื่อให้เส้นทางหลักใช้ได้จริงและเรียบง่าย'], keywords: ['เมนู', 'sidebar', 'ใช้ทำอะไร'], goto: 'studio' },
     { id: 'beta-status', category: 'beta', title: 'ระบบนี้ใช้งานจริงได้แล้วหรือยัง?',
       summary: 'ตอนนี้เป็นระบบทดสอบ (Beta) อยู่ระหว่างการพัฒนา ยังใช้งานจริงไม่ได้ทั้งหมด',
       steps: ['Phase 1 ใช้ได้ทันที: สร้างบท UGC 6 สไตล์, คลิปพรีวิว 9:16 (ดาวน์โหลดได้), สินค้าตัวอย่าง/เพิ่มสินค้าเอง และหน้า FAQ นี้',
@@ -419,7 +429,9 @@
         box.innerHTML = stateBox('loading', 'กำลังโหลดคู่มือ…');
         try {
           const d = await api('/api/help/articles');
-          const arts = d.articles.filter(a => a.id !== 'support-chat').map(a => ({ ...a, title: FAQ_Q[a.id] || a.title }));
+          const HIDE = new Set(['support-chat', 'radar', 'scripts', 'calendar', 'navigation']);
+          const arts = d.articles.filter(a => !HIDE.has(a.id)).map(a => ({ ...a, title: FAQ_Q[a.id] || a.title,
+            goto: a.goto && AAS.isHiddenTab?.(a.goto) ? 'studio' : a.goto }));
           this.data = { categories: [{ id: 'beta', label: 'ระบบ Beta & ทั่วไป', icon: '🧪' }, ...d.categories.map(c => c.id === 'faq' ? { ...c, label: 'แก้ปัญหา' } : c)], articles: [...FAQ_EXTRA, ...arts] };
           this.loaded = true;
         }
@@ -1653,6 +1665,12 @@
     },
     showClip: () => Studio.project && Studio.project.clip_url && Studio.showVideo(Studio.project.clip_url),
     studioWithProduct: id => Studio.open(id),
+    async studioFromName(name) {
+      name = String(name || '').trim();
+      if (name.length < 3) return toast('ชื่อสินค้าต้องยาวอย่างน้อย 3 ตัวอักษร', 'error');
+      try { const r = await api('/api/studio/quick-product', 'POST', { title: name.slice(0, 200), platform: 'other', url: '', source: 'manual' }); Studio.open(r.id); }
+      catch (e) { toast(e.message, 'error'); }
+    },
     async studioFromTitle(title, platform, url = '') {
       // Web leads are headlines: let the user trim them to a real product name first.
       const guess = String(title).replace(/\s+[-|–]\s+[^-|–]+$/, '').replace(/^\d+\s*(สุดยอด|อันดับ|รายการ)?\s*/, '').trim();
