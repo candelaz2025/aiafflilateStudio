@@ -322,6 +322,28 @@
       flex-wrap: wrap;
       gap: 16px;
     }
+    /* Header: nav links drop to a scrollable second row, then the brand text hides on phones */
+    .landing-actions a { white-space: nowrap; }
+    @media (max-width: 1024px) {
+      .landing-header { height: auto; }
+      .landing-header-inner { flex-wrap: wrap; padding: 10px 16px 0; row-gap: 6px; }
+      .landing-nav-links {
+        order: 3;
+        width: 100%;
+        overflow-x: auto;
+        white-space: nowrap;
+        scrollbar-width: none;
+        padding: 6px 0 10px;
+        gap: 20px;
+      }
+      .landing-nav-links::-webkit-scrollbar { display: none; }
+    }
+    @media (max-width: 560px) {
+      .landing-brand-text, .landing-hide-sm { display: none; }
+      .landing-actions { gap: 8px !important; }
+    }
+    .hero-glow { max-width: 100vw; }
+    @media (max-width: 860px) { .demo-preview-grid { grid-template-columns: 1fr !important; } }
     @media (max-width: 860px) {
       .trial-grid {
         grid-template-columns: 1fr;
@@ -339,7 +361,7 @@
   <div class="landing-header-inner">
     <a href="/landing" style="display:flex; align-items:center; gap:12px; text-decoration:none; color:#FFFFFF;">
       <div style="width:36px; height:36px; background:linear-gradient(135deg, #2563EB, #1D4ED8); border-radius:10px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:18px;">A</div>
-      <div>
+      <div class="landing-brand-text">
         <strong style="font-size:16px; display:block; line-height:1.2;">Affiliate Auto Studio</strong>
         <span style="font-size:11px; color:#94A3B8; font-family:var(--font-mono);">AI VIDEO & PRODUCT RADAR</span>
       </div>
@@ -354,8 +376,8 @@
       <a href="/updates">อัปเดต</a>
     </nav>
 
-    <div style="display:flex; align-items:center; gap:12px;">
-      <a href="/" class="btn-hero-ghost" style="padding:8px 16px; font-size:13px;" target="_blank" rel="noopener noreferrer">เข้าสู่ระบบ / Dashboard</a>
+    <div class="landing-actions" style="display:flex; align-items:center; gap:12px;">
+      <a href="/" class="btn-hero-ghost" style="padding:8px 16px; font-size:13px;" target="_blank" rel="noopener noreferrer">เข้าสู่ระบบ<span class="landing-hide-sm"> / Dashboard</span></a>
       <a href="#trial" class="btn-hero-primary" style="padding:8px 18px; font-size:13px;">ทดลองใช้ฟรี</a>
     </div>
   </div>
@@ -398,7 +420,7 @@
     <span style="font-size:12px; color:#64748B; margin-left:8px; font-family:var(--font-mono);">Affiliate Auto Studio · Live Canvas Mockup</span>
   </div>
 
-  <div style="display:grid; grid-template-columns:1fr 340px; gap:20px; align-items:center;">
+  <div class="demo-preview-grid" style="display:grid; grid-template-columns:1fr 340px; gap:20px; align-items:center;">
     <div>
       <div style="display:inline-block; padding:4px 10px; background:rgba(16, 185, 129, 0.15); border:1px solid rgba(16, 185, 129, 0.3); border-radius:6px; color:#10B981; font-size:12px; font-weight:700; margin-bottom:12px;">
         ✦ REAL-TIME 9:16 PREVIEW & SMART CONTROLS

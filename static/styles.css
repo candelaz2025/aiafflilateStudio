@@ -2519,6 +2519,19 @@ button, input, select, textarea {
   }
 }
 
+@media (max-width: 520px) {
+  .unified-nav .brand-text,
+  .back-link span {
+    display: none;
+  }
+  .nav-links-group {
+    flex: 1;
+    min-width: 0;
+    max-width: none;
+    margin: 0 8px;
+  }
+}
+
 /* ==========================================================================
    CONTENT CALENDAR & AUTO-POST STYLING (METRIC FLOW)
    ========================================================================== */
