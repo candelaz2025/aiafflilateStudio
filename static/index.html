@@ -1788,7 +1788,10 @@
         <label class="form-label" data-i18n="label_password">รหัสผ่าน (อย่างน้อย 12 ตัวอักษร)</label>
         <input name="password" type="password" class="form-input" minlength="12" required placeholder="เช่น SecurePass2026!">
       </div>
-      <input type="hidden" name="invite_code" value="">
+      <div class="form-group">
+        <label class="form-label" for="regInviteCode">รหัสเชิญ Beta (ถ้ามี)</label>
+        <input name="invite_code" id="regInviteCode" class="form-input" maxlength="128" autocomplete="off" placeholder="เว้นว่างได้ถ้าเปิดรับสมัครทั่วไป">
+      </div>
       <button type="submit" class="btn btn-primary" style="width:100%; margin-top:10px;" data-i18n="btn_register_submit">สมัครเข้าร่วม Beta</button>
     </form>
   </div>
