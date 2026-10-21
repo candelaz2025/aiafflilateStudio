@@ -160,8 +160,111 @@
     },
   };
 
+  // =========================================================== IMPORT FROM FILE (CSV / Excel)
+  const FIELD_LABELS = { title: 'ชื่อสินค้า *', price: 'ราคา', aff_link: 'ลิงก์ affiliate', image_url: 'URL ภาพสินค้า', item_id: 'รหัสสินค้า (ถ้ามี)', commission_rate: 'ค่าคอม %' };
+  const ImportFile = {
+    file: null, data: null,
+    open() {
+      const me = AAS.getMe() || {};
+      if (!me.id) { toast('กรุณาเข้าสู่ระบบก่อนนำเข้าสินค้า', 'error'); return; }
+      this.file = null; this.data = null;
+      $('v8Import').hidden = false; $('v8ImportTitle').textContent = '↓ นำเข้าสินค้าจากไฟล์';
+      $('v8ImportBody').innerHTML = `
+        <p class="v8-muted v8-small">ทำไฟล์ให้มีคอลัมน์เหล่านี้ (หัวตารางจะเป็นไทยหรืออังกฤษก็ได้ สลับลำดับได้ ระบบเดาให้เอง แล้วให้ยืนยันอีกที)</p>
+        <table class="v8-onb-table"><thead><tr><th>คอลัมน์</th><th>ตัวอย่าง</th><th>จำเป็น</th></tr></thead><tbody>
+          <tr><td>ชื่อสินค้า</td><td>หูฟังบลูทูธ TWS รุ่นใหม่</td><td>ต้องมี</td></tr>
+          <tr><td>ราคา</td><td>฿199 หรือ 199</td><td>ไม่บังคับ</td></tr>
+          <tr><td>ลิงก์ affiliate</td><td>https://s.shopee.co.th/xxxxxxxx</td><td>ไม่บังคับ</td></tr>
+          <tr><td>URL ภาพสินค้า</td><td>https://down-th.img.susercontent.com/...webp</td><td>ไม่บังคับ</td></tr>
+        </tbody></table>
+        <p class="v8-small v8-muted" style="margin:10px 0">ภาพจะถูกโหลดมาเก็บในระบบให้ · นำเข้าไฟล์เดิมซ้ำ = อัปเดตทับ (ดูจากลิงก์ affiliate หรือรหัสสินค้า) ไม่เพิ่มซ้ำ · รองรับ .csv (UTF-8) และ .xlsx (อ่านชีทแรก) · ลิงก์ที่ไม่ใช่โดเมน Shopee จะถูกข้าม</p>
+        <div class="v8-import-drop" id="v8ImportDrop">
+          <input type="file" id="v8ImportFile" accept=".csv,.xlsx,.txt" hidden>
+          <button class="btn btn-secondary btn-sm" id="v8ImportPick">📄 เลือกไฟล์ (.csv / .xlsx)</button>
+          <a class="btn btn-ghost btn-sm" id="v8ImportSample">⬇ ดาวน์โหลดไฟล์ตัวอย่าง (.csv)</a>
+          <span class="v8-muted v8-small" id="v8ImportName"></span>
+        </div>
+        <div id="v8ImportStage"></div>`;
+      $('v8ImportPick').addEventListener('click', () => $('v8ImportFile').click());
+      $('v8ImportFile').addEventListener('change', e => this.picked(e.target.files[0]));
+      $('v8ImportSample').addEventListener('click', () => this.sample());
+    },
+    sample() {
+      const csv = '﻿ชื่อสินค้า,ราคา,ลิงก์ affiliate,URL ภาพสินค้า,รหัสสินค้า\n' +
+        'หูฟังบลูทูธ TWS รุ่นใหม่,199,https://s.shopee.co.th/xxxxxxxx,,\n' +
+        'เซรั่มบำรุงผิวหน้า,390,,,\n';
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+      a.download = 'ตัวอย่างสินค้า.csv'; a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    },
+    async picked(f) {
+      if (!f) return;
+      this.file = f; $('v8ImportName').textContent = f.name;
+      $('v8ImportStage').innerHTML = stateBox('loading', 'กำลังอ่านไฟล์…');
+      const fd = new FormData(); fd.append('file', f);
+      try { this.data = await form('/api/my/products/import-file/preview', fd); this.map(); }
+      catch (e) { $('v8ImportStage').innerHTML = stateBox('error', e.message, null); }
+    },
+    map() {
+      const d = this.data, opts = c => ['<option value="">— ไม่ใช้ —</option>'].concat(
+        d.columns.map(col => `<option value="${esc(col)}" ${d.guess[c] === col ? 'selected' : ''}>${esc(col)}</option>`)).join('');
+      $('v8ImportStage').innerHTML = `
+        <div class="v8-import-map">
+          <p class="v8-small"><strong>${esc(d.filename)}</strong> · พบ ${d.total} แถว — จับคู่คอลัมน์:</p>
+          <div class="v8-map-grid">${d.fields.map(f => `
+            <label>${esc(FIELD_LABELS[f] || f)}<select data-field="${f}" class="form-select">${opts(f)}</select></label>`).join('')}</div>
+          <details class="v8-acc-sec"><summary>ดูตัวอย่าง 5 แถวแรก</summary>
+            <div style="overflow:auto"><table class="v8-onb-table"><thead><tr>${d.columns.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead>
+            <tbody>${d.sample.map(r => `<tr>${d.columns.map(c => `<td>${esc(String(r[c] ?? '').slice(0, 40))}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+          </details>
+          <label class="v8-onb-skip"><input type="checkbox" id="v8ImpImg" checked> ดาวน์โหลดภาพจาก URL มาเก็บในเครื่อง (แนะนำ — ลิงก์ภาพของร้านหมดอายุได้)</label>
+          <label class="v8-onb-skip"><input type="checkbox" id="v8ImpOver"> โหลดทับภาพเดิมของสินค้าที่เคยนำเข้าแล้ว</label>
+          <div class="v8-onb-nav" style="margin-top:12px">
+            <button class="btn btn-ghost btn-sm" id="v8ImpReset">← เลือกไฟล์อื่น</button>
+            <button class="btn btn-primary" id="v8ImpGo">นำเข้า ${d.total} รายการ</button>
+          </div>
+        </div>`;
+      $('v8ImpReset').addEventListener('click', () => this.open());
+      $('v8ImpGo').addEventListener('click', () => this.commit());
+    },
+    async commit() {
+      const mapping = {};
+      document.querySelectorAll('#v8ImportStage [data-field]').forEach(s => { if (s.value) mapping[s.dataset.field] = s.value; });
+      if (!mapping.title) return toast('กรุณาเลือกคอลัมน์ "ชื่อสินค้า" ก่อน', 'error');
+      const btn = $('v8ImpGo'); btn.disabled = true; btn.textContent = 'กำลังนำเข้า…';
+      const fd = new FormData();
+      fd.append('file', this.file); fd.append('mapping', JSON.stringify(mapping));
+      fd.append('download_images', $('v8ImpImg').checked ? '1' : '0');
+      fd.append('overwrite_images', $('v8ImpOver').checked ? '1' : '0');
+      try {
+        const r = await form('/api/my/products/import-file/commit', fd);
+        $('v8ImportTitle').textContent = '✅ นำเข้าสำเร็จ';
+        $('v8ImportBody').innerHTML = `
+          <div class="v8-pay-done">
+            <div class="v8-pay-check" aria-hidden="true">✓</div>
+            <div class="v8-pay-plus">+${r.added} รายการ</div>
+            <p>เพิ่มใหม่ <strong>${r.added}</strong> · อัปเดต <strong>${r.updated}</strong>${r.images ? ` · ดาวน์โหลดรูป <strong>${r.images}</strong>` : ''}${r.skipped ? ` · ข้าม ${r.skipped}` : ''}</p>
+            <div class="v8-pay-actions" style="justify-content:center">
+              <button class="btn btn-primary" id="v8ImpToProducts">ดูสินค้าของฉัน</button>
+              <button class="btn btn-ghost" id="v8ImpMore">นำเข้าไฟล์อื่น</button>
+            </div>
+          </div>`;
+        AAS.reloadProducts();
+        $('v8ImpToProducts').addEventListener('click', () => { $('v8Import').hidden = true; AAS.switchTab('products'); });
+        $('v8ImpMore').addEventListener('click', () => this.open());
+      } catch (e) { toast(e.message, 'error'); btn.disabled = false; btn.textContent = 'ลองใหม่'; }
+    },
+    bind() {
+      $('v8ImportFileBtn')?.addEventListener('click', () => this.open());
+      $('v8ImportClose')?.addEventListener('click', () => { $('v8Import').hidden = true; });
+      $('v8Import')?.addEventListener('click', e => { if (e.target.id === 'v8Import') $('v8Import').hidden = true; });
+      document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('v8Import').hidden) $('v8Import').hidden = true; });
+    },
+  };
+
   function sourceChip(p) {
-    const map = { shopee_affiliate_api: ['chip-success', 'Shopee API ✓'], manual: ['', 'กรอกเอง'], sample: ['', 'สินค้าตัวอย่าง'], radar: ['', 'จาก Radar'] };
+    const map = { shopee_affiliate_api: ['chip-success', 'Shopee API ✓'], file_import: ['', 'นำเข้าไฟล์'], manual: ['', 'กรอกเอง'], sample: ['', 'สินค้าตัวอย่าง'], radar: ['', 'จาก Radar'] };
     const [cls, label] = map[p.source] || ['', p.source || 'กรอกเอง'];
     return `<span class="chip ${cls} mono">${label}</span>`;
   }
@@ -375,6 +478,7 @@
     autopost: 'ตั้งเวลา Auto-Post ไป Facebook / Instagram / LINE ได้อย่างไร?',
     'shopee-credentials': 'จะขอ Shopee Affiliate AppID / Secret ได้จากที่ไหน?',
     'shopee-add-product': 'เพิ่มสินค้าจาก Shopee พร้อมรูป ราคา และค่าคอมได้อย่างไร?',
+    'import-file': 'นำเข้าสินค้าทีละหลายรายการจากไฟล์ CSV / Excel ได้อย่างไร?',
     radar: 'Product Radar ใช้ค้นหาสินค้าอย่างไร?',
     scripts: 'บทรีวิวแบบเดิม (AI Video Factory) ต่างจากบท UGC ใหม่อย่างไร?',
     video: 'คลิป AI ใช้เครดิตเท่าไร และดูสถานะงานได้ที่ไหน?',
@@ -1703,7 +1807,7 @@
   });
 
   function init() {
-    Shopee.bind(); Conn.bind(); Studio.bind(); AutoPost.bind(); Onboard.bind(); Profile.bind(); Pay.bind();
+    Shopee.bind(); Conn.bind(); Studio.bind(); AutoPost.bind(); Onboard.bind(); Profile.bind(); Pay.bind(); ImportFile.bind();
     api('/api/beta/capacity').then(c => { if (!c.invite_only) $('regInviteCode')?.closest('.form-group')?.setAttribute('hidden', ''); }).catch(() => {});
     if (!new URLSearchParams(location.search).get('oauth')) setTimeout(() => Onboard.open(false), 700);
     document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => { $(b.dataset.close).hidden = true; }));

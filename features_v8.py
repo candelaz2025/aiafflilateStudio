@@ -23,6 +23,7 @@ from fastapi.responses import FileResponse, RedirectResponse
 from pydantic import BaseModel, Field
 
 from integrations import help_content, line_oa, meta, shopee_affiliate as shopee
+from studio_v6 import file_import
 
 OAUTH_STATE_MINUTES = 15
 SUPPORT_MAX_LEN = 2000
@@ -1151,6 +1152,112 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, cipher, now
                                image_url,image_file,source) VALUES (?,?,?,?,?,?,?,?,?,?,'manual')''',
                             (u['id'], title, url, platform, now(), p, rate, comm_baht, image_url, fname))
         return {'id': cur.lastrowid, 'message': 'บันทึกสินค้า (กรอกเอง) เรียบร้อย'}
+
+    def _fetch_product_image(url: str) -> str:
+        """Best-effort server-side download of a Shopee-CDN image. Returns saved
+        filename, or '' on any failure (caller then keeps the plain image_url)."""
+        import requests
+        if not file_import.image_link(url):
+            return ''
+        try:
+            r = requests.get(url, timeout=12, stream=True,
+                             headers={'User-Agent': 'Mozilla/5.0', 'Referer': 'https://shopee.co.th/'})
+            if r.status_code != 200:
+                return ''
+            data = r.raw.read(MAX_IMAGE_BYTES + 1, decode_content=True)
+        except requests.RequestException:
+            return ''
+        if not data or len(data) > MAX_IMAGE_BYTES:
+            return ''
+        sig = data[:12]
+        if sig.startswith(b'\xff\xd8\xff'):
+            ext = '.jpg'
+        elif sig.startswith(b'\x89PNG'):
+            ext = '.png'
+        elif sig[:4] == b'RIFF' and sig[8:12] == b'WEBP':
+            ext = '.webp'
+        else:
+            return ''
+        fname = secrets.token_urlsafe(16) + ext
+        (media_dir / fname).write_bytes(data)
+        return fname
+
+    @app.post('/api/my/products/import-file/preview')
+    async def import_file_preview(req: Request, file: UploadFile = File(...),
+                                  x_csrf_token: str | None = Header(default=None)):
+        mutation(req, x_csrf_token)
+        binary = await file.read(file_import.MAX_FILE_BYTES + 1)
+        try:
+            out = file_import.preview(binary, file.filename or '')
+        except ValueError as e:
+            raise HTTPException(400, str(e))
+        out['filename'] = (file.filename or 'file')[:120]
+        return out
+
+    @app.post('/api/my/products/import-file/commit')
+    async def import_file_commit(req: Request, file: UploadFile = File(...), mapping: str = Form('{}'),
+                                 download_images: str = Form('1'), overwrite_images: str = Form('0'),
+                                 x_csrf_token: str | None = Header(default=None)):
+        u = mutation(req, x_csrf_token)
+        limit(u['id'], 'import_file', 10)
+        binary = await file.read(file_import.MAX_FILE_BYTES + 1)
+        try:
+            mp = json.loads(mapping or '{}')
+            if not isinstance(mp, dict):
+                raise ValueError('mapping ไม่ถูกต้อง')
+            items, skipped = file_import.build_items(binary, file.filename or '', mp)
+        except ValueError as e:
+            raise HTTPException(400, str(e))
+        except json.JSONDecodeError:
+            raise HTTPException(400, 'mapping ไม่ถูกต้อง')
+        want_img = download_images not in ('0', 'false', '', 'no')
+        overwrite = overwrite_images in ('1', 'true', 'yes')
+        added = updated = images = 0
+        with connect() as c:
+            for it in items:
+                comm_baht = (round(it['price'] * it['commission_rate'] / 100, 2)
+                             if it['price'] is not None and it['commission_rate'] is not None else None)
+                # Same affiliate link (or same item id) → update in place, never duplicate.
+                existing = None
+                if it['url']:
+                    existing = c.execute('SELECT id, image_file FROM products WHERE user_id=? AND offer_link=? AND offer_link!=""',
+                                         (u['id'], it['url'])).fetchone()
+                if not existing and it['item_id']:
+                    existing = c.execute('SELECT id, image_file FROM products WHERE user_id=? AND item_id=? AND item_id!=""',
+                                         (u['id'], it['item_id'])).fetchone()
+                fname = ''
+                have_img = existing and existing['image_file']
+                if want_img and it['image_url'] and (overwrite or not have_img):
+                    fname = _fetch_product_image(it['image_url'])
+                    if fname:
+                        images += 1
+                if existing:
+                    sets = ['title=?', 'price=?', 'commission_rate=?', 'commission_baht=?', 'image_url=?',
+                            'item_id=?', 'offer_link=?', "source='file_import'"]
+                    vals = [it['title'], it['price'], it['commission_rate'], comm_baht, it['image_url'],
+                            it['item_id'], it['url']]
+                    if fname:
+                        old = existing['image_file']
+                        sets.append('image_file=?')
+                        vals.append(fname)
+                        if old:
+                            try:
+                                (media_dir / old).unlink()
+                            except OSError:
+                                pass
+                    c.execute(f'UPDATE products SET {",".join(sets)} WHERE id=? AND user_id=?',
+                              vals + [existing['id'], u['id']])
+                    updated += 1
+                else:
+                    c.execute('''INSERT INTO products(user_id,title,url,platform,created_at,price,commission_rate,
+                                 commission_baht,image_url,image_file,item_id,offer_link,source)
+                                 VALUES(?,?,?,'shopee',?,?,?,?,?,?,?,?,'file_import')''',
+                              (u['id'], it['title'], it['url'], now(), it['price'], it['commission_rate'],
+                               comm_baht, it['image_url'], fname, it['item_id'], it['url']))
+                    added += 1
+        return {'added': added, 'updated': updated, 'images': images, 'skipped': skipped,
+                'total': added + updated,
+                'message': f'นำเข้าสำเร็จ — เพิ่ม {added}, อัปเดต {updated} รายการ' + (f' · ดาวน์โหลดรูป {images}' if images else '')}
 
     @app.get('/media/products/{name}')
     def product_media(name: str):

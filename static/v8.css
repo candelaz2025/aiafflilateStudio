@@ -292,3 +292,8 @@ body:not(.is-admin) [data-tab="users_mgmt"]{display:none}
 .v8-demo-note{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--color-tertiary-subtle);border:1px solid var(--color-tertiary-border);border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.55;margin:4px 0 12px}
 .v8-demo-note[hidden]{display:none!important}
 body.is-demo #sidebarLogoutBtn{display:none}
+.v8-import{max-width:620px;width:calc(100% - 32px);max-height:calc(100vh - 40px);overflow:auto}
+.v8-import-drop{display:flex;gap:10px;align-items:center;flex-wrap:wrap;border:1.5px dashed var(--color-border);border-radius:12px;padding:16px;margin-top:8px}
+.v8-import-map .v8-map-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:10px 0}
+.v8-import-map label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:var(--color-text-muted)}
+@media (max-width:600px){.v8-import-map .v8-map-grid{grid-template-columns:1fr}}

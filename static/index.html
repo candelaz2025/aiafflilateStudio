@@ -605,7 +605,10 @@
             <h2 class="page-title" data-i18n="products_page_title">📋 สินค้าของฉัน (My Products)</h2>
             <p class="page-subtitle" data-i18n="products_page_desc">รายการสินค้าที่คุณเลือกสำหรับทำคลิปวิดีโอและติดตามผลงาน</p>
           </div>
-          <button class="btn btn-secondary" id="addNewProductBtn">+ เพิ่มสินค้าเอง</button>
+          <div style="display:flex; gap:8px; flex-wrap:wrap">
+            <button class="btn btn-secondary" id="v8ImportFileBtn">↓ นำเข้า CSV/Excel</button>
+            <button class="btn btn-secondary" id="addNewProductBtn">+ เพิ่มสินค้าเอง</button>
+          </div>
         </div>
 
         <!-- V8: Shopee Affiliate import -->
@@ -2598,6 +2601,15 @@
     <div id="v8PayBody"></div>
   </div>
 </div>
+<!-- V8: Import products from CSV / Excel -->
+<div class="modal-backdrop" id="v8Import" hidden>
+  <div class="modal-content v8-import" role="dialog" aria-modal="true" aria-labelledby="v8ImportTitle">
+    <button class="modal-close-btn" id="v8ImportClose" aria-label="ปิด">&times;</button>
+    <h2 id="v8ImportTitle" class="v8-onb-title">↓ นำเข้าสินค้าจากไฟล์</h2>
+    <div id="v8ImportBody"></div>
+  </div>
+</div>
+
 <!-- V8: Member account modal (profile menu → จัดการสมาชิก) -->
 <div class="modal-backdrop" id="v8Account" hidden>
   <div class="modal-content v8-acc" role="dialog" aria-modal="true" aria-labelledby="v8AccTitle">
