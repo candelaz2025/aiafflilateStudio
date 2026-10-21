@@ -456,26 +456,40 @@ body.is-demo #sidebarLogoutBtn{display:none}
 .v8-oauth-go:disabled{opacity:.6}
 @media (max-width:460px){.v8-oauth-card{padding:18px 16px}.v8-oauth-party{width:104px}}
 
-/* ------------------------------------------------- inline price editing (product card)
-   The price is the number people correct most often, so it edits in place instead of
-   through a dialog: click, type, Enter. Escape puts it back. */
-.v8-pc-price-edit{background:none;border:1px solid transparent;border-radius:var(--radius-sm);
-  padding:1px 6px;margin-left:-6px;cursor:text;font:inherit;font-size:18px;font-weight:800;color:#15803d;
-  display:inline-flex;align-items:center;gap:5px;transition:background var(--trans-fast),border-color var(--trans-fast)}
-.v8-pc-price-edit:hover{background:var(--color-surface-subtle);border-color:var(--color-border)}
-.v8-pc-price-edit:focus-visible{outline:2px solid var(--color-primary);outline-offset:1px}
+/* ------------------------------------------------- inline editing on the product card
+   Name, price and commission are the values people correct most, so they edit in place:
+   click, type, Enter. Escape puts the old value back. */
+.v8-inline{background:none;border:1px solid transparent;border-radius:var(--radius-sm);font:inherit;color:inherit;
+  text-align:left;cursor:text;padding:1px 5px;margin-left:-5px;display:inline-flex;align-items:center;gap:5px;
+  transition:background var(--trans-fast),border-color var(--trans-fast)}
+.v8-inline:hover{background:var(--color-surface-subtle);border-color:var(--color-border)}
+.v8-inline:focus-visible{outline:2px solid var(--color-primary);outline-offset:1px}
+.v8-pc-title.v8-inline{display:-webkit-box;flex:1;min-width:0}
+.v8-pc-price.v8-inline{font-size:18px;font-weight:800;color:#15803d}
 .v8-pc-pen{font-size:11px;font-weight:400;color:var(--color-text-subtle);opacity:0;transition:opacity var(--trans-fast)}
-.v8-pc-price-edit:hover .v8-pc-pen,.v8-pc-price-edit:focus-visible .v8-pc-pen{opacity:1}
-.v8-pc-price-box{display:inline-flex;align-items:center;gap:3px}
-.v8-pc-baht{font-size:17px;font-weight:800;color:#15803d}
-.v8-pc-price-input{width:104px;font-size:16px;font-weight:800;color:#15803d;padding:3px 6px;
-  border:1px solid var(--color-primary);border-radius:var(--radius-sm);
-  background:var(--color-surface);font-family:var(--font-mono)}
-.v8-pc-price-input:focus{outline:2px solid var(--color-primary);outline-offset:1px}
-:root[data-theme="dark"] .v8-pc-price-edit,:root[data-theme="dark"] .v8-pc-baht,
-:root[data-theme="dark"] .v8-pc-price-input{color:#4ADE80}
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .v8-pc-price-edit,
-  :root:not([data-theme="light"]) .v8-pc-baht,:root:not([data-theme="light"]) .v8-pc-price-input{color:#4ADE80}}
+.v8-inline:hover .v8-pc-pen,.v8-inline:focus-visible .v8-pc-pen{opacity:1}
+@media (hover:none){.v8-pc-pen{opacity:.55}}
+.v8-pc-commbox{display:flex;justify-content:space-between;align-items:flex-end;gap:8px;padding:8px 10px;
+  border-radius:var(--radius-md);background:#FEF3C7;border:1px solid #FDE68A}
+.v8-pc-commbox > div{display:flex;flex-direction:column;gap:1px}
+.v8-pc-rate.v8-inline{font-weight:800;font-size:15px;color:#92400E}
+.v8-pc-earn{align-items:flex-end;text-align:right}
+.v8-pc-earn strong{font-size:16px;color:#92400E;font-family:var(--font-mono)}
+.v8-in-box{display:inline-flex;align-items:center;gap:3px;flex:1;min-width:0}
+.v8-in-box input{font:inherit;font-weight:700;padding:3px 7px;border:1px solid var(--color-primary);
+  border-radius:var(--radius-sm);background:var(--color-surface);color:var(--color-text-main)}
+.v8-in-box input:focus{outline:2px solid var(--color-primary);outline-offset:1px}
+.v8-in-title{width:100%;font-size:14px}
+.v8-in-num{width:104px;font-family:var(--font-mono);font-size:15px}
+.v8-in-rate{width:70px}
+.v8-in-fix{font-weight:800;color:var(--color-text-muted)}
+:root[data-theme="dark"] .v8-pc-commbox{background:#3F2D0B;border-color:#92400E}
+:root[data-theme="dark"] .v8-pc-rate.v8-inline,:root[data-theme="dark"] .v8-pc-earn strong{color:#FDE68A}
+:root[data-theme="dark"] .v8-pc-price.v8-inline{color:#4ADE80}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]) .v8-pc-commbox{background:#3F2D0B;border-color:#92400E}
+  :root:not([data-theme="light"]) .v8-pc-rate.v8-inline,:root:not([data-theme="light"]) .v8-pc-earn strong{color:#FDE68A}
+  :root:not([data-theme="light"]) .v8-pc-price.v8-inline{color:#4ADE80}}
 
 /* --------------------------------------------------------- edit product modal */
 .v8-span3{grid-column:span 3}
