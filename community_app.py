@@ -38,6 +38,9 @@ PH = PasswordHasher(time_cost=2, memory_cost=32768, parallelism=2)
 SESSION_DAYS = 7
 MAX_BETA_USERS = max(1, int(os.getenv('MAX_BETA_USERS', '100')))
 REQUIRE_INVITE = os.getenv('BETA_INVITE_CODE', '').strip()
+DEMO_CREDITS = int(os.getenv('DEMO_CREDITS', '50'))
+DEMO_TTL_DAYS = int(os.getenv('DEMO_TTL_DAYS', '7'))
+DEMO_PER_IP_HOUR = int(os.getenv('DEMO_PER_IP_HOUR', '30'))
 PUBLIC_MODE = os.getenv('PUBLIC_DEPLOYMENT') == '1'
 PROVIDERS = ('gemini', 'xai', 'openrouter', 'brave', 'openai')
 GROK_MODELS = grok.MODELS
@@ -423,6 +426,10 @@ def create_app(data_dir=None, secret_key=None):
             db.execute('ALTER TABLE users ADD COLUMN credits INTEGER NOT NULL DEFAULT 50;')
         if 'permissions' not in user_cols:
             db.execute("ALTER TABLE users ADD COLUMN permissions TEXT DEFAULT '{}';")
+        if 'is_demo' not in user_cols:
+            # Per-browser demo accounts: work without sign-up, can be upgraded to a real account.
+            db.execute('ALTER TABLE users ADD COLUMN is_demo INTEGER NOT NULL DEFAULT 0;')
+        db.execute('CREATE TABLE IF NOT EXISTS demo_starts (ip TEXT NOT NULL, created_at TEXT NOT NULL)')
 
         defaults = [
             ('ai_video_generation', 'AI Model Engine', 1, 'เปิด/ปิด ระบบสร้างวิดีโอ AI อัตโนมัติ'),
@@ -543,15 +550,51 @@ def create_app(data_dir=None, secret_key=None):
 
     @app.get('/api/beta/capacity')
     def beta_capacity():
-        n = read('SELECT COUNT(*) AS n FROM users',one=True)['n']
+        n = read('SELECT COUNT(*) AS n FROM users WHERE is_demo=0',one=True)['n']
         remaining=max(0,MAX_BETA_USERS-n)
         # Aliases keep every page (landing/community/admin) reading the same single source of truth.
         return {'limit':MAX_BETA_USERS,'registered':n,'remaining':remaining,
                 'max':MAX_BETA_USERS,'capacity':MAX_BETA_USERS,'available':remaining,
                 'invite_only':bool(REQUIRE_INVITE)}
 
+    def current_demo(req: Request):
+        raw = req.cookies.get('community_session')
+        if not raw:
+            return None
+        row = read('''SELECT u.id FROM sessions s JOIN users u ON u.id=s.user_id
+                      WHERE s.token_hash=? AND s.expires_at>? AND u.is_demo=1''',
+                   (hashlib.sha256(raw.encode()).hexdigest(), now()), True)
+        return row['id'] if row else None
+
+    @app.post('/api/demo/start')
+    def demo_start(req: Request, response: Response):
+        """Give a visitor a private demo account so every feature works without signing up."""
+        try:
+            u = require_user(req)
+            extra = read('SELECT is_demo FROM users WHERE id=?', (u['id'],), True)
+            return {'username': u['username'], 'role': u['role'], 'csrf': u['csrf'], 'is_demo': bool(extra and extra['is_demo']), 'reused': True}
+        except HTTPException:
+            pass
+        ip = req.client.host if req.client else ''
+        hour_ago = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat(timespec='seconds')
+        week_ago = (datetime.now(timezone.utc) - timedelta(days=DEMO_TTL_DAYS)).isoformat(timespec='seconds')
+        with connect() as c:
+            c.execute('BEGIN IMMEDIATE')
+            c.execute('DELETE FROM demo_starts WHERE created_at<?', (hour_ago,))
+            if c.execute('SELECT COUNT(*) FROM demo_starts WHERE ip=?', (ip,)).fetchone()[0] >= DEMO_PER_IP_HOUR:
+                raise HTTPException(429, 'สร้างบัญชีทดลองบ่อยเกินไป กรุณาลองใหม่ภายหลัง')
+            # Demo accounts that were never upgraded expire after DEMO_TTL_DAYS.
+            c.execute('''DELETE FROM users WHERE is_demo=1 AND created_at<? AND id NOT IN
+                         (SELECT user_id FROM sessions WHERE expires_at>?)''', (week_ago, now()))
+            name = 'demo_' + secrets.token_hex(3)
+            cur = c.execute('INSERT INTO users(username,email,password_hash,created_at,is_demo,credits) VALUES(?,?,?,?,1,?)',
+                            (name, f'{name}@demo.local', PH.hash(secrets.token_urlsafe(24)), now(), DEMO_CREDITS))
+            uid = cur.lastrowid
+            c.execute('INSERT INTO demo_starts(ip,created_at) VALUES(?,?)', (ip, now()))
+        return {**new_session({'id': uid, 'username': name, 'role': 'member'}, response), 'is_demo': True, 'reused': False}
+
     @app.post('/api/register')
-    def register(item: Register, response: Response):
+    def register(item: Register, req: Request, response: Response):
         email = item.email.strip().lower()
         username = item.username.strip()
         if not re.fullmatch(r'[A-Za-z0-9_]{3,32}', username):
@@ -563,15 +606,23 @@ def create_app(data_dir=None, secret_key=None):
         if REQUIRE_INVITE and not secrets.compare_digest(item.invite_code, REQUIRE_INVITE):
             raise HTTPException(403, 'ต้องใช้รหัสเชิญเข้าร่วม Beta')
         # Serialize capacity check and insert to avoid over-registering during races.
+        demo_id = current_demo(req)
         try:
             with connect() as c:
                 c.execute('BEGIN IMMEDIATE')
-                total = c.execute('SELECT COUNT(*) FROM users').fetchone()[0]
+                total = c.execute('SELECT COUNT(*) FROM users WHERE is_demo=0').fetchone()[0]
                 if total >= MAX_BETA_USERS:
                     raise HTTPException(409,'Beta เต็มจำนวนแล้ว กรุณารอเปิดรอบต่อไป')
-                cur = c.execute('INSERT INTO users(username,email,password_hash,created_at) VALUES(?,?,?,?)',
-                                (username,email,PH.hash(item.password),now()))
-                uid = cur.lastrowid
+                if demo_id:
+                    # Keep everything made in the demo: the demo account becomes the real account.
+                    c.execute('UPDATE users SET username=?, email=?, password_hash=?, is_demo=0 WHERE id=?',
+                              (username, email, PH.hash(item.password), demo_id))
+                    c.execute('DELETE FROM sessions WHERE user_id=?', (demo_id,))
+                    uid = demo_id
+                else:
+                    cur = c.execute('INSERT INTO users(username,email,password_hash,created_at) VALUES(?,?,?,?)',
+                                    (username,email,PH.hash(item.password),now()))
+                    uid = cur.lastrowid
         except sqlite3.IntegrityError:
             raise HTTPException(409, 'อีเมลหรือชื่อผู้ใช้มีอยู่แล้ว')
         return new_session({'id':uid, 'username':username, 'role':'member'},response)
@@ -610,7 +661,7 @@ def create_app(data_dir=None, secret_key=None):
         u=require_user(req)
         import json
         # require_user() only selects identity columns; read balance and permissions from users.
-        extra = read('SELECT credits, permissions FROM users WHERE id=?', (u['id'],), True)
+        extra = read('SELECT credits, permissions, is_demo FROM users WHERE id=?', (u['id'],), True)
         perms = {}
         try:
             if extra and extra['permissions']:
@@ -625,7 +676,8 @@ def create_app(data_dir=None, secret_key=None):
             'email': u['email'] if 'email' in u.keys() else '',
             'credits': (extra['credits'] if extra and extra['credits'] is not None else 0),
             'permissions': perms,
-            'is_admin': u['role'] == 'admin'
+            'is_admin': u['role'] == 'admin',
+            'is_demo': bool(extra and extra['is_demo']),
         }
 
     @app.post('/api/logout')
@@ -979,7 +1031,7 @@ def create_app(data_dir=None, secret_key=None):
                    (SELECT COUNT(*) FROM products p WHERE p.user_id=u.id) AS products_count,
                    (SELECT COUNT(*) FROM drafts d WHERE d.user_id=u.id) AS drafts_count,
                    (SELECT COUNT(*) FROM publishing_queue q WHERE q.user_id=u.id) AS queue_count
-            FROM users u ORDER BY u.id DESC LIMIT 100''')
+            FROM users u WHERE u.is_demo=0 ORDER BY u.id DESC LIMIT 100''')
 
     @app.patch('/api/admin/users/{user_id}/credits')
     def admin_update_user_credits(user_id: int, body: AdminCreditUpdateIn, req: Request, x_csrf_token: str | None = Header(default=None)):
