@@ -585,10 +585,18 @@
         localStorage.setItem('aas_credits', userCredits);
       }
     } catch {
-      // Logged out: show an honest guest state (no fake admin identity).
-      me = { id: 0, username: 'ผู้เยี่ยมชม', role: 'guest', csrf: '' };
+      // No session: start a private demo account so every feature works without signing up.
+      try {
+        const d = await api('/api/demo/start', 'POST', {});
+        me = await api('/api/me');
+        userCredits = me.credits; localStorage.setItem('aas_credits', userCredits);
+        if (!d.reused) setTimeout(() => window.AASv8?.toast?.('เริ่มโหมดทดลอง (Demo) แล้ว — ใช้ได้ทุกฟีเจอร์ทันที ไม่ต้องสมัคร', 'success'), 900);
+      } catch {
+        me = { id: 0, username: 'ผู้เยี่ยมชม', role: 'guest', csrf: '' };
+      }
     }
     document.body.classList.toggle('is-guest', !me.id);
+    document.body.classList.toggle('is-demo', !!me.is_demo);
     document.body.classList.toggle('is-admin', me.role === 'admin');
     document.dispatchEvent(new CustomEvent('aas:auth', { detail: me }));
     updateUserUI();
@@ -597,11 +605,12 @@
 
   function updateUserUI() {
     if (!me) return;
-    $('userName').textContent = me.username || 'Kevin';
-    $('userAvatar').textContent = (me.username || 'K').slice(0, 1).toUpperCase();
-    $('userRole').textContent = (me.role || 'MEMBER').toUpperCase();
-    if ($('authModalTriggerBtn')) $('authModalTriggerBtn').textContent = me.id ? 'ออกจากระบบ' : 'เข้าสู่ระบบ / สมัครสมาชิก';
-    $('heroUserName').textContent = (me.username || 'KEVIN').toUpperCase();
+    const shown = me.is_demo ? 'ผู้ใช้ทดลอง' : (me.username || 'ผู้เยี่ยมชม');
+    $('userName').textContent = shown;
+    $('userAvatar').textContent = me.is_demo ? 'D' : shown.slice(0, 1).toUpperCase();
+    $('userRole').textContent = me.is_demo ? 'DEMO' : (me.role || 'MEMBER').toUpperCase();
+    if ($('authModalTriggerBtn')) $('authModalTriggerBtn').textContent = me.id && !me.is_demo ? 'ออกจากระบบ' : 'สมัครสมาชิก / เข้าสู่ระบบ';
+    $('heroUserName').textContent = me.is_demo ? 'ผู้ใช้ทดลอง' : shown.toUpperCase();
 
     // Set time-based greeting
     const hr = new Date().getHours();
@@ -1935,7 +1944,8 @@
   // AUTH MODAL & QUICK LOGIN
   // ==========================================
   $('authModalTriggerBtn')?.addEventListener('click', () => {
-    if (me && me.id) { if (confirm('ออกจากระบบตอนนี้?')) doLogout(); return; }
+    if (me && me.id && !me.is_demo) { if (confirm('ออกจากระบบตอนนี้?')) doLogout(); return; }
+    const note = $('regDemoNote'); if (note) note.hidden = !(me && me.is_demo);
     $('authModal').hidden = false;
   });
   $('closeAuthModalBtn')?.addEventListener('click', () => {
