@@ -160,6 +160,134 @@
     },
   };
 
+  // =========================================================== FETCH FROM SHOPEE (Open API, bulk)
+  const Fetch = {
+    mode: 'category', listType: 'highest_commission', sort: 'relevance', job: null, pollT: 0,
+    async open() {
+      const me = AAS.getMe() || {};
+      if (!me.id) { toast('กรุณาเข้าสู่ระบบก่อน', 'error'); return; }
+      clearInterval(this.pollT); this.job = null;
+      $('v8Fetch').hidden = false; $('v8FetchTitle').textContent = 'ตั้งค่าการดึงสินค้า Shopee';
+      const body = $('v8FetchBody'); body.innerHTML = stateBox('loading', 'กำลังตรวจการเชื่อมต่อ Shopee…');
+      let st; try { st = await api('/api/shopee/status'); } catch (e) { body.innerHTML = stateBox('error', e.message, null); return; }
+      if (!st.configured) { this.credForm(); return; }
+      this.form();
+    },
+    credForm() {
+      $('v8FetchTitle').textContent = 'ก่อนดึงสินค้าจาก Shopee Affiliate';
+      $('v8FetchBody').innerHTML = `
+        <div class="v8-fetch-note"><strong>🛍️ ระบบดึงผ่าน Shopee Affiliate Open API ด้วย AppID/Secret ของคุณ</strong><br>
+          ไม่ใช้ cookie ไม่ต้องเปิดหน้าต่างซ่อน ไม่เสี่ยงโดนระงับบัญชี — ได้รูป ราคา ค่าคอม ยอดขาย และลิงก์ affiliate (s.shopee.co.th) ของคุณเองทุกชิ้น</div>
+        <form id="v8FetchCred" class="v8-form-grid" autocomplete="off" style="margin-top:12px">
+          <label>Shopee Affiliate AppID<input class="form-input" name="app_id" inputmode="numeric" required minlength="4" maxlength="40" pattern="[0-9]+" placeholder="เช่น 15012345678"></label>
+          <label>Secret<input class="form-input" name="secret" type="password" required minlength="8" maxlength="128" placeholder="••••••••"></label>
+          <div class="v8-span2" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+            <button type="button" class="btn btn-ghost btn-sm" data-help-article="shopee-credentials">วิธีขอ AppID / Secret</button>
+            <button class="btn btn-primary" type="submit">บันทึก & ต่อไป</button>
+          </div>
+        </form>`;
+      bindHelpLinks($('v8FetchBody'));
+      $('v8FetchCred').addEventListener('submit', async e => {
+        e.preventDefault(); const btn = e.submitter; btn.disabled = true; btn.textContent = 'กำลังทดสอบกับ Shopee…';
+        try { await api('/api/shopee/credentials', 'PUT', Object.fromEntries(new FormData(e.target))); toast('✅ เชื่อม Shopee API สำเร็จ', 'success'); Shopee.status(); this.form(); }
+        catch (err) { toast(err.message, 'error'); btn.disabled = false; btn.textContent = 'บันทึก & ต่อไป'; }
+      });
+    },
+    seg(name, opts, cur, onPick) {
+      return `<div class="v8-seg" data-seg="${name}">${opts.map(([v, l]) => `<button type="button" class="${v === cur ? 'is-on' : ''}" data-v="${v}">${l}</button>`).join('')}</div>`;
+    },
+    form() {
+      $('v8FetchTitle').textContent = 'ตั้งค่าการดึงสินค้า Shopee';
+      const cat = this.mode === 'category';
+      $('v8FetchBody').innerHTML = `
+        <p class="v8-muted v8-small">เลือกวิธีดึงจาก Shopee Affiliate แล้วกด "เริ่มดึง" — ระบบดึงผ่าน Open API ของคุณและบันทึกเข้าคลังให้อัตโนมัติ</p>
+        ${this.seg('mode', [['category', 'หมวดหมู่'], ['search', 'ค้นหา']], this.mode)}
+        <div id="v8FetchOpts">
+        ${cat ? `<label class="v8-lbl">เลือกหมวด (ได้อย่างเดียว)</label>
+          ${this.seg('listType', [['highest_commission', 'Commissions XTRA'], ['top_performing', 'Top Performing']], this.listType)}`
+        : `<label class="v8-lbl">คีย์เวิร์ด<input class="form-input" id="v8FetchKw" placeholder="เช่น หูฟังบลูทูธ, บังแดด" maxlength="120"></label>
+          <label class="v8-onb-skip"><input type="checkbox" id="v8FetchAms" checked> เอาเฉพาะ Comm Xtra (คอมมิชชั่นพิเศษ)</label>
+          <label class="v8-lbl">เรียงจาก</label>
+          ${this.seg('sort', [['relevance', 'Relevance'], ['sales', 'Top Sales'], ['commission', 'ค่าคอมสูงสุด']], this.sort)}`}
+        </div>
+        <hr class="v8-hr">
+        <label class="v8-lbl">จำนวนสูงสุด
+          <select class="form-select" id="v8FetchLimit" style="max-width:220px">${[10, 20, 30, 40, 50, 100].map(n => `<option value="${n}" ${n === 20 ? 'selected' : ''}>${n} รายการ</option>`).join('')}</select></label>
+        <p class="v8-muted v8-small">ดึงลิงก์ affiliate ให้อัตโนมัติทุกรายการ (offerLink จาก Open API) · สินค้าที่มีอยู่แล้วจะอัปเดตทับตามรหัสสินค้า ไม่เพิ่มซ้ำ</p>
+        <div class="v8-onb-nav" style="justify-content:flex-end;margin-top:14px">
+          <button class="btn btn-ghost" id="v8FetchCancel">ยกเลิก</button>
+          <button class="btn btn-primary" id="v8FetchGo">เริ่มดึง</button>
+        </div>`;
+      $('v8FetchBody').querySelectorAll('.v8-seg').forEach(seg => seg.addEventListener('click', e => {
+        const b = e.target.closest('[data-v]'); if (!b) return;
+        this[seg.dataset.seg] = b.dataset.v;
+        if (seg.dataset.seg === 'mode') this.form(); else seg.querySelectorAll('button').forEach(x => x.classList.toggle('is-on', x === b));
+      }));
+      $('v8FetchCancel').addEventListener('click', () => this.close());
+      $('v8FetchGo').addEventListener('click', () => this.start());
+      $('v8FetchKw')?.focus();
+    },
+    async start() {
+      const body = { mode: this.mode, list_type: this.listType, sort: this.sort, limit: +$('v8FetchLimit').value,
+                     keyword: $('v8FetchKw')?.value.trim() || '', ams_only: this.mode === 'category' ? true : !!$('v8FetchAms')?.checked };
+      if (body.mode === 'search' && body.keyword.length < 2) return toast('พิมพ์คีย์เวิร์ดอย่างน้อย 2 ตัวอักษร', 'error');
+      const btn = $('v8FetchGo'); btn.disabled = true; btn.textContent = 'กำลังเริ่ม…';
+      try { const r = await api('/api/shopee/fetch', 'POST', body); this.job = { id: r.job_id, since: 0, items: [] }; this.progress({ status: 'running', total: body.limit, done: 0, added: 0, updated: 0, items: [] }); this.poll(); }
+      catch (e) { toast(e.message, 'error'); btn.disabled = false; btn.textContent = 'เริ่มดึง'; }
+    },
+    progress(j) {
+      const total = Math.max(j.total || 0, j.done || 0, 1);
+      const pct = Math.min(100, Math.round((j.done || 0) / total * 100));
+      if (!$('v8FetchProg')) {
+        $('v8FetchTitle').textContent = '⬇ กำลังดึงสินค้าจาก Shopee…';
+        $('v8FetchBody').innerHTML = `
+          <div class="v8-fetch-stat"><span id="v8FetchMsg">เชื่อมต่อ Shopee Affiliate Open API…</span><strong id="v8FetchCount">0 / ${j.total || '?'}</strong></div>
+          <div class="v8-prog"><div class="v8-prog-bar" id="v8FetchProg" style="width:0%"></div></div>
+          <div class="v8-fetch-list" id="v8FetchList"></div>
+          <div class="v8-onb-nav" style="justify-content:flex-end;margin-top:12px" id="v8FetchDone" hidden>
+            <button class="btn btn-ghost" id="v8FetchAgain">ดึงเพิ่ม</button>
+            <button class="btn btn-primary" id="v8FetchView">ดูสินค้าของฉัน</button>
+          </div>`;
+        $('v8FetchAgain').addEventListener('click', () => this.open());
+        $('v8FetchView').addEventListener('click', () => { this.close(); AAS.switchTab('products'); });
+      }
+      $('v8FetchProg').style.width = pct + '%';
+      $('v8FetchCount').textContent = `${j.done || 0} / ${j.total || this.job?.limit || '?'}`;
+      const list = $('v8FetchList');
+      (j.items || []).forEach(it => list.insertAdjacentHTML('afterbegin', `<div class="v8-fetch-row">${it.image_url ? `<img src="${esc(it.image_url)}" alt="">` : '<span class="v8-fetch-noimg"></span>'}
+        <div class="v8-fetch-txt"><div class="v8-fetch-title">${esc(it.title)}</div><div class="v8-small v8-muted">${baht(it.price)} · ค่าคอม ${it.commission_rate != null ? it.commission_rate + '%' : '-'}${it.sales ? ' · ขายได้ ' + Number(it.sales).toLocaleString('th-TH') : ''}${it.discount_rate ? ' · ' + Math.round(it.discount_rate) + '% OFF' : ''}</div></div>
+        <span class="chip ${it.updated ? '' : 'chip-success'}">${it.updated ? 'อัปเดต' : 'เพิ่มใหม่'}</span></div>`));
+      if (j.status === 'done') {
+        $('v8FetchTitle').textContent = '✅ ดึงสินค้าเสร็จแล้ว';
+        $('v8FetchMsg').textContent = `เพิ่มใหม่ ${j.added} · อัปเดต ${j.updated} รายการ`;
+        $('v8FetchProg').style.width = '100%'; $('v8FetchDone').hidden = false;
+        AAS.reloadProducts(); toast(`✅ ดึงสินค้าเสร็จ เพิ่ม ${j.added} อัปเดต ${j.updated}`, 'success');
+        if (!j.added && !j.updated) $('v8FetchMsg').textContent = 'ไม่พบสินค้าที่ตรงเงื่อนไข — ลองคีย์เวิร์ดอื่น หรือปิด "เฉพาะ Comm Xtra"';
+      } else if (j.status === 'error') {
+        $('v8FetchTitle').textContent = '❌ ดึงสินค้าไม่สำเร็จ';
+        $('v8FetchMsg').innerHTML = `<span class="v8-err">${esc(j.error || 'เกิดข้อผิดพลาด')}</span>`;
+        $('v8FetchDone').hidden = false; if (j.done) AAS.reloadProducts();
+      } else $('v8FetchMsg').textContent = 'กำลังดึงข้อมูลและบันทึกเข้าคลัง…';
+    },
+    poll() {
+      clearInterval(this.pollT);
+      this.pollT = setInterval(async () => {
+        if (!this.job) return clearInterval(this.pollT);
+        try {
+          const j = await api(`/api/shopee/fetch/${this.job.id}?since=${this.job.since}`);
+          this.job.since = j.next; this.progress(j);
+          if (j.status !== 'running') { clearInterval(this.pollT); this.job = null; }
+        } catch (e) { clearInterval(this.pollT); this.progress({ status: 'error', error: e.message, done: 0, total: 0, items: [] }); this.job = null; }
+      }, 900);
+    },
+    close() { clearInterval(this.pollT); $('v8Fetch').hidden = true; },
+    bind() {
+      $('v8FetchBtn')?.addEventListener('click', () => this.open());
+      $('v8FetchClose')?.addEventListener('click', () => this.close());
+      $('v8Fetch')?.addEventListener('click', e => { if (e.target.id === 'v8Fetch') this.close(); });
+    },
+  };
+
   // =========================================================== IMPORT FROM FILE (CSV / Excel)
   const FIELD_LABELS = { title: 'ชื่อสินค้า *', price: 'ราคา', aff_link: 'ลิงก์ affiliate', image_url: 'URL ภาพสินค้า', item_id: 'รหัสสินค้า (ถ้ามี)', commission_rate: 'ค่าคอม %' };
   const ImportFile = {
@@ -169,26 +297,35 @@
       if (!me.id) { toast('กรุณาเข้าสู่ระบบก่อนนำเข้าสินค้า', 'error'); return; }
       this.file = null; this.data = null;
       $('v8Import').hidden = false; $('v8ImportTitle').textContent = '↓ นำเข้าสินค้าจากไฟล์';
+      $('v8ImportTitle').textContent = 'นำเข้าสินค้าจาก CSV / Excel';
       $('v8ImportBody').innerHTML = `
-        <p class="v8-muted v8-small">ทำไฟล์ให้มีคอลัมน์เหล่านี้ (หัวตารางจะเป็นไทยหรืออังกฤษก็ได้ สลับลำดับได้ ระบบเดาให้เอง แล้วให้ยืนยันอีกที)</p>
-        <table class="v8-onb-table"><thead><tr><th>คอลัมน์</th><th>ตัวอย่าง</th><th>จำเป็น</th></tr></thead><tbody>
-          <tr><td>ชื่อสินค้า</td><td>หูฟังบลูทูธ TWS รุ่นใหม่</td><td>ต้องมี</td></tr>
-          <tr><td>ราคา</td><td>฿199 หรือ 199</td><td>ไม่บังคับ</td></tr>
-          <tr><td>ลิงก์ affiliate</td><td>https://s.shopee.co.th/xxxxxxxx</td><td>ไม่บังคับ</td></tr>
-          <tr><td>URL ภาพสินค้า</td><td>https://down-th.img.susercontent.com/...webp</td><td>ไม่บังคับ</td></tr>
+        <p class="v8-muted">ทำไฟล์ให้มี 4 คอลัมน์นี้ (ชื่อหัวตารางจะเป็นไทยหรืออังกฤษก็ได้ สลับลำดับได้ ระบบเดาให้เอง แล้วให้ยืนยันอีกที)</p>
+        <table class="v8-onb-table v8-col-table"><thead><tr><th>คอลัมน์</th><th>ตัวอย่างข้อมูล</th><th>จำเป็น</th></tr></thead><tbody>
+          <tr><th>ชื่อสินค้า</th><td>หูฟังบลูทูธ TWS รุ่นใหม่</td><td>ต้องมี</td></tr>
+          <tr><th>ราคา</th><td>฿199 หรือ 199</td><td>ไม่บังคับ</td></tr>
+          <tr><th>ลิงค์ aff</th><td>https://s.shopee.co.th/xxxxxxxx</td><td>ไม่บังคับ</td></tr>
+          <tr><th>url ภาพสินค้า</th><td>https://down-bs-th.img.susercontent.com/…webp</td><td>ไม่บังคับ</td></tr>
         </tbody></table>
-        <p class="v8-small v8-muted" style="margin:10px 0">ภาพจะถูกโหลดมาเก็บในระบบให้ · นำเข้าไฟล์เดิมซ้ำ = อัปเดตทับ (ดูจากลิงก์ affiliate หรือรหัสสินค้า) ไม่เพิ่มซ้ำ · รองรับ .csv (UTF-8) และ .xlsx (อ่านชีทแรก) · ลิงก์ที่ไม่ใช่โดเมน Shopee จะถูกข้าม</p>
-        <div class="v8-import-drop" id="v8ImportDrop">
+        <ul class="v8-import-notes">
+          <li><strong>ภาพจะถูกโหลดมาเก็บในเครื่องให้</strong> ไม่ได้ลิงก์ไว้เฉย ๆ — ลิงก์ภาพของร้านหมดอายุแล้วคลังจะไม่โล่ง</li>
+          <li>นำเข้าไฟล์เดิมซ้ำ = <strong>อัพเดททับ ไม่เพิ่มซ้ำ</strong> (ดูจากลิงก์ affiliate หรือรหัสสินค้า)</li>
+          <li>รองรับ <strong>.csv</strong> (UTF-8) และ <strong>.xlsx</strong> — ไฟล์ Excel จะอ่าน<strong>ชีทแรก</strong>เท่านั้น · ไฟล์ cookie ของเบราว์เซอร์จะถูกปฏิเสธ</li>
+        </ul>
+        <div class="v8-import-btns">
+          <button class="btn btn-ghost" id="v8ImportCancel">ยกเลิก</button>
+          <a class="btn btn-secondary" href="/api/my/products/import-file/sample.xlsx" download>⬇ ตัวอย่าง .xlsx</a>
+          <a class="btn btn-secondary" href="/api/my/products/import-file/sample.csv" download>⬇ ดาวน์โหลดไฟล์ตัวอย่าง (.csv)</a>
+        </div>
+        <div class="v8-import-btns" style="justify-content:flex-end">
           <input type="file" id="v8ImportFile" accept=".csv,.xlsx,.txt" hidden>
-          <button class="btn btn-secondary btn-sm" id="v8ImportPick">📄 เลือกไฟล์ (.csv / .xlsx)</button>
-          <a class="btn btn-ghost btn-sm" id="v8ImportSample">⬇ ดาวน์โหลดไฟล์ตัวอย่าง (.csv)</a>
           <span class="v8-muted v8-small" id="v8ImportName"></span>
+          <button class="btn btn-primary" id="v8ImportPick">📄 เลือกไฟล์แล้วนำเข้า</button>
         </div>
         <div id="v8ImportStage"></div>
         <div id="v8ImportClean" hidden style="margin-top:14px;padding-top:12px;border-top:1px solid var(--color-border)"></div>`;
+      $('v8ImportCancel').addEventListener('click', () => { $('v8Import').hidden = true; });
       $('v8ImportPick').addEventListener('click', () => $('v8ImportFile').click());
       $('v8ImportFile').addEventListener('change', e => this.picked(e.target.files[0]));
-      $('v8ImportSample').addEventListener('click', () => this.sample());
       this.cleanupOffer();
     },
     async cleanupOffer() {
@@ -306,6 +443,52 @@
           <button class="btn btn-ghost btn-sm v8-danger" onclick="AASv8.deleteProduct(${p.id})" title="ลบสินค้า" aria-label="ลบสินค้า">🗑</button>
         </div></td></tr>`;
     }).join('');
+  }
+
+  // =========================================================== PRODUCT CARDS (คลังสินค้า)
+  function productStatus(p) {
+    if (p.source === 'shopee_affiliate_api') return '<span class="v8-pc-status is-live">ขายอยู่</span>';
+    if (p.source === 'file_import') return '<span class="v8-pc-status">นำเข้าไฟล์</span>';
+    if (p.source === 'sample') return '<span class="v8-pc-status">ตัวอย่าง</span>';
+    return '<span class="v8-pc-status">กรอกเอง</span>';
+  }
+  function productCard(p) {
+    const img = p.image_url || p.image_path || (p.source === 'sample' ? SAMPLE_IMG : '');
+    const price = p.price_max && p.price_min && p.price_max !== p.price_min ? `${baht(p.price_min)}–${baht(p.price_max)}` : (p.price != null ? '฿' + Number(p.price).toLocaleString('th-TH', { minimumFractionDigits: 2 }) : '-');
+    const link = p.offer_link || '';
+    const off = p.active === 0;
+    return `<div class="v8-pc ${off ? 'is-off' : ''}" data-pid="${p.id}">
+      <div class="v8-pc-img">${img ? `<img src="${esc(img)}" alt="" loading="lazy">` : '<div class="v8-pc-noimg">ไม่มีรูป</div>'}${p.discount_rate ? `<span class="v8-pc-off">${Math.round(Number(p.discount_rate))}% OFF</span>` : ''}</div>
+      <div class="v8-pc-body">
+        <div class="v8-pc-title-row"><div class="v8-pc-title" title="${esc(p.title)}">${esc(p.title)}</div>
+          <button class="btn btn-ghost btn-sm" onclick="AASv8.renameProduct(${p.id}, ${jsArg(p.title)})">✎ แก้ชื่อ</button></div>
+        <div class="v8-pc-price-row"><span class="v8-pc-price">${price}</span>${productStatus(p)}</div>
+        <span class="v8-pc-comm">อัตราค่าคอมมิชชัน ${p.commission_rate != null ? Number(p.commission_rate) + '%' : '-'}</span>
+        <div class="v8-muted v8-small">${p.sales ? 'ขายได้ ' + Number(p.sales).toLocaleString('th-TH') + ' ชิ้น' : (p.commission_baht ? '≈ ' + baht(p.commission_baht) + '/ชิ้น' : '&nbsp;')}</div>
+        <div class="v8-pc-link"><span class="v8-pc-linkbox ${link ? 'has' : ''}" title="${esc(link)}">${link ? esc(link.replace(/^https:\/\//, '')) : 'ยังไม่มีลิงก์ affiliate'}</span>
+          <button class="btn btn-ghost btn-sm" onclick="AASv8.editLink(${p.id}, ${jsArg(link)})" title="แก้ลิงก์ affiliate">✎</button></div>
+        <div class="v8-muted v8-small">ID ${esc(p.item_id || ('#' + p.id))}</div>
+        <div class="v8-pc-actions">
+          <button class="btn btn-primary btn-sm" onclick="AASv8.studioWithProduct(${p.id})">✨ สร้างคอนเทนต์</button>
+          <button class="btn btn-secondary btn-sm" onclick="AASv8.openPublish(${p.id})">📤 โพสต์</button>
+          ${p.item_id && p.source === 'shopee_affiliate_api' ? `<button class="btn btn-ghost btn-sm" onclick="AASv8.refreshProduct(${p.id}, this)" title="อัปเดตราคา/ค่าคอมจาก Shopee">🔄</button>` : ''}
+        </div>
+        <div class="v8-pc-foot">
+          <label class="v8-switch"><input type="checkbox" ${off ? '' : 'checked'} onchange="AASv8.toggleProduct(${p.id}, this.checked)"><span class="v8-switch-track"></span><span>ใช้งาน</span></label>
+          <button class="btn btn-ghost btn-sm v8-danger" onclick="AASv8.deleteProduct(${p.id})">🗑 ลบ</button>
+        </div>
+      </div></div>`;
+  }
+  function renderProducts(prods) {
+    const badge = $('badge-products-count'); if (badge) badge.textContent = prods.length;
+    const head = $('v8ProductCount'); if (head) head.textContent = `สินค้า ${prods.length} รายการ`;
+    const grid = $('v8ProductGrid'); if (!grid) return;
+    grid.innerHTML = prods.length ? prods.map(productCard).join('')
+      : stateBox('empty', 'ยังไม่มีสินค้า — กด "↓ นำเข้า CSV/Excel" หรือ "+ เพิ่มสินค้าเอง" หรือดึงจาก Shopee ด้านบน', null);
+  }
+  async function patchProduct(id, body, okMsg) {
+    try { await api(`/api/my/products/${id}`, 'PATCH', body); if (okMsg) toast(okMsg, 'success'); AAS.reloadProducts(); }
+    catch (e) { toast(e.message, 'error'); AAS.reloadProducts(); }
   }
 
   // =========================================================== PUBLISH MODAL
@@ -1780,6 +1963,10 @@
     loadHelp: () => Help.load(),
     openThread: id => Chat.openThread(id),
     openPay: () => Pay.open(),
+    renderProducts,
+    renameProduct(id, cur) { const t = (prompt('ชื่อสินค้าใหม่', cur) || '').trim(); if (t && t !== cur) patchProduct(id, { title: t }, 'เปลี่ยนชื่อแล้ว'); },
+    editLink(id, cur) { const v = prompt('ลิงก์ affiliate (https://s.shopee.co.th/… หรือเว้นว่างเพื่อลบ)', cur); if (v === null) return; patchProduct(id, { offer_link: v.trim() }, v.trim() ? 'บันทึกลิงก์แล้ว' : 'ลบลิงก์แล้ว'); },
+    toggleProduct(id, on) { patchProduct(id, { active: !!on }, on ? 'เปิดใช้งานสินค้า' : 'ปิดใช้งานสินค้า (จะไม่ขึ้นในหน้าสร้างคอนเทนต์)'); },
     toast: (m, t) => toast(m, t),
     askAbout() { AAS.switchTab('help'); },
     loadStudio: () => Studio.load(),
@@ -1851,7 +2038,7 @@
   });
 
   function init() {
-    Shopee.bind(); Conn.bind(); Studio.bind(); AutoPost.bind(); Onboard.bind(); Profile.bind(); Pay.bind(); ImportFile.bind();
+    Shopee.bind(); Conn.bind(); Studio.bind(); AutoPost.bind(); Onboard.bind(); Profile.bind(); Pay.bind(); ImportFile.bind(); Fetch.bind();
     api('/api/beta/capacity').then(c => { if (!c.invite_only) $('regInviteCode')?.closest('.form-group')?.setAttribute('hidden', ''); }).catch(() => {});
     if (!new URLSearchParams(location.search).get('oauth')) setTimeout(() => Onboard.open(false), 700);
     document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => { $(b.dataset.close).hidden = true; }));

@@ -621,6 +621,7 @@
           <div style="display:flex; gap:8px; flex-wrap:wrap">
             <button class="btn btn-secondary" id="v8ImportFileBtn">↓ นำเข้า CSV/Excel</button>
             <button class="btn btn-secondary" id="addNewProductBtn">+ เพิ่มสินค้าเอง</button>
+            <button class="btn btn-primary" id="v8FetchBtn">⬇ ดึงสินค้า</button>
           </div>
         </div>
 
@@ -682,27 +683,10 @@
           </form>
         </div>
 
-        <!-- Products Table -->
-        <div class="data-table-container">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>สินค้า</th>
-                <th>ราคา</th>
-                <th>ค่าคอม</th>
-                <th>ยอดขาย/เรตติ้ง</th>
-                <th data-i18n="col_extra_comm">Extra Comm</th>
-                <th>ที่มา</th>
-                <th data-i18n="col_actions">การทำงาน</th>
-              </tr>
-            </thead>
-            <tbody id="productlist">
-              <tr>
-                <td colspan="7" style="text-align:center; padding:24px; color:var(--color-text-muted);" data-i18n="no_products">ยังไม่มีสินค้าในรายการ ลองเพิ่มสินค้าแรกได้เลย</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <!-- Products: card grid (V8) -->
+        <div class="v8-prod-head"><h3 id="v8ProductCount">สินค้า 0 รายการ</h3></div>
+        <div id="v8ProductGrid" class="v8-prod-grid"></div>
+        <table hidden><tbody id="productlist"></tbody></table>
       </section>
 
 
@@ -2614,6 +2598,15 @@
     <div id="v8PayBody"></div>
   </div>
 </div>
+<!-- V8: Fetch products from Shopee Affiliate Open API -->
+<div class="modal-backdrop" id="v8Fetch" hidden>
+  <div class="modal-content v8-import" role="dialog" aria-modal="true" aria-labelledby="v8FetchTitle">
+    <button class="modal-close-btn" id="v8FetchClose" aria-label="ปิด">&times;</button>
+    <h2 id="v8FetchTitle" class="v8-onb-title">ตั้งค่าการดึงสินค้า Shopee</h2>
+    <div id="v8FetchBody"></div>
+  </div>
+</div>
+
 <!-- V8: Import products from CSV / Excel -->
 <div class="modal-backdrop" id="v8Import" hidden>
   <div class="modal-content v8-import" role="dialog" aria-modal="true" aria-labelledby="v8ImportTitle">

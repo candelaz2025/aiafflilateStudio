@@ -1488,7 +1488,7 @@ def create_app(data_dir=None, secret_key=None):
         return read('''SELECT id,title,url,platform,created_at,extra_comm_checked,extra_comm_rate,extra_comm_checked_at,
                        price,price_min,price_max,commission_rate,seller_comm_rate,shopee_comm_rate,commission_baht,image_url,
                        CASE WHEN image_file!='' THEN '/media/products/'||image_file ELSE '' END AS image_path,
-                       shop_name,item_id,shop_id,offer_link,sales,rating,source,synced_at
+                       shop_name,item_id,shop_id,offer_link,sales,rating,source,synced_at,active,discount_rate
                        FROM products WHERE user_id=? ORDER BY id DESC LIMIT 200''',(u['id'],))
 
     @app.post('/api/my/products')

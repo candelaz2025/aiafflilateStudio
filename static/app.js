@@ -824,6 +824,7 @@
           prods.map(p => `<option value="${p.id}">${esc(p.title)} (${esc(p.platform)})</option>`).join('');
       }
 
+      if (window.AASv8 && window.AASv8.renderProducts) { window.AASv8.renderProducts(prods); syncVideoProductSelect(); return; }
       if (!prods.length) {
         tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:24px; color:var(--color-text-muted);">${i18n[currentLang].no_products}</td></tr>`;
         return;

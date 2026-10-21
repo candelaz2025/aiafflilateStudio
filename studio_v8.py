@@ -179,7 +179,7 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, now, data_d
         u = require_user(req)
         seed_if_new(u['id'])
         products = read('''SELECT id,title,price,commission_rate,commission_baht,image_url,image_file,source,platform,offer_link,url
-                           FROM products WHERE user_id=? ORDER BY id DESC LIMIT 100''', (u['id'],))
+                           FROM products WHERE user_id=? AND COALESCE(active,1)=1 ORDER BY id DESC LIMIT 100''', (u['id'],))
         for p in products:
             p['image'] = p['image_url'] or (f"/media/products/{p['image_file']}" if p['image_file'] else (sample_img if p['source'] == 'sample' else ''))
         projects = [project_out(p) for p in read('SELECT * FROM studio_projects WHERE user_id=? ORDER BY id DESC LIMIT 20', (u['id'],))]

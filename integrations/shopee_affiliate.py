@@ -104,7 +104,12 @@ def normalize(node: dict) -> dict:
     }
 
 
-def product_offers(app_id, secret, *, keyword='', shop_id=None, item_id=None, sort='commission', page=1, limit=20) -> dict:
+# productOfferV2 listType: 1 = Highest Commission, 2 = Top Performing (official enum)
+LIST_TYPES = {'highest_commission': 1, 'top_performing': 2}
+
+
+def product_offers(app_id, secret, *, keyword='', shop_id=None, item_id=None, sort='commission', page=1, limit=20,
+                   list_type: str = '', ams_only: bool = False) -> dict:
     args = [f'page:{int(page)}', f'limit:{max(1, min(int(limit), 50))}']
     if keyword:
         args.append(f'keyword:{json.dumps(keyword[:120], ensure_ascii=False)}')
@@ -112,6 +117,10 @@ def product_offers(app_id, secret, *, keyword='', shop_id=None, item_id=None, so
         args.append(f'shopId:{int(shop_id)}')
     if item_id:
         args.append(f'itemId:{int(item_id)}')
+    if list_type in LIST_TYPES:
+        args.append(f'listType:{LIST_TYPES[list_type]}')
+    if ams_only:
+        args.append('isAMSOffer:true')
     args.append(f'sortType:{SORT_TYPES.get(sort, 5)}')
     q = '{productOfferV2(%s){nodes{%s} pageInfo{page limit hasNextPage}}}' % (','.join(args), NODE_FIELDS)
     data = graphql(app_id, secret, q).get('productOfferV2') or {}

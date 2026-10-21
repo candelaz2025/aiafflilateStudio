@@ -290,3 +290,64 @@ def test_admin_integrations(env, tmp_path):
     assert d['meta_app_secret'] == {'set': True, 'from_env': True} and 'value' not in d['meta_app_secret']
     assert a.put('/api/admin/integrations', headers=ha, json={'public_base_url': 'javascript:x'}).status_code == 400
     assert a.put('/api/admin/integrations', headers=ha, json={'meta_app_id': 'abc'}).status_code == 400
+
+def test_shopee_bulk_fetch_job(env):
+    import time as _t
+    app, mock = env
+    c = TestClient(app); h = signup(c, 'fetcher')
+    # no credentials yet → 409 from need_creds (UI then shows the AppID/Secret form)
+    assert c.post('/api/shopee/fetch', headers=h, json={'mode': 'category', 'limit': 10}).status_code == 409
+    assert c.put('/api/shopee/credentials', headers=h, json={'app_id': '15012345678', 'secret': 'MOCKSHOPEESECRET01'}).status_code == 200
+    r = c.post('/api/shopee/fetch', headers=h, json={'mode': 'category', 'list_type': 'top_performing', 'limit': 3})
+    assert r.status_code == 200, r.text
+    job = r.json()['job_id']
+    for _ in range(60):
+        j = c.get(f'/api/shopee/fetch/{job}').json()
+        if j['status'] != 'running':
+            break
+        _t.sleep(0.1)
+    assert j['status'] == 'done', j
+    assert j['done'] == 3 and j['added'] == 3 and len(j['items']) == 3
+    prods = c.get('/api/my/products').json()
+    assert len(prods) == 3 and all(p['source'] == 'shopee_affiliate_api' and p['offer_link'] for p in prods)
+    # second run with the same items → updates, no duplicates
+    job2 = c.post('/api/shopee/fetch', headers=h, json={'mode': 'search', 'keyword': 'พัดลม', 'limit': 5}).json()['job_id']
+    for _ in range(60):
+        j2 = c.get(f'/api/shopee/fetch/{job2}').json()
+        if j2['status'] != 'running':
+            break
+        _t.sleep(0.1)
+    assert j2['status'] == 'done' and j2['updated'] >= 1
+    assert len(c.get('/api/my/products').json()) >= 3
+    # the listType arg really reached the API
+    calls = requests.get(mock + '/_log').json()['calls']
+    assert any('listType:2' in x.get('query', '') for x in calls if x['kind'] == 'shopee.graphql')
+    # another user cannot read this job
+    b = TestClient(app); hb = signup(b, 'other')
+    assert b.get(f'/api/shopee/fetch/{job}').status_code == 404
+    # search mode needs a keyword
+    assert c.post('/api/shopee/fetch', headers=h, json={'mode': 'search', 'keyword': 'x'}).status_code == 400
+
+
+def test_product_patch_and_toggle(env):
+    app, mock = env
+    c = TestClient(app); h = signup(c, 'editor')
+    pid = c.post('/api/my/products/manual', headers=h, data={'title': 'หูฟังทดสอบ', 'price': '100', 'commission_rate': '5'}).json()['id']
+    r = c.patch(f'/api/my/products/{pid}', headers=h, json={'title': 'หูฟังชื่อใหม่', 'offer_link': 'https://s.shopee.co.th/abc'})
+    assert r.status_code == 200, r.text
+    p = c.get('/api/my/products').json()[0]
+    assert p['title'] == 'หูฟังชื่อใหม่' and p['offer_link'] == 'https://s.shopee.co.th/abc' and p['active'] == 1
+    assert c.patch(f'/api/my/products/{pid}', headers=h, json={'offer_link': 'https://evil.com/x'}).status_code == 400
+    # price change recomputes commission_baht
+    c.patch(f'/api/my/products/{pid}', headers=h, json={'price': 200})
+    assert c.get('/api/my/products').json()[0]['commission_baht'] == 10
+    # toggle off → hidden from the studio picker
+    c.patch(f'/api/my/products/{pid}', headers=h, json={'active': False})
+    assert c.get('/api/my/products').json()[0]['active'] == 0
+    assert all(x['id'] != pid for x in c.get('/api/studio/bootstrap').json()['products'])
+    # sample downloads
+    assert c.get('/api/my/products/import-file/sample.csv').status_code == 200
+    assert c.get('/api/my/products/import-file/sample.xlsx').headers['content-type'].startswith('application/vnd.openxmlformats')
+    # other user cannot edit
+    b = TestClient(app); hb = signup(b, 'stranger')
+    assert b.patch(f'/api/my/products/{pid}', headers=hb, json={'title': 'hack hack'}).status_code == 404

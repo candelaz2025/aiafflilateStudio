@@ -55,6 +55,14 @@ class IntegrationConfigIn(BaseModel):
     public_base_url: str | None = Field(default=None, max_length=200)
 
 
+class ProductPatchIn(BaseModel):
+    title: str | None = Field(default=None, min_length=3, max_length=200)
+    offer_link: str | None = Field(default=None, max_length=1000)
+    price: float | None = Field(default=None, ge=0, le=10_000_000)
+    commission_rate: float | None = Field(default=None, ge=0, le=100)
+    active: bool | None = None
+
+
 class BulkDeleteIn(BaseModel):
     source: str = Field(min_length=3, max_length=32)
 
@@ -90,6 +98,15 @@ class ShopeeCredIn(BaseModel):
 
 class ShopeeLookupIn(BaseModel):
     url: str = Field(min_length=10, max_length=1000)
+
+
+class ShopeeFetchIn(BaseModel):
+    mode: str = Field(default='search', pattern='^(search|category)$')
+    keyword: str = Field(default='', max_length=120)
+    list_type: str = Field(default='highest_commission', pattern='^(highest_commission|top_performing)$')
+    ams_only: bool = True
+    sort: str = Field(default='relevance', pattern='^(relevance|sales|commission)$')
+    limit: int = Field(default=20, ge=1, le=100)
 
 
 class ShopeeImportIn(BaseModel):
@@ -190,7 +207,8 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, cipher, now
                           ('shop_name', "TEXT NOT NULL DEFAULT ''"), ('shop_id', "TEXT NOT NULL DEFAULT ''"),
                           ('item_id', "TEXT NOT NULL DEFAULT ''"), ('offer_link', "TEXT NOT NULL DEFAULT ''"),
                           ('product_link', "TEXT NOT NULL DEFAULT ''"), ('sales', 'INTEGER'), ('rating', 'REAL'),
-                          ('source', "TEXT NOT NULL DEFAULT 'manual'"), ('synced_at', 'TEXT')]:
+                          ('source', "TEXT NOT NULL DEFAULT 'manual'"), ('synced_at', 'TEXT'),
+                          ('active', 'INTEGER NOT NULL DEFAULT 1'), ('discount_rate', 'REAL')]:
             if name not in p_cols:
                 db.execute(f'ALTER TABLE products ADD COLUMN {name} {ddl}')
         db.execute('CREATE INDEX IF NOT EXISTS products_item ON products(user_id, item_id)')
@@ -1089,14 +1107,14 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, cipher, now
             if product_id:
                 c.execute('''UPDATE products SET title=?, url=?, price=?, price_min=?, price_max=?, commission_rate=?,
                              seller_comm_rate=?, shopee_comm_rate=?, commission_baht=?, image_url=?, shop_name=?, shop_id=?,
-                             item_id=?, offer_link=?, product_link=?, sales=?, rating=?, synced_at=?, source='shopee_affiliate_api'
-                             WHERE id=? AND user_id=?''', vals + (product_id, user_id))
+                             item_id=?, offer_link=?, product_link=?, sales=?, rating=?, synced_at=?, source='shopee_affiliate_api',
+                             discount_rate=? WHERE id=? AND user_id=?''', vals + (item.get('discount_rate'), product_id, user_id))
                 return product_id
             cur = c.execute('''INSERT INTO products(user_id, platform, created_at, title, url, price, price_min, price_max,
                                commission_rate, seller_comm_rate, shopee_comm_rate, commission_baht, image_url, shop_name,
-                               shop_id, item_id, offer_link, product_link, sales, rating, synced_at, source)
-                               VALUES (?, 'shopee', ?, ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, 'shopee_affiliate_api')''',
-                            (user_id, now()) + vals)
+                               shop_id, item_id, offer_link, product_link, sales, rating, synced_at, source, discount_rate)
+                               VALUES (?, 'shopee', ?, ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, 'shopee_affiliate_api', ?)''',
+                            (user_id, now()) + vals + (item.get('discount_rate'),))
             return cur.lastrowid
 
     @app.post('/api/shopee/import')
@@ -1113,6 +1131,84 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, cipher, now
             raise HTTPException(400, str(e))
         pid = save_item(u['id'], item)
         return {'id': pid, 'item': item, 'message': f'เพิ่ม "{item["title"][:40]}" สำเร็จ'}
+
+    # ---- bulk fetch via the official Open API (background job + progress polling)
+    import threading
+    fetch_jobs: dict[str, dict] = {}
+
+    def _run_fetch(job_id: str):
+        job = fetch_jobs[job_id]
+        try:
+            creds, want = job['creds'], job['limit']
+            page, seen = 1, set()
+            while len(seen) < want and page <= 10:
+                res = shopee.product_offers(*creds, keyword=job['keyword'], sort=job['sort'], page=page, limit=min(50, want),
+                                            list_type=job['list_type'] if job['mode'] == 'category' else '',
+                                            ams_only=job['ams_only'])
+                items = res['items']
+                if not items:
+                    break
+                job['total'] = min(want, job['total'] + len(items)) if job['total'] else min(want, len(items))
+                for it in items:
+                    if len(seen) >= want:
+                        break
+                    if not it['item_id'] or it['item_id'] in seen:
+                        continue
+                    seen.add(it['item_id'])
+                    existing = read('SELECT id FROM products WHERE user_id=? AND item_id=?', (job['user_id'], it['item_id']), True)
+                    pid = save_item(job['user_id'], it, existing['id'] if existing else None)
+                    job['updated' if existing else 'added'] += 1
+                    job['done'] = len(seen)
+                    job['items'].append({'id': pid, 'title': it['title'], 'image_url': it['image_url'], 'price': it['price'],
+                                         'commission_rate': it['commission_rate'], 'sales': it['sales'],
+                                         'discount_rate': it.get('discount_rate'), 'updated': bool(existing)})
+                if not (res.get('page_info') or {}).get('hasNextPage'):
+                    break
+                page += 1
+                time.sleep(0.4)  # be polite to the API between pages
+            job['total'] = job['done']
+            job['status'] = 'done'
+        except shopee.ShopeeError as e:
+            job['status'] = 'error'; job['error'] = str(e)
+        except Exception as e:  # never leave a job spinning forever
+            job['status'] = 'error'; job['error'] = f'เกิดข้อผิดพลาด: {e}'
+        finally:
+            job.pop('creds', None)
+            job['finished_at'] = time.time()
+
+    @app.post('/api/shopee/fetch')
+    def shopee_fetch_start(body: ShopeeFetchIn, req: Request, x_csrf_token: str | None = Header(default=None)):
+        """Pull products from Shopee Affiliate Open API into the user's library (no cookies, no scraping)."""
+        u = mutation(req, x_csrf_token)
+        limit(u['id'], 'shopee-fetch', 4)
+        creds = need_creds(u['id'])
+        kw = body.keyword.strip()
+        if body.mode == 'search' and len(kw) < 2:
+            raise HTTPException(400, 'พิมพ์คีย์เวิร์ดอย่างน้อย 2 ตัวอักษร')
+        # one running job per user
+        for j in fetch_jobs.values():
+            if j['user_id'] == u['id'] and j['status'] == 'running':
+                raise HTTPException(409, 'กำลังดึงสินค้าอยู่ รอให้รอบก่อนเสร็จก่อน')
+        # drop finished jobs older than 10 minutes
+        for k in [k for k, j in fetch_jobs.items() if j['status'] != 'running' and time.time() - j.get('finished_at', 0) > 600]:
+            fetch_jobs.pop(k, None)
+        job_id = secrets.token_urlsafe(12)
+        fetch_jobs[job_id] = {'user_id': u['id'], 'status': 'running', 'mode': body.mode, 'keyword': kw if body.mode == 'search' else '',
+                              'list_type': body.list_type, 'ams_only': body.ams_only, 'sort': body.sort, 'limit': body.limit,
+                              'creds': creds, 'total': 0, 'done': 0, 'added': 0, 'updated': 0, 'items': [], 'error': '',
+                              'started_at': time.time()}
+        threading.Thread(target=_run_fetch, args=(job_id,), daemon=True).start()
+        return {'job_id': job_id}
+
+    @app.get('/api/shopee/fetch/{job_id}')
+    def shopee_fetch_status(job_id: str, req: Request, since: int = 0):
+        u = require_user(req)
+        job = fetch_jobs.get(job_id)
+        if not job or job['user_id'] != u['id']:
+            raise HTTPException(404, 'ไม่พบงานดึงสินค้า')
+        return {'status': job['status'], 'total': job['total'], 'done': job['done'], 'added': job['added'],
+                'updated': job['updated'], 'error': job['error'], 'items': job['items'][since:],
+                'next': len(job['items'])}
 
     @app.post('/api/my/products/{product_id}/refresh')
     def shopee_refresh(product_id: int, req: Request, x_csrf_token: str | None = Header(default=None)):
@@ -1287,6 +1383,64 @@ def register(app: FastAPI, *, connect, read, require_user, mutation, cipher, now
         return {'added': added, 'updated': updated, 'images': images, 'skipped': skipped,
                 'total': added + updated,
                 'message': f'นำเข้าสำเร็จ — เพิ่ม {added}, อัปเดต {updated} รายการ' + (f' · ดาวน์โหลดรูป {images}' if images else '')}
+
+    @app.patch('/api/my/products/{product_id}')
+    def patch_product(product_id: int, body: ProductPatchIn, req: Request, x_csrf_token: str | None = Header(default=None)):
+        """Edit the user's own product: name, affiliate link, price, commission, active toggle."""
+        u = mutation(req, x_csrf_token)
+        p = product_for(u['id'], product_id)
+        sets, vals = [], []
+        if body.title is not None:
+            sets.append('title=?'); vals.append(body.title.strip())
+        if body.offer_link is not None:
+            link = body.offer_link.strip()
+            if link and not file_import.aff_link(link):
+                raise HTTPException(400, 'ลิงก์ affiliate ต้องเป็น https ของ shopee.co.th / s.shopee.co.th / shp.ee')
+            sets.append('offer_link=?'); vals.append(link)
+            if link and not p.get('url'):
+                sets.append('url=?'); vals.append(link)
+        if body.price is not None:
+            sets.append('price=?'); vals.append(body.price)
+        if body.commission_rate is not None:
+            sets.append('commission_rate=?'); vals.append(body.commission_rate)
+        if body.active is not None:
+            sets.append('active=?'); vals.append(1 if body.active else 0)
+        if not sets:
+            raise HTTPException(400, 'ไม่มีข้อมูลที่จะแก้ไข')
+        price = body.price if body.price is not None else p.get('price')
+        rate = body.commission_rate if body.commission_rate is not None else p.get('commission_rate')
+        if body.price is not None or body.commission_rate is not None:
+            sets.append('commission_baht=?'); vals.append(round(price * rate / 100, 2) if price is not None and rate is not None else None)
+        with connect() as c:
+            c.execute(f'UPDATE products SET {",".join(sets)} WHERE id=? AND user_id=?', vals + [product_id, u['id']])
+        return {'ok': True, 'id': product_id}
+
+    @app.get('/api/my/products/import-file/sample.csv')
+    def import_sample_csv():
+        from fastapi.responses import Response
+        rows = ['ชื่อสินค้า,ราคา,ลิงก์ affiliate,URL ภาพสินค้า,รหัสสินค้า',
+                'หูฟังบลูทูธ TWS รุ่นใหม่,199,https://s.shopee.co.th/xxxxxxxx,,',
+                'เซรั่มบำรุงผิวหน้า,390,,,']
+        return Response(('\ufeff' + '\n'.join(rows) + '\n').encode('utf-8'), media_type='text/csv; charset=utf-8',
+                        headers={'Content-Disposition': 'attachment; filename="product-import-sample.csv"'})
+
+    @app.get('/api/my/products/import-file/sample.xlsx')
+    def import_sample_xlsx():
+        import io
+        from fastapi.responses import Response
+        try:
+            import openpyxl
+        except ImportError:
+            raise HTTPException(503, 'เซิร์ฟเวอร์ยังไม่มี openpyxl — ใช้ไฟล์ตัวอย่าง .csv แทน')
+        wb = openpyxl.Workbook(); ws = wb.active; ws.title = 'products'
+        ws.append(['ชื่อสินค้า', 'ราคา', 'ลิงก์ affiliate', 'URL ภาพสินค้า', 'รหัสสินค้า'])
+        ws.append(['หูฟังบลูทูธ TWS รุ่นใหม่', 199, 'https://s.shopee.co.th/xxxxxxxx', '', ''])
+        ws.append(['เซรั่มบำรุงผิวหน้า', 390, '', '', ''])
+        for col, w in zip('ABCDE', (34, 10, 36, 44, 16)):
+            ws.column_dimensions[col].width = w
+        buf = io.BytesIO(); wb.save(buf)
+        return Response(buf.getvalue(), media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                        headers={'Content-Disposition': 'attachment; filename="product-import-sample.xlsx"'})
 
     @app.post('/api/my/products/bulk-delete')
     def bulk_delete_products(body: BulkDeleteIn, req: Request, x_csrf_token: str | None = Header(default=None)):
