@@ -1,17 +1,20 @@
 data
-studio_v6/*
-!studio_v6/product_discovery.py
-!studio_v6/video_service.py
-.venv
-__pycache__
+studio_v6/data
+studio_v6/tests
+**/__pycache__
 *.pyc
 *.db
 *.key
+.venv
 .env
 .env.*
 !.env.server.example
 tests
-.tests*
+tests_*
 .pytest_cache
 .git
+_sync
+public
+AIStudio.app
+Logo Design
 updates/backups
